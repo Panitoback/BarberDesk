@@ -47,3 +47,6 @@ ROADMAP.md
 
 # claude code local config
 .claude/settings.local.json
+
+# MCP config (contiene tokens de acceso — nunca subir)
+.mcp.json
