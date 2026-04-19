@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=gjefeiwsvcjroklvkbuk&features=database%2Cdebugging%2Cdevelopment",
+      "headers": {
+        "Authorization": "Bearer sbp_c0667fb8ad0794ed541299b3ed90fde7ef78b022"
+      }
+    }
+  }
+}
