@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/User/.claude//**)",
+      "Read(//c/Users/User/.claude/**)",
+      "Bash(claude plugin *)",
+      "Bash(claude mcp *)",
+      "mcp__supabase__list_tables"
+    ]
+  },
+  "enabledPlugins": {}
+}
