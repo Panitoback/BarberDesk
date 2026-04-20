@@ -101,6 +101,54 @@ export type Database = {
           },
         ]
       }
+      citas: {
+        Row: {
+          client_id: string
+          created_at: string
+          estado: Database["public"]["Enums"]["cita_estado"]
+          fecha: string
+          hora: string
+          id: string
+          servicio: string
+          tenant_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["cita_estado"]
+          fecha: string
+          hora: string
+          id?: string
+          servicio: string
+          tenant_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["cita_estado"]
+          fecha?: string
+          hora?: string
+          id?: string
+          servicio?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "citas_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "citas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           created_at: string
@@ -330,6 +378,7 @@ export type Database = {
         | "reactivation_sms"
         | "review_request"
         | "sms_auto_reply"
+      cita_estado: "pendiente" | "completada" | "noshow" | "cancelada"
       loyalty_level: "bronze" | "silver" | "gold" | "platinum"
       message_direction: "inbound" | "outbound"
       message_status: "queued" | "sent" | "delivered" | "failed"
@@ -450,6 +499,7 @@ export const Constants = {
         "review_request",
         "sms_auto_reply",
       ],
+      cita_estado: ["pendiente", "completada", "noshow", "cancelada"],
       loyalty_level: ["bronze", "silver", "gold", "platinum"],
       message_direction: ["inbound", "outbound"],
       message_status: ["queued", "sent", "delivered", "failed"],

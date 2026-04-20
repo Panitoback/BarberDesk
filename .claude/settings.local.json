@@ -15,7 +15,9 @@
       "mcp__supabase__get_publishable_keys",
       "Bash(npm install *)",
       "Bash(npx shadcn@latest init -d)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__list_migrations"
     ]
   },
   "enabledPlugins": {}

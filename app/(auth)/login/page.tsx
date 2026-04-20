@@ -10,13 +10,25 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  function getBaseOrigin(): string {
+    const { protocol, hostname, port } = window.location
+    const portSuffix = port ? `:${port}` : ''
+    if (hostname.includes('localhost')) {
+      return `${protocol}//localhost${portSuffix}`
+    }
+    // Producción: carlos.barberpro.ca → barberpro.ca
+    const parts = hostname.split('.')
+    const base = parts.length > 2 ? parts.slice(1).join('.') : hostname
+    return `${protocol}//${base}${portSuffix}`
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback`
+    const redirectTo = `${getBaseOrigin()}/auth/callback`
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
