@@ -1,10 +1,10 @@
 -- ============================================================
--- BarberDesk — Schema inicial completo
--- Multi-tenant: cada tabla (excepto tenants) tiene tenant_id
--- RLS activo en todas las tablas
+-- BarberDesk — Initial schema
+-- Multi-tenant: every table (except tenants) has tenant_id
+-- RLS enabled on all tables
 -- ============================================================
 
--- gen_random_uuid() está disponible nativamente en PostgreSQL 13+
+-- gen_random_uuid() is natively available in PostgreSQL 13+
 
 -- ============================================================
 -- ENUMS
@@ -23,7 +23,7 @@ CREATE TYPE action_type AS ENUM (
 );
 
 -- ============================================================
--- TENANTS — tabla raíz, es el tenant
+-- TENANTS — root table, one row per barbershop
 -- ============================================================
 
 CREATE TABLE tenants (
@@ -51,8 +51,8 @@ CREATE POLICY "tenants_insert_own" ON tenants
 CREATE POLICY "tenants_update_own" ON tenants
   FOR UPDATE USING (owner_id = auth.uid());
 
--- Helper: devuelve el tenant_id del usuario autenticado
--- Usado en todas las políticas RLS de las tablas hijas
+-- Returns the tenant_id for the currently authenticated user.
+-- Used by all child-table RLS policies.
 CREATE OR REPLACE FUNCTION get_tenant_id()
 RETURNS uuid
 LANGUAGE sql
@@ -128,7 +128,7 @@ CREATE POLICY "visits_update" ON visits
 CREATE POLICY "visits_delete" ON visits
   FOR DELETE USING (tenant_id = get_tenant_id());
 
--- Actualiza ultima_visita del cliente automáticamente
+-- Keeps ultima_visita on clients in sync after each visit insert
 CREATE OR REPLACE FUNCTION update_ultima_visita()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -180,7 +180,7 @@ CREATE POLICY "loyalty_delete" ON loyalty_points
   FOR DELETE USING (tenant_id = get_tenant_id());
 
 -- ============================================================
--- MESSAGES — historial de SMS (Twilio)
+-- MESSAGES — SMS history (Twilio)
 -- ============================================================
 
 CREATE TABLE messages (
@@ -210,7 +210,7 @@ CREATE POLICY "messages_update" ON messages
   FOR UPDATE USING (tenant_id = get_tenant_id());
 
 -- ============================================================
--- AUTOMATIONS_CONFIG — una fila por tenant
+-- AUTOMATIONS_CONFIG — one row per tenant
 -- ============================================================
 
 CREATE TABLE automations_config (
@@ -240,7 +240,7 @@ CREATE POLICY "automations_update" ON automations_config
   FOR UPDATE USING (tenant_id = get_tenant_id());
 
 -- ============================================================
--- ACTIONS_LOG — log inmutable de todas las acciones
+-- ACTIONS_LOG — immutable audit log
 -- ============================================================
 
 CREATE TABLE actions_log (
@@ -266,10 +266,10 @@ CREATE POLICY "actions_insert" ON actions_log
   FOR INSERT WITH CHECK (tenant_id = get_tenant_id());
 
 -- ============================================================
--- TRIGGERS DE INICIALIZACIÓN AUTOMÁTICA
+-- AUTO-INIT TRIGGERS
 -- ============================================================
 
--- Al crear un tenant → crea su fila en automations_config
+-- On tenant insert → create default automations_config row
 CREATE OR REPLACE FUNCTION init_tenant_defaults()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -287,7 +287,7 @@ CREATE TRIGGER trg_tenant_init_defaults
   AFTER INSERT ON tenants
   FOR EACH ROW EXECUTE FUNCTION init_tenant_defaults();
 
--- Al crear un cliente → crea su fila en loyalty_points
+-- On client insert → create default loyalty_points row
 CREATE OR REPLACE FUNCTION init_client_loyalty()
 RETURNS TRIGGER
 LANGUAGE plpgsql

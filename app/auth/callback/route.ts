@@ -5,16 +5,16 @@ import type { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
 
-  console.log("========== CALLBACK INICIADO ==========")
+  console.log("========== AUTH CALLBACK START ==========")
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
 
-  console.log("1. URL Completa recibida:", request.url)
-  console.log("2. Código extraído:", code ? "✅ SÍ HAY CÓDIGO" : "❌ NULL (Vacío)")
+  console.log("1. Full URL received:", request.url)
+  console.log("2. Code extracted:", code ? "✅ CODE PRESENT" : "❌ NULL (empty)")
 
   if (code) {
-    console.log("3. Entrando al flujo de intercambio de código...")
+    console.log("3. Entering code exchange flow...")
     const cookieStore = await cookies()
 
     const supabase = createServerClient(
@@ -37,23 +37,23 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      console.log("4. ✅ Sesión creada en Supabase y cookies guardadas.")
-      const forwardedHost = request.headers.get('x-forwarded-host')
+      console.log("4. ✅ Session created and cookies saved.")
       const isLocalEnv = process.env.NODE_ENV === 'development'
-    
+
       if (isLocalEnv) {
-        console.log(`5. Redirigiendo a entorno local: http://localhost:3000${next}`)
+        console.log(`5. Redirecting to local env: http://localhost:3000${next}`)
         return NextResponse.redirect(`http://localhost:3000${next}`)
       }
-    
-      console.log(`5. Redirigiendo a produccion: http://localhost:3000${next}`)
+
+      console.log(`5. Redirecting to production: ${origin}${next}`)
       return NextResponse.redirect(`${origin}${next}`)
-  }else{
-    console.error("4. ❌ Error de Supabase al intercambiar código:", error.message)
+    } else {
+      console.error("4. ❌ Supabase error exchanging code:", error.message)
+    }
+  } else {
+    console.log("3. ❌ No 'code' param found. Skipping auth.")
   }
-  }else{
-    console.log("3. ❌ No se encontró 'code' en los parámetros. Saltando autenticación.")
-  }
-  console.log(`=== FIN: Redirigiendo de vuelta al login con error ===\n`)
+
+  console.log(`=== END: Redirecting back to login with error ===\n`)
   return NextResponse.redirect(`${origin}/login?error=auth`)
 }

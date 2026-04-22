@@ -31,11 +31,11 @@ export async function GET() {
   const firstOfMonth = `${today.slice(0, 7)}-01`
 
   const [
-    { count: totalClientes },
-    { count: citasHoyCount },
-    { data: citasHoy },
-    { count: visitasMes },
-    { data: ingresosData },
+    { count: totalClients },
+    { count: todayCount },
+    { data: todayAppointments },
+    { count: monthlyVisits },
+    { data: revenueData },
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id),
     supabase.from('citas').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('fecha', today),
@@ -44,16 +44,16 @@ export async function GET() {
     supabase.from('visits').select('precio').eq('tenant_id', tenant.id).gte('fecha', firstOfMonth),
   ])
 
-  const ingresosMes = ingresosData?.reduce((sum, v) => sum + (v.precio ?? 0), 0) ?? 0
+  const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.precio ?? 0), 0) ?? 0
 
   return NextResponse.json({
     tenant,
     stats: {
-      total_clientes: totalClientes ?? 0,
-      citas_hoy: citasHoyCount ?? 0,
-      visitas_mes: visitasMes ?? 0,
-      ingresos_mes: ingresosMes,
+      total_clients:       totalClients ?? 0,
+      appointments_today:  todayCount ?? 0,
+      monthly_visits:      monthlyVisits ?? 0,
+      monthly_revenue:     monthlyRevenue,
     },
-    citas_hoy: citasHoy ?? [],
+    appointments_today: todayAppointments ?? [],
   })
 }

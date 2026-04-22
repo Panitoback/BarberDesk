@@ -19,8 +19,8 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // En Server Components las cookies solo se pueden escribir
-            // desde Server Actions o Route Handlers — ignorar silenciosamente.
+            // In Server Components cookies can only be written from
+            // Server Actions or Route Handlers — ignore silently.
           }
         },
       },

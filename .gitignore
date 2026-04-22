@@ -45,8 +45,11 @@ CLAUDE.md
 README.md
 ROADMAP.md
 
-# claude code local config
-.claude/settings.local.json
+# claude code — nothing from this directory goes to the repo
+.claude/
 
-# MCP config (contiene tokens de acceso — nunca subir)
+# MCP config (contains access tokens — never commit)
 .mcp.json
+
+# development artifacts
+tree.txt

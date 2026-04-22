@@ -6,13 +6,13 @@ export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') ?? ''
   const { pathname } = request.nextUrl
 
-  // 1. LIMPIEZA: Quitamos el puerto para analizar correctamente
+  // Strip port for subdomain detection
   const hostnameWithoutPort = hostname.split(':')[0]
   const isLocalhost = hostnameWithoutPort === 'localhost' || hostnameWithoutPort.endsWith('.localhost')
-  
+
   let subdomain: string | null = null
 
-  // --- Detectar subdominio real ---
+  // Detect subdomain
   if (isLocalhost) {
     const parts = hostnameWithoutPort.split('.')
     if (parts.length > 1 && parts[0] !== 'www') {
@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // --- Refrescar sesión de Supabase ---
+  // Refresh Supabase session
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // --- Routing según subdominio ---
+  // Route based on subdomain
   if (subdomain) {
     const isAuthPath = pathname === '/login' || pathname.startsWith('/auth/')
     const isApiPath = pathname.startsWith('/api/')
@@ -64,11 +64,11 @@ export async function proxy(request: NextRequest) {
     if (!isAuthPath && !isApiPath) {
       const rewriteUrl = request.nextUrl.clone()
       rewriteUrl.pathname = `/dashboard${pathname === '/' ? '' : pathname}`
-      
-      const rewriteResponse = NextResponse.rewrite(rewriteUrl, { 
-        request: { headers: newHeaders } 
+
+      const rewriteResponse = NextResponse.rewrite(rewriteUrl, {
+        request: { headers: newHeaders }
       })
-      
+
       response.cookies.getAll().forEach(cookie => {
         rewriteResponse.cookies.set(cookie.name, cookie.value)
       })
@@ -83,7 +83,7 @@ export async function proxy(request: NextRequest) {
     return nextResponse
   }
 
-  // Desarrollo: localhost:3000/dashboard/* sin subdominio para testing
+  // Dev: allow accessing /dashboard/* on localhost without subdomain for testing
   if (isLocalhost && pathname.startsWith('/dashboard')) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -91,7 +91,7 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  // Sin subdominio → zona landing, sin restricciones
+  // No subdomain → landing zone, no restrictions
   return response
 }
 

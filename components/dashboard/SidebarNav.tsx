@@ -7,11 +7,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/citas', label: 'Citas', icon: Calendar },
-  { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
-  { href: '/dashboard/mensajes', label: 'Mensajes', icon: MessageSquare },
-  { href: '/dashboard/configuracion', label: 'Configuración', icon: Settings },
+  { href: '/dashboard',               label: 'Dashboard',     icon: LayoutDashboard },
+  { href: '/dashboard/citas',         label: 'Appointments',  icon: Calendar },
+  { href: '/dashboard/clientes',      label: 'Clients',       icon: Users },
+  { href: '/dashboard/mensajes',      label: 'Messages',      icon: MessageSquare },
+  { href: '/dashboard/configuracion', label: 'Settings',      icon: Settings },
 ]
 
 export default function SidebarNav({ barberia }: { barberia: string }) {
@@ -60,7 +60,7 @@ export default function SidebarNav({ barberia }: { barberia: string }) {
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          Cerrar sesión
+          Sign out
         </button>
       </div>
     </aside>
