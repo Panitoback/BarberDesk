@@ -1,11 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 
+type Mode = 'magic' | 'password'
+
 export default function LoginPage() {
+  const router = useRouter()
+  const [mode, setMode] = useState<Mode>('password')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -16,7 +22,6 @@ export default function LoginPage() {
     if (hostname.includes('localhost')) {
       return `${protocol}//localhost${portSuffix}`
     }
-    // Production: carlos.barberpro.ca → barberpro.ca
     const parts = hostname.split('.')
     const base = parts.length > 2 ? parts.slice(1).join('.') : hostname
     return `${protocol}//${base}${portSuffix}`
@@ -28,11 +33,22 @@ export default function LoginPage() {
     setError(null)
 
     const supabase = createClient()
-    const redirectTo = `${getBaseOrigin()}/auth/callback`
+
+    if (mode === 'password') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+      router.refresh()
+      router.push('/dashboard')
+      return
+    }
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo: `${getBaseOrigin()}/auth/callback` },
     })
 
     if (error) {
@@ -40,7 +56,6 @@ export default function LoginPage() {
     } else {
       setSent(true)
     }
-
     setLoading(false)
   }
 
@@ -64,7 +79,32 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-10 w-full max-w-md space-y-6">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-zinc-900">Sign in to BarberPro</h1>
-          <p className="text-zinc-500 text-sm">We'll send you a magic link to your email.</p>
+        </div>
+
+        {/* Mode toggle */}
+        <div className="flex rounded-lg border border-zinc-200 p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => { setMode('password'); setError(null) }}
+            className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
+              mode === 'password'
+                ? 'bg-zinc-900 text-white font-medium'
+                : 'text-zinc-500 hover:text-zinc-700'
+            }`}
+          >
+            Password
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('magic'); setError(null) }}
+            className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
+              mode === 'magic'
+                ? 'bg-zinc-900 text-white font-medium'
+                : 'text-zinc-500 hover:text-zinc-700'
+            }`}
+          >
+            Magic link
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,12 +123,31 @@ export default function LoginPage() {
             />
           </div>
 
+          {mode === 'password' && (
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              />
+            </div>
+          )}
+
           {error && (
             <p className="text-sm text-red-600">{error}</p>
           )}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Sending...' : 'Send access link'}
+            {loading
+              ? 'Loading...'
+              : mode === 'password' ? 'Sign in' : 'Send access link'}
           </Button>
         </form>
       </div>

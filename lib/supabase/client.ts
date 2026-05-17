@@ -1,11 +1,14 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { SUPABASE_COOKIE_OPTIONS } from '../subdomain'
 import type { Database } from './types'
+
+const cookieOptions = process.env.NODE_ENV === 'production'
+  ? { domain: '.barberpro.ca' }
+  : undefined
 
 export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookieOptions: SUPABASE_COOKIE_OPTIONS }
+    { cookieOptions }
   )
 }

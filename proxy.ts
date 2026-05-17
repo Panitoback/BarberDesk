@@ -7,6 +7,12 @@ export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') ?? ''
   const { pathname } = request.nextUrl
 
+  // Auth callback must pass through untouched — calling getUser() here
+  // can wipe the PKCE code-verifier cookie before the callback route reads it.
+  if (pathname.startsWith('/auth/')) {
+    return NextResponse.next()
+  }
+
   const subdomain = extractSubdomainFromHost(hostname)
   const hostnameWithoutPort = hostname.split(':')[0]
   const isLocalhost =
