@@ -19,7 +19,7 @@ export type Database = {
           id: string
           metadata: Json
           tenant_id: string
-          tipo: Database["public"]["Enums"]["action_type"]
+          type: Database["public"]["Enums"]["action_type"]
         }
         Insert: {
           client_id?: string | null
@@ -27,7 +27,7 @@ export type Database = {
           id?: string
           metadata?: Json
           tenant_id: string
-          tipo: Database["public"]["Enums"]["action_type"]
+          type: Database["public"]["Enums"]["action_type"]
         }
         Update: {
           client_id?: string | null
@@ -35,7 +35,7 @@ export type Database = {
           id?: string
           metadata?: Json
           tenant_id?: string
-          tipo?: Database["public"]["Enums"]["action_type"]
+          type?: Database["public"]["Enums"]["action_type"]
         }
         Relationships: [
           {
@@ -54,83 +54,36 @@ export type Database = {
           },
         ]
       }
-      automations_config: {
-        Row: {
-          id: string
-          loyalty_active: boolean
-          noshow_active: boolean
-          noshow_mensaje: string | null
-          reactivation_active: boolean
-          reactivation_dias: number
-          review_active: boolean
-          review_link: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          loyalty_active?: boolean
-          noshow_active?: boolean
-          noshow_mensaje?: string | null
-          reactivation_active?: boolean
-          reactivation_dias?: number
-          review_active?: boolean
-          review_link?: string | null
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          loyalty_active?: boolean
-          noshow_active?: boolean
-          noshow_mensaje?: string | null
-          reactivation_active?: boolean
-          reactivation_dias?: number
-          review_active?: boolean
-          review_link?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automations_config_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      citas: {
+      appointments: {
         Row: {
           client_id: string
           created_at: string
-          estado: Database["public"]["Enums"]["cita_estado"]
-          fecha: string
-          hora: string
+          date: string
           id: string
-          servicio: string
+          service: string
+          status: Database["public"]["Enums"]["appointment_status"]
           tenant_id: string
+          time: string
         }
         Insert: {
           client_id: string
           created_at?: string
-          estado?: Database["public"]["Enums"]["cita_estado"]
-          fecha: string
-          hora: string
+          date: string
           id?: string
-          servicio: string
+          service: string
+          status?: Database["public"]["Enums"]["appointment_status"]
           tenant_id: string
+          time: string
         }
         Update: {
           client_id?: string
           created_at?: string
-          estado?: Database["public"]["Enums"]["cita_estado"]
-          fecha?: string
-          hora?: string
+          date?: string
           id?: string
-          servicio?: string
+          service?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
           tenant_id?: string
+          time?: string
         }
         Relationships: [
           {
@@ -149,36 +102,83 @@ export type Database = {
           },
         ]
       }
+      automations_config: {
+        Row: {
+          id: string
+          loyalty_active: boolean
+          noshow_active: boolean
+          noshow_message: string | null
+          reactivation_active: boolean
+          reactivation_days: number
+          review_active: boolean
+          review_link: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          loyalty_active?: boolean
+          noshow_active?: boolean
+          noshow_message?: string | null
+          reactivation_active?: boolean
+          reactivation_days?: number
+          review_active?: boolean
+          review_link?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          loyalty_active?: boolean
+          noshow_active?: boolean
+          noshow_message?: string | null
+          reactivation_active?: boolean
+          reactivation_days?: number
+          review_active?: boolean
+          review_link?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           created_at: string
           email: string | null
           id: string
+          last_visit: string | null
+          name: string
           no_show_count: number
-          nombre: string
-          telefono: string
+          phone: string
           tenant_id: string
-          ultima_visita: string | null
         }
         Insert: {
           created_at?: string
           email?: string | null
           id?: string
+          last_visit?: string | null
+          name: string
           no_show_count?: number
-          nombre: string
-          telefono: string
+          phone: string
           tenant_id: string
-          ultima_visita?: string | null
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
+          last_visit?: string | null
+          name?: string
           no_show_count?: number
-          nombre?: string
-          telefono?: string
+          phone?: string
           tenant_id?: string
-          ultima_visita?: string | null
         }
         Relationships: [
           {
@@ -194,24 +194,24 @@ export type Database = {
         Row: {
           client_id: string
           id: string
-          nivel: Database["public"]["Enums"]["loyalty_level"]
-          puntos: number
+          level: Database["public"]["Enums"]["loyalty_level"]
+          points: number
           tenant_id: string
           updated_at: string
         }
         Insert: {
           client_id: string
           id?: string
-          nivel?: Database["public"]["Enums"]["loyalty_level"]
-          puntos?: number
+          level?: Database["public"]["Enums"]["loyalty_level"]
+          points?: number
           tenant_id: string
           updated_at?: string
         }
         Update: {
           client_id?: string
           id?: string
-          nivel?: Database["public"]["Enums"]["loyalty_level"]
-          puntos?: number
+          level?: Database["public"]["Enums"]["loyalty_level"]
+          points?: number
           tenant_id?: string
           updated_at?: string
         }
@@ -234,32 +234,32 @@ export type Database = {
       }
       messages: {
         Row: {
+          body: string
           client_id: string | null
-          contenido: string
           created_at: string
-          direccion: Database["public"]["Enums"]["message_direction"]
-          estado: Database["public"]["Enums"]["message_status"]
+          direction: Database["public"]["Enums"]["message_direction"]
           id: string
+          status: Database["public"]["Enums"]["message_status"]
           tenant_id: string
           twilio_sid: string | null
         }
         Insert: {
+          body: string
           client_id?: string | null
-          contenido: string
           created_at?: string
-          direccion: Database["public"]["Enums"]["message_direction"]
-          estado?: Database["public"]["Enums"]["message_status"]
+          direction: Database["public"]["Enums"]["message_direction"]
           id?: string
+          status?: Database["public"]["Enums"]["message_status"]
           tenant_id: string
           twilio_sid?: string | null
         }
         Update: {
+          body?: string
           client_id?: string | null
-          contenido?: string
           created_at?: string
-          direccion?: Database["public"]["Enums"]["message_direction"]
-          estado?: Database["public"]["Enums"]["message_status"]
+          direction?: Database["public"]["Enums"]["message_direction"]
           id?: string
+          status?: Database["public"]["Enums"]["message_status"]
           tenant_id?: string
           twilio_sid?: string | null
         }
@@ -285,30 +285,30 @@ export type Database = {
           config: Json
           created_at: string
           id: string
-          nombre: string
+          name: string
           owner_id: string
           plan: Database["public"]["Enums"]["plan_type"]
-          subdominio: string
+          subdomain: string
           twilio_number: string | null
         }
         Insert: {
           config?: Json
           created_at?: string
           id?: string
-          nombre: string
+          name: string
           owner_id: string
           plan?: Database["public"]["Enums"]["plan_type"]
-          subdominio: string
+          subdomain: string
           twilio_number?: string | null
         }
         Update: {
           config?: Json
           created_at?: string
           id?: string
-          nombre?: string
+          name?: string
           owner_id?: string
           plan?: Database["public"]["Enums"]["plan_type"]
-          subdominio?: string
+          subdomain?: string
           twilio_number?: string | null
         }
         Relationships: []
@@ -317,34 +317,34 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
-          fecha: string
+          date: string
           id: string
-          notas: string | null
-          precio: number | null
-          puntos_ganados: number
-          servicio: string
+          notes: string | null
+          points_earned: number
+          price: number | null
+          service: string
           tenant_id: string
         }
         Insert: {
           client_id: string
           created_at?: string
-          fecha?: string
+          date?: string
           id?: string
-          notas?: string | null
-          precio?: number | null
-          puntos_ganados?: number
-          servicio: string
+          notes?: string | null
+          points_earned?: number
+          price?: number | null
+          service: string
           tenant_id: string
         }
         Update: {
           client_id?: string
           created_at?: string
-          fecha?: string
+          date?: string
           id?: string
-          notas?: string | null
-          precio?: number | null
-          puntos_ganados?: number
-          servicio?: string
+          notes?: string | null
+          points_earned?: number
+          price?: number | null
+          service?: string
           tenant_id?: string
         }
         Relationships: [
@@ -369,7 +369,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_tenant_id: { Args: never; Returns: string }
+      get_tenant_id: { Args: Record<PropertyKey, never>; Returns: string }
+      user_owns_tenant: { Args: { target_tenant_id: string }; Returns: boolean }
+      complete_appointment: {
+        Args: { p_appointment_id: string; p_tenant_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       action_type:
@@ -378,7 +383,7 @@ export type Database = {
         | "reactivation_sms"
         | "review_request"
         | "sms_auto_reply"
-      cita_estado: "pendiente" | "completada" | "noshow" | "cancelada"
+      appointment_status: "pending" | "completed" | "no_show" | "cancelled"
       loyalty_level: "bronze" | "silver" | "gold" | "platinum"
       message_direction: "inbound" | "outbound"
       message_status: "queued" | "sent" | "delivered" | "failed"
@@ -499,7 +504,7 @@ export const Constants = {
         "review_request",
         "sms_auto_reply",
       ],
-      cita_estado: ["pendiente", "completada", "noshow", "cancelada"],
+      appointment_status: ["pending", "completed", "no_show", "cancelled"],
       loyalty_level: ["bronze", "silver", "gold", "platinum"],
       message_direction: ["inbound", "outbound"],
       message_status: ["queued", "sent", "delivered", "failed"],

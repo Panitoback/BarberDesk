@@ -4,25 +4,25 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Tables } from '@/lib/supabase/types'
 
-type AppointmentWithClient = Tables<'citas'> & {
-  clients: { nombre: string; telefono: string } | null
+type AppointmentWithClient = Tables<'appointments'> & {
+  clients: { name: string; phone: string } | null
 }
 
 const statusStyles: Record<string, string> = {
-  pendiente:  'bg-amber-50 text-amber-700 ring-amber-200',
-  completada: 'bg-green-50 text-green-700 ring-green-200',
-  noshow:     'bg-red-50 text-red-700 ring-red-200',
-  cancelada:  'bg-zinc-100 text-zinc-500 ring-zinc-200',
+  pending:   'bg-amber-50 text-amber-700 ring-amber-200',
+  completed: 'bg-green-50 text-green-700 ring-green-200',
+  no_show:   'bg-red-50 text-red-700 ring-red-200',
+  cancelled: 'bg-zinc-100 text-zinc-500 ring-zinc-200',
 }
 
 const statusLabel: Record<string, string> = {
-  pendiente:  'Pending',
-  completada: 'Completed',
-  noshow:     'No show',
-  cancelada:  'Cancelled',
+  pending:   'Pending',
+  completed: 'Completed',
+  no_show:   'No show',
+  cancelled:  'Cancelled',
 }
 
-export default function CitasHoyTable({ citas: initialAppointments }: { citas: AppointmentWithClient[] }) {
+export default function AppointmentsTodayTable({ appointments: initialAppointments }: { appointments: AppointmentWithClient[] }) {
   const [appointments, setAppointments] = useState(initialAppointments)
   const [completing, setCompleting] = useState<string | null>(null)
   const [, startTransition] = useTransition()
@@ -31,15 +31,15 @@ export default function CitasHoyTable({ citas: initialAppointments }: { citas: A
   async function completeAppointment(appointmentId: string) {
     setCompleting(appointmentId)
 
-    const res = await fetch('/api/citas/completar', {
+    const res = await fetch('/api/appointments/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cita_id: appointmentId }),
+      body: JSON.stringify({ appointment_id: appointmentId }),
     })
 
     if (res.ok) {
       setAppointments(prev =>
-        prev.map(a => a.id === appointmentId ? { ...a, estado: 'completada' as const } : a)
+        prev.map(a => a.id === appointmentId ? { ...a, status: 'completed' as const } : a)
       )
       startTransition(() => router.refresh())
     }
@@ -71,20 +71,20 @@ export default function CitasHoyTable({ citas: initialAppointments }: { citas: A
           {appointments.map((appointment) => (
             <tr key={appointment.id} className="hover:bg-zinc-50 transition-colors">
               <td className="px-6 py-4 font-mono font-medium text-zinc-900">
-                {appointment.hora.slice(0, 5)}
+                {appointment.time.slice(0, 5)}
               </td>
               <td className="px-6 py-4">
-                <p className="font-medium text-zinc-900">{appointment.clients?.nombre ?? '—'}</p>
-                <p className="text-xs text-zinc-400">{appointment.clients?.telefono}</p>
+                <p className="font-medium text-zinc-900">{appointment.clients?.name ?? '—'}</p>
+                <p className="text-xs text-zinc-400">{appointment.clients?.phone}</p>
               </td>
-              <td className="px-6 py-4 text-zinc-600">{appointment.servicio}</td>
+              <td className="px-6 py-4 text-zinc-600">{appointment.service}</td>
               <td className="px-6 py-4">
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[appointment.estado]}`}>
-                  {statusLabel[appointment.estado]}
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[appointment.status]}`}>
+                  {statusLabel[appointment.status]}
                 </span>
               </td>
               <td className="px-6 py-4">
-                {appointment.estado === 'pendiente' && (
+                {appointment.status === 'pending' && (
                   <button
                     onClick={() => completeAppointment(appointment.id)}
                     disabled={completing === appointment.id}

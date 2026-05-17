@@ -24,7 +24,8 @@ function formatDateTime(isoStr: string) {
   })
 }
 
-export default async function ClientDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const tenant = await getTenant()
   if (!tenant) redirect('/login')
 
@@ -36,20 +37,20 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     { data: visits },
     { data: messages },
   ] = await Promise.all([
-    supabase.from('clients').select('id, nombre, telefono, email, no_show_count').eq('id', params.id).eq('tenant_id', tenant.id).single(),
-    supabase.from('loyalty_points').select('puntos, nivel').eq('client_id', params.id).eq('tenant_id', tenant.id).single(),
-    supabase.from('visits').select('id, fecha, servicio, precio, puntos_ganados').eq('client_id', params.id).eq('tenant_id', tenant.id).order('fecha', { ascending: false }),
-    supabase.from('messages').select('id, direccion, contenido, estado, created_at').eq('client_id', params.id).eq('tenant_id', tenant.id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('clients').select('id, name, phone, email, no_show_count').eq('id', id).eq('tenant_id', tenant.id).single(),
+    supabase.from('loyalty_points').select('points, level').eq('client_id', id).eq('tenant_id', tenant.id).single(),
+    supabase.from('visits').select('id, date, service, price, points_earned').eq('client_id', id).eq('tenant_id', tenant.id).order('date', { ascending: false }),
+    supabase.from('messages').select('id, direction, body, status, created_at').eq('client_id', id).eq('tenant_id', tenant.id).order('created_at', { ascending: false }).limit(20),
   ])
 
   if (!client) notFound()
 
-  const level = (loyalty?.nivel ?? 'bronze') as LoyaltyLevel
-  const totalRevenue = visits?.reduce((sum, v) => sum + (v.precio ?? 0), 0) ?? 0
+  const level = (loyalty?.level ?? 'bronze') as LoyaltyLevel
+  const totalRevenue = visits?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
 
   const stats = [
     { label: 'Total visits',   value: visits?.length ?? 0,                  danger: false },
-    { label: 'Points',         value: loyalty?.puntos ?? 0,                  danger: false },
+    { label: 'Points',         value: loyalty?.points ?? 0,                  danger: false },
     { label: 'Total revenue',  value: `$${totalRevenue.toFixed(2)}`,         danger: false },
     { label: 'No-shows',       value: client.no_show_count,                  danger: client.no_show_count > 0 },
   ]
@@ -60,7 +61,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/clientes"
+          href="/dashboard/clients"
           className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-700 transition-colors mb-4"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -69,11 +70,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900">{client.nombre}</h1>
+            <h1 className="text-2xl font-bold text-zinc-900">{client.name}</h1>
             <div className="flex items-center gap-4 mt-1.5 text-sm text-zinc-400">
               <span className="flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5" />
-                {client.telefono}
+                {client.phone}
               </span>
               {client.email && (
                 <span className="flex items-center gap-1.5">
@@ -122,15 +123,15 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
               <tbody className="divide-y divide-zinc-50">
                 {visits.map(visit => (
                   <tr key={visit.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 text-zinc-600">{formatDate(visit.fecha)}</td>
-                    <td className="px-6 py-4 font-medium text-zinc-900">{visit.servicio}</td>
+                    <td className="px-6 py-4 text-zinc-600">{formatDate(visit.date)}</td>
+                    <td className="px-6 py-4 font-medium text-zinc-900">{visit.service}</td>
                     <td className="px-6 py-4 text-zinc-600">
-                      {visit.precio != null
-                        ? `$${visit.precio.toFixed(2)}`
+                      {visit.price != null
+                        ? `$${visit.price.toFixed(2)}`
                         : <span className="text-zinc-300">—</span>}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-amber-600 font-medium">+{visit.puntos_ganados}</span>
+                      <span className="text-amber-600 font-medium">+{visit.points_earned}</span>
                     </td>
                   </tr>
                 ))}
@@ -148,14 +149,14 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
             {messages.map(msg => (
               <div
                 key={msg.id}
-                className={`flex gap-3 ${msg.direccion === 'outbound' ? 'flex-row-reverse' : ''}`}
+                className={`flex gap-3 ${msg.direction === 'outbound' ? 'flex-row-reverse' : ''}`}
               >
                 <div className={`max-w-sm text-sm rounded-xl px-4 py-2.5 ${
-                  msg.direccion === 'inbound'
+                  msg.direction === 'inbound'
                     ? 'bg-zinc-100 text-zinc-800'
                     : 'bg-amber-400 text-zinc-900'
                 }`}>
-                  {msg.contenido}
+                  {msg.body}
                 </div>
                 <span className="self-end text-xs text-zinc-400 shrink-0">
                   {formatDateTime(msg.created_at)}

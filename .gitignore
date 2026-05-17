@@ -40,13 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# project docs (locales — no subir al repo)
+# project docs (local only — do not commit)
 CLAUDE.md
-README.md
-ROADMAP.md
 
 # claude code — nothing from this directory goes to the repo
 .claude/
+.agents/
+skills-lock.json
 
 # MCP config (contains access tokens — never commit)
 .mcp.json

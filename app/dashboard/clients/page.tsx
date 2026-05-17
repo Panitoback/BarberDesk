@@ -11,9 +11,9 @@ export default async function ClientsPage() {
 
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, nombre, telefono, email, no_show_count, ultima_visita, loyalty_points(puntos, nivel)')
+    .select('id, name, phone, email, no_show_count, last_visit, loyalty_points(points, level)')
     .eq('tenant_id', tenant.id)
-    .order('nombre')
+    .order('name')
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

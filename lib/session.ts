@@ -1,12 +1,9 @@
 import { cache } from 'react'
-import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { getSubdomain } from '@/lib/subdomain'
 
 export const getTenant = cache(async () => {
-  const headersList = await headers()
-  let subdomain = headersList.get('x-subdomain')
-
-  if (!subdomain && process.env.NODE_ENV === 'development') subdomain = 'test'
+  const subdomain = await getSubdomain()
   if (!subdomain) return null
 
   const supabase = await createClient()
@@ -15,8 +12,8 @@ export const getTenant = cache(async () => {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, nombre')
-    .eq('subdominio', subdomain)
+    .select('id, name')
+    .eq('subdomain', subdomain)
     .single()
 
   return tenant ?? null

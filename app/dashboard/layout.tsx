@@ -8,7 +8,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen bg-zinc-50">
-      <SidebarNav barberia={tenant.nombre} />
+      <SidebarNav shopName={tenant.name} />
       <main className="flex-1 overflow-y-auto p-8">
         {children}
       </main>

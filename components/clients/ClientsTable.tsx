@@ -7,12 +7,12 @@ import type { LoyaltyLevel } from '@/lib/loyalty'
 
 type Client = {
   id: string
-  nombre: string
-  telefono: string
+  name: string
+  phone: string
   email: string | null
   no_show_count: number
-  ultima_visita: string | null
-  loyalty_points: { puntos: number; nivel: LoyaltyLevel }[] | null
+  last_visit: string | null
+  loyalty_points: { points: number; level: LoyaltyLevel }[] | null
 }
 
 const levelStyles: Record<LoyaltyLevel, string> = {
@@ -33,8 +33,8 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
 
   const filtered = query.trim()
     ? clients.filter(c =>
-        c.nombre.toLowerCase().includes(query.toLowerCase()) ||
-        c.telefono.includes(query)
+        c.name.toLowerCase().includes(query.toLowerCase()) ||
+        c.phone.includes(query)
       )
     : clients
 
@@ -70,20 +70,20 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
             </thead>
             <tbody className="divide-y divide-zinc-50">
               {filtered.map(client => {
-                const level = (client.loyalty_points?.[0]?.nivel ?? 'bronze') as LoyaltyLevel
+                const level = (client.loyalty_points?.[0]?.level ?? 'bronze') as LoyaltyLevel
                 return (
                   <tr key={client.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-6 py-4">
-                      <Link href={`/dashboard/clientes/${client.id}`} className="group">
+                      <Link href={`/dashboard/clients/${client.id}`} className="group">
                         <p className="font-medium text-zinc-900 group-hover:text-amber-600 transition-colors">
-                          {client.nombre}
+                          {client.name}
                         </p>
-                        <p className="text-xs text-zinc-400">{client.telefono}</p>
+                        <p className="text-xs text-zinc-400">{client.phone}</p>
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-zinc-600">
-                      {client.ultima_visita
-                        ? formatDate(client.ultima_visita)
+                      {client.last_visit
+                        ? formatDate(client.last_visit)
                         : <span className="text-zinc-300">—</span>}
                     </td>
                     <td className="px-6 py-4">

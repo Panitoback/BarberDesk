@@ -1,17 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
-import { headers } from 'next/headers'
+import { getSubdomain } from '@/lib/subdomain'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const headersList = await headers()
-  let subdomain = headersList.get('x-subdomain')
-
-  if (!subdomain && process.env.NODE_ENV === 'development') subdomain = 'test'
+  const subdomain = await getSubdomain()
   if (!subdomain) return NextResponse.json({ error: 'No subdomain' }, { status: 400 })
 
   const body = await request.json()
-  const appointmentId: string = body.cita_id
-  if (!appointmentId) return NextResponse.json({ error: 'cita_id is required' }, { status: 400 })
+  const appointmentId: string = body.appointment_id
+  if (!appointmentId) return NextResponse.json({ error: 'appointment_id is required' }, { status: 400 })
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -20,7 +17,7 @@ export async function POST(request: Request) {
   const { data: tenant } = await supabase
     .from('tenants')
     .select('id')
-    .eq('subdominio', subdomain)
+    .eq('subdomain', subdomain)
     .single()
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })

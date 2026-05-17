@@ -3,7 +3,7 @@ import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import { Users, Calendar, Scissors, DollarSign } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
-import CitasHoyTable from '@/components/dashboard/CitasHoyTable'
+import AppointmentsTodayTable from '@/components/dashboard/AppointmentsTodayTable'
 
 export default async function DashboardPage() {
   const tenant = await getTenant()
@@ -22,13 +22,13 @@ export default async function DashboardPage() {
     { data: revenueData },
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id),
-    supabase.from('citas').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('fecha', today),
-    supabase.from('citas').select('id, hora, servicio, estado, clients(nombre, telefono)').eq('tenant_id', tenant.id).eq('fecha', today).order('hora'),
-    supabase.from('visits').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).gte('fecha', firstOfMonth),
-    supabase.from('visits').select('precio').eq('tenant_id', tenant.id).gte('fecha', firstOfMonth),
+    supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('date', today),
+    supabase.from('appointments').select('id, time, service, status, clients(name, phone)').eq('tenant_id', tenant.id).eq('date', today).order('time'),
+    supabase.from('visits').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).gte('date', firstOfMonth),
+    supabase.from('visits').select('price').eq('tenant_id', tenant.id).gte('date', firstOfMonth),
   ])
 
-  const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.precio ?? 0), 0) ?? 0
+  const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
 
   const todayLabel = new Date().toLocaleDateString('en-CA', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Welcome, {tenant.nombre}</h1>
+        <h1 className="text-2xl font-bold text-zinc-900">Welcome, {tenant.name}</h1>
         <p className="text-sm text-zinc-400 mt-1 capitalize">{todayLabel}</p>
       </div>
 
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
 
       <div>
         <h2 className="text-base font-semibold text-zinc-900 mb-3">Today's appointments</h2>
-        <CitasHoyTable citas={(todayAppointments ?? []) as Parameters<typeof CitasHoyTable>[0]['citas']} />
+        <AppointmentsTodayTable appointments={(todayAppointments ?? []) as Parameters<typeof AppointmentsTodayTable>[0]['appointments']} />
       </div>
     </div>
   )

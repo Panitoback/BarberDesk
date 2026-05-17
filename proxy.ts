@@ -1,29 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { extractSubdomainFromHost, SUPABASE_COOKIE_OPTIONS } from './lib/subdomain'
 
 export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') ?? ''
   const { pathname } = request.nextUrl
 
-  // Strip port for subdomain detection
+  const subdomain = extractSubdomainFromHost(hostname)
   const hostnameWithoutPort = hostname.split(':')[0]
-  const isLocalhost = hostnameWithoutPort === 'localhost' || hostnameWithoutPort.endsWith('.localhost')
-
-  let subdomain: string | null = null
-
-  // Detect subdomain
-  if (isLocalhost) {
-    const parts = hostnameWithoutPort.split('.')
-    if (parts.length > 1 && parts[0] !== 'www') {
-      subdomain = parts[0]
-    }
-  } else {
-    const parts = hostnameWithoutPort.split('.')
-    if (parts.length > 2 && parts[0] !== 'www') {
-      subdomain = parts[0]
-    }
-  }
+  const isLocalhost =
+    hostnameWithoutPort === 'localhost' || hostnameWithoutPort.endsWith('.localhost')
 
   // Refresh Supabase session
   let response = NextResponse.next({ request })
@@ -32,6 +19,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: SUPABASE_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -66,11 +54,13 @@ export async function proxy(request: NextRequest) {
       rewriteUrl.pathname = `/dashboard${pathname === '/' ? '' : pathname}`
 
       const rewriteResponse = NextResponse.rewrite(rewriteUrl, {
-        request: { headers: newHeaders }
+        request: { headers: newHeaders },
       })
 
+      // Forward Supabase-refreshed cookies preserving every attribute
+      // (sameSite, secure, httpOnly, expires, path, domain).
       response.cookies.getAll().forEach(cookie => {
-        rewriteResponse.cookies.set(cookie.name, cookie.value)
+        rewriteResponse.cookies.set(cookie)
       })
 
       return rewriteResponse
@@ -78,7 +68,7 @@ export async function proxy(request: NextRequest) {
 
     const nextResponse = NextResponse.next({ request: { headers: newHeaders } })
     response.cookies.getAll().forEach(cookie => {
-      nextResponse.cookies.set(cookie.name, cookie.value)
+      nextResponse.cookies.set(cookie)
     })
     return nextResponse
   }
