@@ -1,0 +1,81 @@
+import { createAdminClient } from '@/lib/supabase/admin'
+import { createHmac } from 'crypto'
+
+function verifyTwilioSignature(
+  authToken: string,
+  url: string,
+  params: Record<string, string>,
+  signature: string,
+): boolean {
+  const sortedKeys = Object.keys(params).sort()
+  const str = url + sortedKeys.map(k => k + params[k]).join('')
+  const expected = createHmac('sha1', authToken).update(str).digest('base64')
+  return expected === signature
+}
+
+export async function POST(request: Request) {
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? ''
+
+  const text   = await request.text()
+  const params = Object.fromEntries(new URLSearchParams(text))
+
+  if (authToken) {
+    const signature = request.headers.get('x-twilio-signature') ?? ''
+    const url = `${appUrl}/api/webhooks/twilio`
+    if (!verifyTwilioSignature(authToken, url, params, signature)) {
+      return new Response('Forbidden', { status: 403 })
+    }
+  }
+
+  const to  = params['To']         ?? ''
+  const from = params['From']      ?? ''
+  const body = params['Body']      ?? ''
+  const sid  = params['MessageSid'] ?? ''
+
+  const supabase = createAdminClient()
+
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id, name, subdomain')
+    .eq('twilio_number', to)
+    .single()
+
+  if (!tenant) {
+    return new Response('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
+  }
+
+  const { data: client } = await supabase
+    .from('clients')
+    .select('id, name')
+    .eq('tenant_id', tenant.id)
+    .eq('phone', from)
+    .maybeSingle()
+
+  await supabase.from('messages').insert({
+    tenant_id:  tenant.id,
+    client_id:  client?.id ?? null,
+    direction:  'inbound',
+    body,
+    status:     'delivered',
+    twilio_sid: sid,
+  })
+
+  const autoReplyUrl = process.env.N8N_AUTOREPLY_WEBHOOK_URL
+  if (autoReplyUrl) {
+    fetch(autoReplyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant_id:   tenant.id,
+        subdomain:   tenant.subdomain,
+        shop_name:   tenant.name,
+        from_number: from,
+        client_name: client?.name ?? 'there',
+        message:     body,
+      }),
+    }).catch(() => {})
+  }
+
+  return new Response('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
+}

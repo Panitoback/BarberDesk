@@ -22,6 +22,13 @@ export async function POST(request: Request) {
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
+  const { data: appointment } = await supabase
+    .from('appointments')
+    .select('client_id')
+    .eq('id', appointmentId)
+    .eq('tenant_id', tenant.id)
+    .single()
+
   const { data, error } = await supabase.rpc('complete_appointment', {
     p_appointment_id: appointmentId,
     p_tenant_id: tenant.id,
@@ -32,6 +39,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Appointment not found or not pending' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Failed to complete appointment' }, { status: 500 })
+  }
+
+  // Trigger n8n review delay workflow (fire-and-forget)
+  const reviewWebhookUrl = process.env.N8N_REVIEW_WEBHOOK_URL
+  if (reviewWebhookUrl && appointment?.client_id) {
+    fetch(reviewWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id:    appointment.client_id,
+        subdomain,
+        completed_at: new Date().toISOString(),
+      }),
+    }).catch(() => {})
   }
 
   return NextResponse.json(data)

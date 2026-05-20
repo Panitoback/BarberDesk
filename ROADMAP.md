@@ -1,6 +1,6 @@
 # Roadmap — BarberPro
 
-## Status (2026-05-17)
+## Status (2026-05-20)
 
 | Phase | Status |
 |-------|--------|
@@ -39,27 +39,38 @@
 
 ## Phase 3 — SMS Automations 🔄
 
-### 3.1 — Infrastructure ⛔ Blocked
-- [ ] Twilio number + Account SID + Auth Token → fill `.env`
-- [ ] n8n on Railway → get `N8N_BASE_URL` + `N8N_API_KEY`
-- [ ] `WEBHOOK_SECRET` (`openssl rand -hex 32`) → `.env` + n8n
-- [ ] `POST /api/webhooks/twilio` — inbound SMS → persist to `messages`
+### 3.1 — Infrastructure ✅ Complete
+- [x] Twilio number (`+1 249 421 1641`) + Account SID + Auth Token → `.env`
+- [x] Twilio Console messaging webhook → `https://barberpro.ca/api/webhooks/twilio`
+- [x] n8n on Railway → `N8N_BASE_URL` + `N8N_API_KEY` in `.env`
+- [x] `WEBHOOK_SECRET` (`openssl rand -hex 32`) → `.env` + n8n Bearer Auth credential
+- [x] `RESEND_API_KEY` + `OPENROUTER_API_KEY` → `.env`
+- [x] `POST /api/webhooks/twilio` — inbound SMS → persist to `messages` → trigger n8n
+- [ ] `N8N_REVIEW_WEBHOOK_URL` + `N8N_AUTOREPLY_WEBHOOK_URL` → `.env` (Production URLs from n8n)
 
 ### 3.2 — API routes ✅ Complete
 - `POST /api/noshow` — mark no-show, increment counter, recovery SMS
-- `POST /api/clients/reactivate` — detect inactive clients, send personalized SMS
+- `POST /api/clients/reactivate` — detect inactive clients, personalized SMS (single tenant)
+- `POST /api/cron/reactivate` — reactivation SMS + Resend email across all tenants (weekly cron)
 - `POST /api/reviews/request` — Google review SMS
-- All accept session cookie (browser) or `Bearer {WEBHOOK_SECRET}` (n8n)
+- `POST /api/messages/send` — send arbitrary SMS (used by the AI auto-reply workflow)
+- Cookie/session routes also accept `Bearer {WEBHOOK_SECRET}` (n8n); `cron` + `messages` are webhook-only
 
-### 3.3 — n8n workflows ⛔ Blocked (needs 3.1)
-- Workflow 1: no-show SMS trigger
-- Workflow 2: loyalty level-up notification
-- Workflow 3: weekly reactivation cron
-- Workflow 4: post-appointment review request (30 min delay)
+### 3.3 — n8n workflows 🔄 Built, pending verification
+Three workflows built on the Railway n8n instance:
+- `01 · Review Request` — webhook → wait 30 min → `POST /api/reviews/request`
+- `02 · Weekly Reactivation Cron` — schedule (Mon 9am) → `POST /api/cron/reactivate`
+  - SMS always sent (uses `clients.phone`); email only if `clients.email` is set (non-fatal if missing)
+  - Email via Resend HTTP API; subject: re-engagement with 10% discount offer
+- `03 · AI Auto-Reply` — see 3.4
+- HTTP Request nodes authenticate via an n8n Bearer Auth credential (not `$env` — blocked by n8n)
+- ⚠️ `n8n/*.json` files are stale — live n8n instance is authoritative until re-exported
 
-### 3.4 — AI auto-reply ⛔ Blocked (needs 3.1 + Anthropic key)
-- `lib/anthropic.ts` — Claude API client
-- Workflow 5: inbound SMS → Claude with barbershop context → automated reply
+### 3.4 — AI auto-reply 🔄 Built, pending verification
+- Workflow `03 · AI Auto-Reply`: inbound SMS → `/api/webhooks/twilio` → n8n webhook → native **AI Agent** node → `POST /api/messages/send`
+- AI Agent uses an **OpenRouter Chat Model** sub-node + **Simple Memory** (session keyed by `from_number`)
+- Model selectable in the OpenRouter Chat Model node (e.g. `anthropic/claude-3.5-haiku`)
+- n8n webhook receives the `/api/webhooks/twilio` payload under `$json.body.*` (`message`, `from_number`, `subdomain`, …)
 
 ---
 
@@ -80,7 +91,7 @@
 - [ ] Domain `barberpro.ca` + wildcard DNS (`*.barberpro.ca → CNAME Vercel`)
 - [ ] Remove dev subdomain fallback in `lib/subdomain.ts`
 - [ ] Delete test rows from `tenants` table
-- [ ] n8n on Railway (part of Phase 3.1)
+- [x] n8n on Railway (done in Phase 3.1)
 
 ---
 
@@ -103,7 +114,10 @@ barberdesk/
 │   │   ├── appointments/complete/route.ts
 │   │   ├── noshow/route.ts
 │   │   ├── clients/reactivate/route.ts
+│   │   ├── cron/reactivate/route.ts
+│   │   ├── messages/send/route.ts
 │   │   ├── reviews/request/route.ts
+│   │   ├── webhooks/twilio/route.ts
 │   │   └── register/check-slug/route.ts
 │   ├── page.tsx                         # Public landing
 │   └── layout.tsx
@@ -121,6 +135,7 @@ barberdesk/
 │   ├── subdomain.ts     # getSubdomain(), SUPABASE_COOKIE_OPTIONS
 │   └── twilio.ts        # sendSms() — REST client
 ├── proxy.ts             # Next.js 16 middleware
+├── n8n/                 # Workflow JSON exports (01 review, 02 cron, 03 AI auto-reply)
 └── supabase/migrations/
 ```
 
@@ -138,3 +153,5 @@ barberdesk/
 | SMS routes return 502 on failure | n8n retries automatically; message always persisted to DB |
 | Dual auth in SMS routes | Browser uses session cookie; n8n uses Bearer secret |
 | Slug re-validated in callback | Magic link params can be tampered — re-run `validateSlug()` before INSERT |
+| n8n uses Credentials, not `$env` | n8n blocks env-var access in expressions; secrets live in n8n credentials |
+| AI auto-reply via native AI Agent | OpenRouter Chat Model + Simple Memory sub-nodes — no custom HTTP Request node |
