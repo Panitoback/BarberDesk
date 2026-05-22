@@ -5,9 +5,11 @@ import type { NextRequest } from 'next/server'
 import { validateSlug } from '@/lib/slug'
 import { SUPABASE_COOKIE_OPTIONS } from '@/lib/subdomain'
 
-function tenantUrl(slug: string, path = '/dashboard') {
+// On a subdomain the dashboard lives at the root path — the proxy rewrites
+// `/` → `/dashboard`, `/clients` → `/dashboard/clients`, etc.
+function tenantUrl(slug: string, path = '/') {
   if (process.env.NODE_ENV === 'development') {
-    return `http://localhost:3000${path}`
+    return `http://${slug}.localhost:3000${path}`
   }
   return `https://${slug}.barberpro.ca${path}`
 }
@@ -51,6 +53,14 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.redirect(`${origin}/login?error=auth`)
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Password recovery — let the user choose a new password.
+  // Stays on the base domain; the session cookie is already set.
+  // ─────────────────────────────────────────────────────────────────
+  if (next === '/reset-password') {
+    return NextResponse.redirect(`${origin}/reset-password`)
   }
 
   // ─────────────────────────────────────────────────────────────────

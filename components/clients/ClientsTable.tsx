@@ -58,50 +58,91 @@ export default function ClientsTable({ clients }: { clients: Client[] }) {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-100 text-left">
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Client</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Last visit</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Level</th>
-                <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">No-shows</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-50">
-              {filtered.map(client => {
-                const level = (client.loyalty_points?.[0]?.level ?? 'bronze') as LoyaltyLevel
-                return (
-                  <tr key={client.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <Link href={`/dashboard/clients/${client.id}`} className="group">
-                        <p className="font-medium text-zinc-900 group-hover:text-amber-600 transition-colors">
-                          {client.name}
-                        </p>
-                        <p className="text-xs text-zinc-400">{client.phone}</p>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-zinc-600">
-                      {client.last_visit
-                        ? formatDate(client.last_visit)
-                        : <span className="text-zinc-300">—</span>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${levelStyles[level]}`}>
-                        {level.charAt(0).toUpperCase() + level.slice(1)}
+        <>
+          {/* Mobile — card list */}
+          <div className="space-y-3 md:hidden">
+            {filtered.map(client => {
+              const level = (client.loyalty_points?.[0]?.level ?? 'bronze') as LoyaltyLevel
+              return (
+                <Link
+                  key={client.id}
+                  href={`/clients/${client.id}`}
+                  className="block bg-white rounded-2xl border border-zinc-100 shadow-sm p-4 active:bg-zinc-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-zinc-900 truncate">{client.name}</p>
+                      <p className="text-xs text-zinc-400">{client.phone}</p>
+                    </div>
+                    <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${levelStyles[level]}`}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 mt-3 text-xs">
+                    <span className="text-zinc-400">
+                      Last visit:{' '}
+                      <span className="text-zinc-600">
+                        {client.last_visit ? formatDate(client.last_visit) : '—'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
+                    </span>
+                    <span className="text-zinc-400">
+                      No-shows:{' '}
                       {client.no_show_count > 0
                         ? <span className="text-red-500 font-medium">{client.no_show_count}</span>
-                        : <span className="text-zinc-300">0</span>}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                        : <span className="text-zinc-600">0</span>}
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Desktop — table */}
+          <div className="hidden md:block bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100 text-left">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Client</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Last visit</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Level</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">No-shows</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50">
+                {filtered.map(client => {
+                  const level = (client.loyalty_points?.[0]?.level ?? 'bronze') as LoyaltyLevel
+                  return (
+                    <tr key={client.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <Link href={`/clients/${client.id}`} className="group">
+                          <p className="font-medium text-zinc-900 group-hover:text-amber-600 transition-colors">
+                            {client.name}
+                          </p>
+                          <p className="text-xs text-zinc-400">{client.phone}</p>
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-zinc-600 whitespace-nowrap">
+                        {client.last_visit
+                          ? formatDate(client.last_visit)
+                          : <span className="text-zinc-300">—</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${levelStyles[level]}`}>
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {client.no_show_count > 0
+                          ? <span className="text-red-500 font-medium">{client.no_show_count}</span>
+                          : <span className="text-zinc-300">0</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )

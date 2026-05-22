@@ -61,30 +61,30 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/clients"
+          href="/clients"
           className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-700 transition-colors mb-4"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Clients
         </Link>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900">{client.name}</h1>
-            <div className="flex items-center gap-4 mt-1.5 text-sm text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-zinc-900 truncate">{client.name}</h1>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4 mt-1.5 text-sm text-zinc-400">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Phone className="w-3.5 h-3.5 shrink-0" />
                 {client.phone}
               </span>
               {client.email && (
-                <span className="flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5" />
-                  {client.email}
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Mail className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{client.email}</span>
                 </span>
               )}
             </div>
           </div>
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${levelStyles[level]}`}>
+          <span className={`shrink-0 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${levelStyles[level]}`}>
             {level.charAt(0).toUpperCase() + level.slice(1)}
           </span>
         </div>
@@ -110,34 +110,57 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <p className="text-zinc-400 text-sm">No visits recorded.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-100 text-left">
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Date</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Service</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Price</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Points</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-50">
-                {visits.map(visit => (
-                  <tr key={visit.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 text-zinc-600">{formatDate(visit.date)}</td>
-                    <td className="px-6 py-4 font-medium text-zinc-900">{visit.service}</td>
-                    <td className="px-6 py-4 text-zinc-600">
+          <>
+            {/* Mobile — card list */}
+            <div className="space-y-3 md:hidden">
+              {visits.map(visit => (
+                <div key={visit.id} className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-zinc-500">{formatDate(visit.date)}</span>
+                    <span className="text-amber-600 font-medium text-sm">+{visit.points_earned}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 mt-1">
+                    <span className="font-medium text-zinc-900">{visit.service}</span>
+                    <span className="text-zinc-600 text-sm">
                       {visit.price != null
                         ? `$${visit.price.toFixed(2)}`
                         : <span className="text-zinc-300">—</span>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-amber-600 font-medium">+{visit.points_earned}</span>
-                    </td>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop — table */}
+            <div className="hidden md:block bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-100 text-left">
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Date</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Service</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Price</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Points</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {visits.map(visit => (
+                    <tr key={visit.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-6 py-4 text-zinc-600 whitespace-nowrap">{formatDate(visit.date)}</td>
+                      <td className="px-6 py-4 font-medium text-zinc-900">{visit.service}</td>
+                      <td className="px-6 py-4 text-zinc-600">
+                        {visit.price != null
+                          ? `$${visit.price.toFixed(2)}`
+                          : <span className="text-zinc-300">—</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-amber-600 font-medium">+{visit.points_earned}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -151,7 +174,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 key={msg.id}
                 className={`flex gap-3 ${msg.direction === 'outbound' ? 'flex-row-reverse' : ''}`}
               >
-                <div className={`max-w-sm text-sm rounded-xl px-4 py-2.5 ${
+                <div className={`max-w-[75%] sm:max-w-sm text-sm rounded-xl px-4 py-2.5 break-words ${
                   msg.direction === 'inbound'
                     ? 'bg-zinc-100 text-zinc-800'
                     : 'bg-amber-400 text-zinc-900'

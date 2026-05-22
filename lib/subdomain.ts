@@ -19,10 +19,7 @@ export function extractSubdomainFromHost(host: string): string | null {
 
 export async function getSubdomain(): Promise<string | null> {
   const h = await headers()
-  const fromHeader = h.get('x-subdomain')
-  if (fromHeader) return fromHeader
-  if (process.env.NODE_ENV === 'development') return 'test'
-  return null
+  return h.get('x-subdomain')
 }
 
 export const COOKIE_DOMAIN =

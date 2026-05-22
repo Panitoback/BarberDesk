@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 
@@ -15,6 +16,14 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
+
+  // Surface the success banner after a completed password reset
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reset') === '1') {
+      setResetDone(true)
+    }
+  }, [])
 
   function getBaseOrigin(): string {
     const { protocol, hostname, port } = window.location
@@ -27,6 +36,10 @@ export default function LoginPage() {
     return `${protocol}//${base}${portSuffix}`
   }
 
+  function tenantOrigin(subdomain: string): string {
+    return getBaseOrigin().replace('://', `://${subdomain}.`)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -35,14 +48,25 @@ export default function LoginPage() {
     const supabase = createClient()
 
     if (mode === 'password') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        setError(error.message)
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error || !data.user) {
+        setError(error?.message ?? 'Sign in failed')
         setLoading(false)
         return
       }
-      router.refresh()
-      router.push('/dashboard')
+
+      // Send the owner to their shop's subdomain dashboard
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('subdomain')
+        .eq('owner_id', data.user.id)
+        .maybeSingle()
+
+      if (tenant?.subdomain) {
+        window.location.href = `${tenantOrigin(tenant.subdomain)}/`
+      } else {
+        router.push('/register')
+      }
       return
     }
 
@@ -61,8 +85,8 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-10 w-full max-w-md text-center space-y-3">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
           <div className="text-4xl">✉️</div>
           <h1 className="text-xl font-semibold text-zinc-900">Check your email</h1>
           <p className="text-zinc-500 text-sm">
@@ -75,11 +99,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-10 w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md space-y-6">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-zinc-900">Sign in to BarberPro</h1>
         </div>
+
+        {resetDone && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+            Your password has been updated. Sign in with your new password.
+          </p>
+        )}
 
         {/* Mode toggle */}
         <div className="flex rounded-lg border border-zinc-200 p-1 gap-1">
@@ -125,9 +155,17 @@ export default function LoginPage() {
 
           {mode === 'password' && (
             <div className="space-y-1.5">
-              <label htmlFor="password" className="text-sm font-medium text-zinc-700">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"

@@ -45,7 +45,11 @@ export async function proxy(request: NextRequest) {
 
   // Route based on subdomain
   if (subdomain) {
-    const isAuthPath = pathname === '/login' || pathname.startsWith('/auth/')
+    const isAuthPath =
+      pathname === '/login' ||
+      pathname === '/forgot-password' ||
+      pathname === '/reset-password' ||
+      pathname.startsWith('/auth/')
     const isApiPath = pathname.startsWith('/api/')
 
     if (!user && !isAuthPath) {

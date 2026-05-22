@@ -104,7 +104,7 @@ function RegisterForm() {
     const baseHost = parts.length > 2 ? parts.slice(1).join('.') : hostname
     const baseOrigin = `${protocol}//${baseHost}${portSuffix}`
 
-    const params = new URLSearchParams({ shop: shopName.trim(), slug, next: '/dashboard' })
+    const params = new URLSearchParams({ shop: shopName.trim(), slug, next: '/' })
     const redirectTo = `${baseOrigin}/auth/callback?${params.toString()}`
 
     const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -123,8 +123,8 @@ function RegisterForm() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-10 w-full max-w-md text-center space-y-3">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
           <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
             <Check className="w-7 h-7 text-amber-500" />
           </div>
@@ -154,8 +154,8 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-10 w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md space-y-6">
 
         <div className="flex items-center gap-2">
           <Scissors className="w-5 h-5 text-amber-400" />
