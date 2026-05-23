@@ -187,8 +187,7 @@ export async function POST(request: Request) {
 
   // Best-effort confirmation SMS — persist outcome to messages, never fail the booking.
   const smsBody =
-    `Hi ${name.split(' ')[0]}, your appointment at ${tenant.name} is booked for ${formatDateTimeForSms(date, time)} — ${service}. ` +
-    `We'll text you to confirm. Reply if you need to change anything.`
+    `Hi ${name.split(' ')[0]}, your ${service} at ${tenant.name} is confirmed for ${formatDateTimeForSms(date, time)}.`
 
   try {
     const sid = await sendSms(phone, smsBody)

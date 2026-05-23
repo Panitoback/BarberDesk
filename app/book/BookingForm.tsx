@@ -239,7 +239,7 @@ export default function BookingForm({ services, shopName }: Props) {
       <button
         type="submit"
         disabled={submitting || loadingSlots || noSlots}
-        className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-slate-900 font-bold px-6 py-3.5 rounded-xl transition-colors text-sm"
+        className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold px-6 py-3.5 rounded-xl transition-colors text-sm"
       >
         {submitting ? 'Booking…' : noSlots ? 'Pick another date' : (
           <>

@@ -26,7 +26,8 @@ async function getTenants(): Promise<TenantRow[]> {
   if (!tenants?.length) return []
 
   // Auth Admin API — service-role required. Used to map owner_id → email.
-  const { data: { users } } = await supabase.auth.admin.listUsers()
+  // perPage:1000 avoids silent truncation (default is 50).
+  const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
   const emailById = new Map(users.map(u => [u.id, u.email ?? '']))
 
   // Per-tenant counts in parallel. At this scale (single-digit tenants) the

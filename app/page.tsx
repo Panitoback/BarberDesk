@@ -381,7 +381,7 @@ export default function HomePage() {
                 className="bg-white rounded-2xl border border-slate-100 shadow-sm p-7 group hover:shadow-md transition-shadow relative"
               >
                 {f.badge && (
-                  <span className="absolute top-5 right-5 inline-flex items-center gap-1 bg-indigo-600 text-slate-900 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
+                  <span className="absolute top-5 right-5 inline-flex items-center gap-1 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
                     <Sparkles className="w-2.5 h-2.5" />
                     {f.badge}
                   </span>

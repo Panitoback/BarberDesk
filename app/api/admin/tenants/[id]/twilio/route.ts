@@ -52,6 +52,9 @@ export async function POST(
     .select('id, twilio_number')
     .single()
 
+  if (error?.code === 'PGRST116') {
+    return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
+  }
   if (error || !data) {
     // 23505 = unique_violation, in case we ever add UNIQUE on twilio_number
     if (error?.code === '23505') {

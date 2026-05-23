@@ -1,0 +1,66 @@
+barberdesk/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   └── register/page.tsx
+│   ├── api/
+│   │   ├── appointments/complete/route.ts
+│   │   ├── clients/reactivate/route.ts
+│   │   ├── noshow/route.ts
+│   │   ├── register/check-slug/route.ts
+│   │   ├── reviews/request/route.ts
+│   │   └── webhooks/twilio/route.ts          ⛔ pending (Phase 3.1)
+│   ├── auth/
+│   │   └── callback/route.ts
+│   ├── dashboard/
+│   │   ├── clients/
+│   │   │   ├── [id]/page.tsx
+│   │   │   └── page.tsx
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx                              # public landing
+├── components/
+│   ├── clients/
+│   │   └── ClientsTable.tsx
+│   ├── dashboard/
+│   │   ├── AppointmentsTodayTable.tsx
+│   │   ├── SidebarNav.tsx
+│   │   └── StatsCard.tsx
+│   └── ui/
+│       └── button.tsx
+├── lib/
+│   ├── supabase/
+│   │   ├── admin.ts
+│   │   ├── client.ts
+│   │   ├── server.ts
+│   │   └── types.ts
+│   ├── loyalty.ts
+│   ├── session.ts                            # getTenant() with React.cache()
+│   ├── slug.ts
+│   ├── subdomain.ts
+│   ├── twilio.ts
+│   └── utils.ts
+├── supabase/
+│   ├── migrations/
+│   │   ├── 20260419044041_initial_schema.sql
+│   │   ├── 20260421000000_complete_appointment_fn.sql
+│   │   ├── 20260422000000_citas_table.sql
+│   │   ├── 20260422120000_harden_rls_multi_tenant.sql
+│   │   └── 20260516000000_english_schema.sql
+│   └── config.toml
+├── .env
+├── .gitignore
+├── CLAUDE.md
+├── components.json
+├── eslint.config.mjs
+├── next.config.ts
+├── package.json
+├── proxy.ts                                  # Next.js middleware — subdomain routing + auth guard
+├── README.md
+├── ROADMAP.md
+├── tree.txt
+├── treeV2.txt
+└── tsconfig.json

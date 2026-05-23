@@ -44,6 +44,9 @@ export async function POST(
     .select('id, plan')
     .single()
 
+  if (error?.code === 'PGRST116') {
+    return NextResponse.json({ error: 'Tenant not found.' }, { status: 404 })
+  }
   if (error || !data) {
     return NextResponse.json({ error: 'Could not update.' }, { status: 500 })
   }
