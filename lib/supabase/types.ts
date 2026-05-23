@@ -369,7 +369,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_tenant_id: { Args: Record<PropertyKey, never>; Returns: string }
       user_owns_tenant: { Args: { target_tenant_id: string }; Returns: boolean }
       complete_appointment: {
         Args: { p_appointment_id: string; p_tenant_id: string }

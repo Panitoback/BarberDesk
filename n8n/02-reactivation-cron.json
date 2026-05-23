@@ -63,7 +63,7 @@
   "active": false,
   "settings": { "executionOrder": "v1" },
   "meta": {
-    "templateId": "barberpro-reactivation-cron"
+    "templateId": "barberqueue-reactivation-cron"
   },
   "tags": []
 }

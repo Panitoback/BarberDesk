@@ -33,6 +33,14 @@ export async function POST(request: Request) {
   const body = params['Body']      ?? ''
   const sid  = params['MessageSid'] ?? ''
 
+  // Defensive: empty `To` would match a tenant whose twilio_number is NULL
+  // (the most common misconfiguration), routing every misdirected SMS to it.
+  // Drop the request early so unrouted SMS surface only via the warning below.
+  if (!to) {
+    console.warn('[twilio webhook] inbound with empty To param', { from, sid })
+    return new Response('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
+  }
+
   const supabase = createAdminClient()
 
   const { data: tenant } = await supabase
@@ -42,6 +50,10 @@ export async function POST(request: Request) {
     .single()
 
   if (!tenant) {
+    // Visibility for unrouted SMS — surfaces in Vercel function logs. Usually
+    // means the receiving number is not yet linked to any tenant
+    // (`tenants.twilio_number` not set).
+    console.warn('[twilio webhook] no tenant matches incoming number', { to, from, sid })
     return new Response('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
   }
 

@@ -8,7 +8,8 @@
 | Phase 2 — Dashboard | ✅ Complete (mobile-responsive) |
 | Phase 3 — SMS Automations | 🔄 Built, pending verification |
 | Phase 4 — Public landing + booking | ✅ Complete (+ password recovery + public booking) |
-| Phase 5 — Deploy | 🔲 Pending — `barberqueue.pro` registered, DNS + Vercel wiring left |
+| Phase 4.5 — Admin dashboard | ✅ Complete (`/admin` — tenant management) |
+| Phase 5 — Deploy | 🔄 In progress — `barberqueue.pro` registered, DNS done, env vars done |
 
 > Phase 5 does NOT require Phase 3 — SMS routes fail gracefully (`status: 'failed'` in DB) until Twilio is fully verified.
 
@@ -101,21 +102,37 @@ Three workflows built on the Railway n8n instance:
 
 ---
 
-## Phase 5 — Deploy 🔲 Pending
+## Phase 4.5 — Admin dashboard ✅
 
-> Domain `barberqueue.pro` is registered. Remaining work is wiring it up.
+Platform-owner panel at `barberqueue.pro/admin` for managing tenants without touching SQL.
+
+- `lib/admin.ts` — `isAdmin(userId)` reads the `ADMIN_USER_IDS` env allowlist
+- `app/admin/layout.tsx` — server-side guard: `redirect('/login?next=/admin')` for unauthed, `notFound()` for non-admins (URL doesn't leak)
+- `app/admin/page.tsx` — server component; joins tenants with `auth.admin.listUsers()` for owner emails; per-tenant parallel `COUNT(*)` for clients / appointments / outbound SMS
+- `components/admin/TenantsTable.tsx` — client component with optimistic UI, inline twilio_number edit, plan dropdown, `router.refresh()` after each save
+- `POST /api/admin/tenants/[id]/twilio` — E.164 validation (`^\+\d{11,15}$`), strips spaces/dashes/parens, accepts null to clear
+- `POST /api/admin/tenants/[id]/plan` — enum-validated against `trial | active | suspended`
+- Both APIs re-check `isAdmin(user.id)` — never trust the layout guard alone
+- Login supports `?next=/path` — admins without a tenant skip the default tenant-redirect to `/register`
+
+---
+
+## Phase 5 — Deploy 🔄 In progress
+
+> Domain `barberqueue.pro` is registered, DNS propagated, env vars set. Remaining work is the external services + final cleanups.
 
 - [x] Register `barberqueue.pro`
-- [ ] Connect repo to Vercel (auto-deploys on push to `main`)
-- [ ] Environment variables in Vercel Dashboard
-- [ ] Wildcard DNS (`*.barberqueue.pro → CNAME Vercel`) + domain in Vercel → Settings → Domains
+- [x] Connect repo to Vercel (auto-deploys on push to `main`)
+- [x] Environment variables in Vercel Dashboard
+- [x] Wildcard DNS (`*.barberqueue.pro → CNAME Vercel`) + domain in Vercel → Settings → Domains
+- [x] Delete the `test` tenant + sample data from Supabase
+- [x] Remove dev subdomain fallback in `lib/subdomain.ts`
+- [x] n8n on Railway (done in Phase 3.1)
+- [ ] `ADMIN_USER_IDS` env var in Vercel (production scope) — required for `/admin` access
 - [ ] Update Supabase Auth URLs (site URL + redirect allowlist) for `barberqueue.pro`
 - [ ] Twilio Console webhook → `https://barberqueue.pro/api/webhooks/twilio`
 - [ ] n8n workflows pointing to production app URL
 - [ ] Resend sender domain verified (`noreply@barberqueue.pro`)
-- [ ] Delete the `test` tenant + sample data from Supabase
-- [x] Remove dev subdomain fallback in `lib/subdomain.ts`
-- [x] n8n on Railway (done in Phase 3.1)
 
 ---
 

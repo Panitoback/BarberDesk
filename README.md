@@ -3,7 +3,7 @@
 Multi-tenant SaaS for independent barbershops in Toronto, Canada.
 Each shop gets its own subdomain, private dashboard, and SMS automations.
 
-**Price:** $10 USD/month · 14-day free trial
+**Price:** $19.99 USD/month · 7-day free trial
 
 ---
 
@@ -26,7 +26,9 @@ Each shop gets its own subdomain, private dashboard, and SMS automations.
 
 ```
 barberqueue.pro            → landing page + registration
+barberqueue.pro/admin      → platform-owner admin dashboard (allowlisted)
 [slug].barberqueue.pro     → barber's private dashboard
+[slug].barberqueue.pro/book → public client booking
 ```
 
 `proxy.ts` middleware detects the subdomain, guards auth, and injects `x-subdomain` into all requests.
@@ -73,6 +75,20 @@ Every shop gets a public booking page at `[slug].barberqueue.pro/book` (linked f
 
 ---
 
+## Admin dashboard
+
+Platform-owner panel at `barberqueue.pro/admin` for managing tenants without touching SQL.
+
+- Access controlled by `ADMIN_USER_IDS` env var — a comma-separated allowlist of `auth.users.id` UUIDs. Allowlist is env-only by design: a SQL-level compromise can never promote a user to admin.
+- Server-side guard in `app/admin/layout.tsx`: redirect unauthenticated visitors to `/login?next=/admin`, return `notFound()` for signed-in non-admins (so the URL doesn't leak).
+- APIs re-check `isAdmin(user.id)` on every request — the layout guard alone is never trusted.
+- Lists every tenant with: subdomain (clickable), shop name, owner email (joined via `auth.admin.listUsers`), plan badge, stats (clients / appointments / SMS sent), signup date.
+- Inline edit of `twilio_number` with E.164 validation (`^\+\d{11,15}$`).
+- Plan dropdown (`trial` / `active` / `suspended`) — `suspended` flips the public booking form to "Online booking is paused" instantly.
+- Warns when a tenant has no Twilio number set (inbound SMS to that shop are dropped).
+
+---
+
 ## Project status (2026-05-23)
 
 | Module | Status |
@@ -84,6 +100,7 @@ Every shop gets a public booking page at `[slug].barberqueue.pro/book` (linked f
 | Public landing + registration flow | ✅ Complete |
 | Public booking flow (`/book` + slot picker + cancel) | ✅ Complete |
 | Legal pages (privacy, terms, refund) | ✅ Complete |
+| Admin dashboard (`/admin` — tenant + plan + twilio_number management) | ✅ Complete |
 | Local dev working | ✅ Verified |
 | SMS infrastructure (Twilio + n8n on Railway) | ✅ Credentials set |
 | n8n workflows | 🔄 Built, pending verification |

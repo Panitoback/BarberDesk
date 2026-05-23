@@ -55,6 +55,15 @@ export default function LoginPage() {
         return
       }
 
+      // `?next=/path` — stay on the base domain and go to that path. Used by
+      // /admin (admin users typically don't own a tenant, so the default
+      // tenant-redirect would push them to /register).
+      const next = new URLSearchParams(window.location.search).get('next')
+      if (next && next.startsWith('/') && !next.startsWith('//')) {
+        window.location.href = next
+        return
+      }
+
       // Send the owner to their shop's subdomain dashboard
       const { data: tenant } = await supabase
         .from('tenants')

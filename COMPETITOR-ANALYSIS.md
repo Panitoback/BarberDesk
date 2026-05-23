@@ -27,16 +27,16 @@ niche, Canada focus.
 
 ## Key difference — different products
 
-| | barberpro.ca | Us (BarberDesk) |
+| | barberpro.ca | Us (BarberQueue) |
 |---|---|---|
-| Core | Online booking + payments + deposits | SMS automation + loyalty |
-| Client self-booking | Yes — branded booking link | No — not built |
+| Core | Online booking + payments + deposits | SMS automation + loyalty + booking |
+| Client self-booking | Yes — branded booking link | Yes — branded booking link (`/book`) |
 | SMS | "Coming soon" (Pro plan) | Core of the product |
 | Loyalty / points | No | Yes (Bronze → Platinum) |
 | Inactive-client reactivation | No | Yes |
 | AI auto-reply | No | Yes |
 | Google review requests | No | Yes |
-| Price | $29–199 CAD | $10 USD |
+| Price | $29–199 CAD | $19.99 USD |
 
 They are an **acquisition** tool (get clients to book and pay). We are a
 **retention** tool (get clients to come back).
@@ -46,7 +46,7 @@ They are an **acquisition** tool (get clients to book and pay). We are a
 1. **SMS already works — theirs is "coming soon."** Their $79 Pro plan lists
    "SMS reminders (coming soon)". We already do no-show recovery, reactivation,
    review requests, and AI auto-reply over SMS. Biggest advantage — lead with it.
-2. **Price** — $10 vs $29–199. One simple plan.
+2. **Price** — $19.99 vs $29–199. One simple plan.
 3. **Loyalty, reactivation, AI auto-reply, Google reviews** — features they lack.
 4. **AI** — no one in this niche uses it. Strong modern differentiator.
 
@@ -63,26 +63,26 @@ They are an **acquisition** tool (get clients to book and pay). We are a
 7. **"Book a demo"** as a secondary CTA.
 8. **Footer with legal pages** (Privacy, Terms, Refund) — also required for a real SaaS.
 
-## ⚠️ The naming problem
+## ⚠️ The naming problem — resolved 2026-05-22
 
-This is no longer just "the domain is taken". There is an **active company, in the
-same country, in the exact same niche, with the exact same name** — "BarberPro".
-Launching as "BarberPro" would be unworkable (SEO, brand confusion) and a possible
-trademark risk.
+There is an **active company, in the same country, in the exact same niche, with
+the same name** — "BarberPro" (barberpro.ca). Launching as "BarberPro" would have
+been unworkable (SEO, brand confusion) and a trademark risk.
 
-**Action: rename the product, not just the domain.** `BarberDesk` (the repo name)
-is a natural, already-differentiated candidate.
+**Action taken:** product renamed to **BarberQueue**, domain `barberqueue.pro`
+registered, brand applied across UI/docs/cookies/sender. Repo directory is still
+`barberdesk/` (internal-only, not customer-facing).
 
-## Strategic question to resolve later
+## Strategic question — resolved
 
-Their must-have feature is online booking; ours is automation/retention. Decide
-positioning: stay a complementary retention layer, or add online booking to compete
-head-on.
+Both: we kept the SMS-automation + loyalty core AND added booking (`/book`) in
+Phase 4.2. We now compete head-on on booking while keeping the retention edge.
 
-## Next steps (later)
+## Next steps
 
-- [ ] Decide the final product name (rename from "BarberPro")
-- [ ] Register a domain under the new name
-- [ ] Add testimonials, FAQ, and a comparison table to the landing page
-- [ ] Consider the problem → solution layout and a hero product mockup
-- [ ] Decide on the booking question above
+- [x] Final product name decided (BarberQueue)
+- [x] Domain registered (barberqueue.pro)
+- [x] Booking added (`/book` + slot picker, Phase 4.2)
+- [ ] Add testimonials with hard metrics to the landing page
+- [ ] Audience-tabbed features (For Barbers / Business / Clients)
+- [ ] Hero product mockup (dashboard + SMS bubbles)
