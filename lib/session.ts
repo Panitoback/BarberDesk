@@ -12,7 +12,7 @@ export const getTenant = cache(async () => {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name')
+    .select('id, name, subdomain')
     .eq('subdomain', subdomain)
     .single()
 

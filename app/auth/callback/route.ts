@@ -11,7 +11,7 @@ function tenantUrl(slug: string, path = '/') {
   if (process.env.NODE_ENV === 'development') {
     return `http://${slug}.localhost:3000${path}`
   }
-  return `https://${slug}.barberpro.ca${path}`
+  return `https://${slug}.barberqueue.pro${path}`
 }
 
 export async function GET(request: NextRequest) {

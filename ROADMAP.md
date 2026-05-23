@@ -1,16 +1,16 @@
-# Roadmap — BarberPro
+# Roadmap — BarberQueue
 
-## Status (2026-05-20)
+## Status (2026-05-23)
 
 | Phase | Status |
 |-------|--------|
 | Phase 1 — Foundation | ✅ Complete |
-| Phase 2 — Dashboard | ✅ Complete |
-| Phase 3 — SMS Automations | 🔄 In progress |
-| Phase 4 — Public landing | ✅ Complete |
-| Phase 5 — Deploy | 🔲 Pending |
+| Phase 2 — Dashboard | ✅ Complete (mobile-responsive) |
+| Phase 3 — SMS Automations | 🔄 Built, pending verification |
+| Phase 4 — Public landing + booking | ✅ Complete (+ password recovery + public booking) |
+| Phase 5 — Deploy | 🔲 Pending — `barberqueue.pro` registered, DNS + Vercel wiring left |
 
-> Phase 5 does NOT require Phase 3 — SMS routes fail gracefully (`status: 'failed'` in DB) until Twilio credentials arrive.
+> Phase 5 does NOT require Phase 3 — SMS routes fail gracefully (`status: 'failed'` in DB) until Twilio is fully verified.
 
 ---
 
@@ -20,16 +20,18 @@
 - `proxy.ts` middleware — subdomain routing, auth guard, `x-subdomain` header
 - Full SQL schema with RLS and triggers
 - Supabase clients (browser / server / admin)
-- Magic link auth (PKCE) + email/password login option
+- Magic link auth (PKCE) + email/password login + password recovery (`/forgot-password`, `/reset-password`)
 - English schema migration applied (2026-05-16)
+- Subdomain routing finalized — in-app links use subdomain-root paths; dev uses real subdomains (`test.localhost:3000`), no fallback
 
 ---
 
 ## Phase 2 — Dashboard ✅
 
 - Layout with sidebar (`getTenant()` via `React.cache()`)
+- Mobile-responsive — sidebar drawer + card layouts for tables (primary users are on phones)
 - Stats + today's appointments
-- `AppointmentsTodayTable` — Complete button (optimistic UI)
+- `AppointmentsTodayTable` — Complete + No show buttons (optimistic UI)
 - `POST /api/appointments/complete` → RPC `complete_appointment` (atomic)
 - `lib/loyalty.ts` — shared level logic
 - Client list with search + client detail (visit history, SMS history)
@@ -41,7 +43,7 @@
 
 ### 3.1 — Infrastructure ✅ Complete
 - [x] Twilio number (`+1 249 421 1641`) + Account SID + Auth Token → `.env`
-- [x] Twilio Console messaging webhook → `https://barberpro.ca/api/webhooks/twilio`
+- [x] Twilio Console messaging webhook → `https://barberqueue.pro/api/webhooks/twilio`
 - [x] n8n on Railway → `N8N_BASE_URL` + `N8N_API_KEY` in `.env`
 - [x] `WEBHOOK_SECRET` (`openssl rand -hex 32`) → `.env` + n8n Bearer Auth credential
 - [x] `RESEND_API_KEY` + `OPENROUTER_API_KEY` → `.env`
@@ -74,23 +76,45 @@ Three workflows built on the Railway n8n instance:
 
 ---
 
-## Phase 4 — Public landing ✅
+## Phase 4 — Public landing + booking ✅
 
+### 4.1 — Landing + onboarding
 - Landing page — hero, features, pricing, CTAs
 - `/register` — shop name, slug with real-time availability check, email
 - `GET /api/register/check-slug` — format + reserved words + DB check
 - Onboarding: magic link with `?shop=...&slug=...` → callback creates tenant → redirect to dashboard
 - Race condition handled: slug taken between check and confirm → `/register?error=slug-taken`
+- Password recovery — `/forgot-password` → `resetPasswordForEmail` → callback → `/reset-password`
+- Legal pages — `/privacy`, `/terms`, `/refund` (shared `(legal)` layout)
+
+### 4.2 — Public client booking
+- Public booking page at `[slug].barberqueue.pro/book` — no sign-in, mobile-first
+- `BookingLinkCard` on the dashboard — copy-to-clipboard widget for the shop's booking URL
+- Slot picker uses `GET /api/book/slots?date=YYYY-MM-DD` to hide occupied times in real time
+- `POST /api/book` — creates client (or reuses by phone), inserts appointment, sends confirmation SMS
+- Validation server-side: name 2–80 chars, phone normalized to E.164, service ≤80, date ≥ today (Toronto TZ), time on 30-min grid, not in the past
+- Rate limits: 10 bookings/min per shop + 3 bookings/day per existing phone
+- Suspended shops (`plan = 'suspended'`) reject new bookings at the page and the API
+- Partial unique index `appointments_unique_active_slot (tenant_id, date, time) WHERE status IN ('pending','completed')` — prevents double-booking under concurrent submits; cancelled/no-show free the slot back up
+- `lib/dates.ts` — `todayInToronto()`, `isPastInToronto()`, `formatDateTimeForSms()`, `addDaysISO()` — server runs UTC on Vercel but the product is Toronto-local
+- `UpcomingBookings` card on the dashboard — owner cancels via `POST /api/appointments/cancel`, courtesy SMS sent, slot freed
 
 ---
 
-## Phase 5 — Deploy 🔲
+## Phase 5 — Deploy 🔲 Pending
 
+> Domain `barberqueue.pro` is registered. Remaining work is wiring it up.
+
+- [x] Register `barberqueue.pro`
 - [ ] Connect repo to Vercel (auto-deploys on push to `main`)
 - [ ] Environment variables in Vercel Dashboard
-- [ ] Domain `barberpro.ca` + wildcard DNS (`*.barberpro.ca → CNAME Vercel`)
-- [ ] Remove dev subdomain fallback in `lib/subdomain.ts`
-- [ ] Delete test rows from `tenants` table
+- [ ] Wildcard DNS (`*.barberqueue.pro → CNAME Vercel`) + domain in Vercel → Settings → Domains
+- [ ] Update Supabase Auth URLs (site URL + redirect allowlist) for `barberqueue.pro`
+- [ ] Twilio Console webhook → `https://barberqueue.pro/api/webhooks/twilio`
+- [ ] n8n workflows pointing to production app URL
+- [ ] Resend sender domain verified (`noreply@barberqueue.pro`)
+- [ ] Delete the `test` tenant + sample data from Supabase
+- [x] Remove dev subdomain fallback in `lib/subdomain.ts`
 - [x] n8n on Railway (done in Phase 3.1)
 
 ---
@@ -102,7 +126,9 @@ barberdesk/
 ├── app/
 │   ├── (auth)/
 │   │   ├── login/page.tsx               # Magic link + password login
-│   │   └── register/page.tsx            # New barbershop registration
+│   │   ├── register/page.tsx            # New barbershop registration
+│   │   ├── forgot-password/page.tsx     # Request a password reset email
+│   │   └── reset-password/page.tsx      # Set a new password
 │   ├── auth/callback/route.ts           # PKCE callback — session + tenant creation
 │   ├── dashboard/
 │   │   ├── layout.tsx
@@ -110,8 +136,20 @@ barberdesk/
 │   │   └── clients/
 │   │       ├── page.tsx                 # Client list with search
 │   │       └── [id]/page.tsx            # Client detail
+│   ├── (legal)/
+│   │   ├── layout.tsx                   # Shared legal layout
+│   │   ├── privacy/page.tsx
+│   │   ├── terms/page.tsx
+│   │   └── refund/page.tsx
+│   ├── book/
+│   │   ├── page.tsx                     # Public booking page (no sign-in)
+│   │   ├── BookingForm.tsx              # Client component — name/phone/service/date/time
+│   │   └── confirmed/page.tsx           # Post-booking confirmation
 │   ├── api/
 │   │   ├── appointments/complete/route.ts
+│   │   ├── appointments/cancel/route.ts
+│   │   ├── book/route.ts                # Public booking — rate-limited + admin client
+│   │   ├── book/slots/route.ts          # Returns taken times for a given date
 │   │   ├── noshow/route.ts
 │   │   ├── clients/reactivate/route.ts
 │   │   ├── cron/reactivate/route.ts
@@ -125,7 +163,9 @@ barberdesk/
 │   ├── dashboard/
 │   │   ├── StatsCard.tsx
 │   │   ├── SidebarNav.tsx
-│   │   └── AppointmentsTodayTable.tsx
+│   │   ├── AppointmentsTodayTable.tsx
+│   │   ├── BookingLinkCard.tsx          # Copy-to-clipboard for the public booking URL
+│   │   └── UpcomingBookings.tsx         # Owner-side cancel of self-bookings
 │   └── clients/ClientsTable.tsx
 ├── lib/
 │   ├── supabase/ (client, server, admin, types)
@@ -133,6 +173,7 @@ barberdesk/
 │   ├── loyalty.ts       # POINTS_PER_VISIT, calculateLevel
 │   ├── slug.ts          # validateSlug(), RESERVED_SUBDOMAINS
 │   ├── subdomain.ts     # getSubdomain(), SUPABASE_COOKIE_OPTIONS
+│   ├── dates.ts         # Toronto-TZ helpers — todayInToronto, isPastInToronto, …
 │   └── twilio.ts        # sendSms() — REST client
 ├── proxy.ts             # Next.js 16 middleware
 ├── n8n/                 # Workflow JSON exports (01 review, 02 cron, 03 AI auto-reply)
@@ -155,3 +196,9 @@ barberdesk/
 | Slug re-validated in callback | Magic link params can be tampered — re-run `validateSlug()` before INSERT |
 | n8n uses Credentials, not `$env` | n8n blocks env-var access in expressions; secrets live in n8n credentials |
 | AI auto-reply via native AI Agent | OpenRouter Chat Model + Simple Memory sub-nodes — no custom HTTP Request node |
+| In-app links use subdomain-root paths | proxy rewrites `/*` → `/dashboard/*` on subdomains; linking to `/dashboard/*` would 404 |
+| `/book` + `/api/book/*` are public paths in `proxy.ts` | Customers must reach the booking flow without a session, but still need `x-subdomain` injected |
+| Public booking uses `createAdminClient()` | Anonymous visitors can't satisfy RLS — admin client is safe because the route only writes scoped to a validated tenant + has rate limits |
+| Partial unique index on active appointments | Concurrent submits at the same slot would otherwise both succeed; cancelled/no_show must free the slot back up |
+| All datetime logic goes through `lib/dates.ts` | Vercel runs UTC but the product is Toronto-local — same-day "today" queries break silently without a TZ-aware helper |
+| Suspended tenants reject public bookings | Otherwise we'd burn SMS credit for an unpaid account |

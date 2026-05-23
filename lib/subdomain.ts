@@ -23,7 +23,7 @@ export async function getSubdomain(): Promise<string | null> {
 }
 
 export const COOKIE_DOMAIN =
-  process.env.NODE_ENV === 'production' ? '.barberpro.ca' : undefined
+  process.env.NODE_ENV === 'production' ? '.barberqueue.pro' : undefined
 
 export const SUPABASE_COOKIE_OPTIONS = COOKIE_DOMAIN
   ? { domain: COOKIE_DOMAIN }

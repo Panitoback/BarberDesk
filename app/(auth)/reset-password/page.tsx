@@ -52,28 +52,28 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md space-y-6">
 
         <div className="flex items-center gap-2">
-          <Scissors className="w-5 h-5 text-amber-400" />
-          <span className="font-bold text-zinc-900 tracking-tight">BarberPro</span>
+          <Scissors className="w-5 h-5 text-indigo-400" />
+          <span className="font-bold text-slate-900 tracking-tight">BarberQueue</span>
         </div>
 
         {status === 'checking' && (
-          <p className="text-sm text-zinc-400">Loading...</p>
+          <p className="text-sm text-slate-400">Loading...</p>
         )}
 
         {status === 'invalid' && (
           <div className="space-y-3">
-            <h1 className="text-xl font-bold text-zinc-900">Link expired</h1>
-            <p className="text-zinc-500 text-sm leading-relaxed">
+            <h1 className="text-xl font-bold text-slate-900">Link expired</h1>
+            <p className="text-slate-500 text-sm leading-relaxed">
               This password reset link is invalid or has expired. Request a new one
               to continue.
             </p>
             <Link
               href="/forgot-password"
-              className="inline-block text-sm text-zinc-700 font-semibold hover:underline"
+              className="inline-block text-sm text-slate-700 font-semibold hover:underline"
             >
               Request a new link
             </Link>
@@ -83,15 +83,15 @@ export default function ResetPasswordPage() {
         {status === 'ready' && (
           <>
             <div>
-              <h1 className="text-2xl font-bold text-zinc-900">Set a new password</h1>
-              <p className="text-zinc-500 text-sm mt-1">
+              <h1 className="text-2xl font-bold text-slate-900">Set a new password</h1>
+              <p className="text-slate-500 text-sm mt-1">
                 Choose a new password for your account.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+                <label htmlFor="password" className="text-sm font-medium text-slate-700">
                   New password
                 </label>
                 <input
@@ -101,12 +101,12 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="confirm" className="text-sm font-medium text-zinc-700">
+                <label htmlFor="confirm" className="text-sm font-medium text-slate-700">
                   Confirm password
                 </label>
                 <input
@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -125,7 +125,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !password || !confirm}
-                className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-900 font-bold py-2.5 rounded-lg transition-colors text-sm"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold py-2.5 rounded-lg transition-colors text-sm"
               >
                 {loading ? 'Updating...' : 'Update password'}
               </button>

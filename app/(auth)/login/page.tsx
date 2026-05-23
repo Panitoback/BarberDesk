@@ -85,12 +85,12 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
           <div className="text-4xl">✉️</div>
-          <h1 className="text-xl font-semibold text-zinc-900">Check your email</h1>
-          <p className="text-zinc-500 text-sm">
-            We sent a link to <span className="font-medium text-zinc-800">{email}</span>.
+          <h1 className="text-xl font-semibold text-slate-900">Check your email</h1>
+          <p className="text-slate-500 text-sm">
+            We sent a link to <span className="font-medium text-slate-800">{email}</span>.
             Click the link to sign in.
           </p>
         </div>
@@ -99,10 +99,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md space-y-6">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-zinc-900">Sign in to BarberPro</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Sign in to BarberQueue</h1>
         </div>
 
         {resetDone && (
@@ -112,14 +112,14 @@ export default function LoginPage() {
         )}
 
         {/* Mode toggle */}
-        <div className="flex rounded-lg border border-zinc-200 p-1 gap-1">
+        <div className="flex rounded-lg border border-slate-200 p-1 gap-1">
           <button
             type="button"
             onClick={() => { setMode('password'); setError(null) }}
             className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
               mode === 'password'
-                ? 'bg-zinc-900 text-white font-medium'
-                : 'text-zinc-500 hover:text-zinc-700'
+                ? 'bg-slate-900 text-white font-medium'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Password
@@ -129,8 +129,8 @@ export default function LoginPage() {
             onClick={() => { setMode('magic'); setError(null) }}
             className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
               mode === 'magic'
-                ? 'bg-zinc-900 text-white font-medium'
-                : 'text-zinc-500 hover:text-zinc-700'
+                ? 'bg-slate-900 text-white font-medium'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             Magic link
@@ -139,7 +139,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
               Email address
             </label>
             <input
@@ -149,19 +149,19 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@email.com"
-              className="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {mode === 'password' && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+                <label htmlFor="password" className="text-sm font-medium text-slate-700">
                   Password
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                  className="text-xs text-slate-500 hover:text-slate-900 transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -173,7 +173,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           )}

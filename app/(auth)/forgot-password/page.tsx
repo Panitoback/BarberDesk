@@ -42,20 +42,20 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
-          <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
-            <Check className="w-7 h-7 text-amber-500" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center mx-auto">
+            <Check className="w-7 h-7 text-indigo-500" />
           </div>
-          <h1 className="text-xl font-bold text-zinc-900">Check your email</h1>
-          <p className="text-zinc-500 text-sm leading-relaxed">
+          <h1 className="text-xl font-bold text-slate-900">Check your email</h1>
+          <p className="text-slate-500 text-sm leading-relaxed">
             If an account exists for{' '}
-            <span className="font-semibold text-zinc-800">{email}</span>, we sent a
+            <span className="font-semibold text-slate-800">{email}</span>, we sent a
             link to reset your password.
           </p>
           <Link
             href="/login"
-            className="inline-block text-sm text-zinc-700 font-semibold hover:underline pt-2"
+            className="inline-block text-sm text-slate-700 font-semibold hover:underline pt-2"
           >
             Back to sign in
           </Link>
@@ -65,24 +65,24 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6 sm:p-10 w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md space-y-6">
 
         <div className="flex items-center gap-2">
-          <Scissors className="w-5 h-5 text-amber-400" />
-          <span className="font-bold text-zinc-900 tracking-tight">BarberPro</span>
+          <Scissors className="w-5 h-5 text-indigo-400" />
+          <span className="font-bold text-slate-900 tracking-tight">BarberQueue</span>
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Reset your password</h1>
-          <p className="text-zinc-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">Reset your password</h1>
+          <p className="text-slate-500 text-sm mt-1">
             Enter your email and we&apos;ll send you a link to set a new password.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-zinc-700">
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
               Email address
             </label>
             <input
@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="you@email.com"
-              className="w-full rounded-lg border border-zinc-300 px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -101,15 +101,15 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading || !email}
-            className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-900 font-bold py-2.5 rounded-lg transition-colors text-sm"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold py-2.5 rounded-lg transition-colors text-sm"
           >
             {loading ? 'Sending link...' : 'Send reset link'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-zinc-400">
+        <p className="text-center text-sm text-slate-400">
           Remembered it?{' '}
-          <Link href="/login" className="text-zinc-700 font-semibold hover:underline">
+          <Link href="/login" className="text-slate-700 font-semibold hover:underline">
             Sign in
           </Link>
         </p>

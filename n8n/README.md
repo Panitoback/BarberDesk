@@ -1,4 +1,4 @@
-# n8n Workflows — BarberPro
+# n8n Workflows — BarberQueue
 
 Three workflows for Phase 3 SMS automations, running on the n8n instance at
 `https://n8n-production-1e0f.up.railway.app`.
@@ -22,7 +22,7 @@ not in `$env.*` expressions.
 
 ### 1. Create n8n credentials
 
-**Bearer Auth — for calls to the BarberPro API**
+**Bearer Auth — for calls to the BarberQueue API**
 
 n8n UI → Credentials → New → **Header Auth / Bearer Auth**:
 
@@ -31,7 +31,7 @@ n8n UI → Credentials → New → **Header Auth / Bearer Auth**:
 | Name | `Barber Pro webhook` |
 | Bearer Token | the `WEBHOOK_SECRET` value from `barberdesk/.env` (token only, no `Bearer ` prefix) |
 
-Every HTTP Request node that calls `barberpro.ca/api/*` uses this credential
+Every HTTP Request node that calls `barberqueue.pro/api/*` uses this credential
 (Authentication → Generic Credential Type → Bearer Auth).
 
 **OpenRouter — for the AI Agent**
@@ -63,7 +63,7 @@ Workflow 02 has no webhook (scheduled trigger).
 
 Twilio Console → Phone Numbers → your number → Messaging:
 - **A MESSAGE COMES IN**: Webhook
-- **URL**: `https://barberpro.ca/api/webhooks/twilio`
+- **URL**: `https://barberqueue.pro/api/webhooks/twilio`
 - **Method**: HTTP POST
 
 ---
@@ -144,4 +144,4 @@ Send an SMS to the Twilio number. Within seconds:
 | Reply SMS not sent | `to_number` must be `{{ $('Webhook').first().json.body.from_number }}` |
 | OpenRouter returns 401 | OpenRouter credential missing/invalid on the Chat Model node |
 | Twilio webhook returns 403 | Signature mismatch — webhook URL in Twilio Console must exactly match `${NEXT_PUBLIC_APP_URL}/api/webhooks/twilio` (no trailing slash) |
-| Reactivation email fails silently | Resend domain not verified — emails work only after `barberpro.ca` is verified in Resend. SMS still goes through. |
+| Reactivation email fails silently | Resend domain not verified — emails work only after `barberqueue.pro` is verified in Resend. SMS still goes through. |

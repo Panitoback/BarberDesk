@@ -51,15 +51,20 @@ export async function proxy(request: NextRequest) {
       pathname === '/reset-password' ||
       pathname.startsWith('/auth/')
     const isApiPath = pathname.startsWith('/api/')
+    const isPublicPath =
+      pathname === '/book' ||
+      pathname.startsWith('/book/') ||
+      pathname === '/api/book' ||
+      pathname.startsWith('/api/book/')
 
-    if (!user && !isAuthPath) {
+    if (!user && !isAuthPath && !isPublicPath) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
     const newHeaders = new Headers(request.headers)
     newHeaders.set('x-subdomain', subdomain)
 
-    if (!isAuthPath && !isApiPath) {
+    if (!isAuthPath && !isApiPath && !isPublicPath) {
       const rewriteUrl = request.nextUrl.clone()
       rewriteUrl.pathname = `/dashboard${pathname === '/' ? '' : pathname}`
 

@@ -13,7 +13,7 @@ async function sendReactivationEmail(to: string, clientName: string, shopName: s
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `${shopName} <noreply@barberpro.ca>`,
+      from: `${shopName} <noreply@barberqueue.pro>`,
       to: [to],
       subject: `We miss you, ${clientName}! 10% off your next visit at ${shopName}`,
       html: `

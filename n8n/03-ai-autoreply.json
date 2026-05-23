@@ -32,7 +32,7 @@
             },
             {
               "name": "HTTP-Referer",
-              "value": "https://barberpro.ca"
+              "value": "https://barberqueue.pro"
             }
           ]
         },
@@ -50,7 +50,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://barberpro.ca/api/messages/send",
+        "url": "https://barberqueue.pro/api/messages/send",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

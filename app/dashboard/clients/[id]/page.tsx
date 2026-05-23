@@ -6,8 +6,8 @@ import { ArrowLeft, Phone, Mail } from 'lucide-react'
 import type { LoyaltyLevel } from '@/lib/loyalty'
 
 const levelStyles: Record<LoyaltyLevel, string> = {
-  bronze:   'bg-amber-50 text-amber-700 ring-amber-200',
-  silver:   'bg-zinc-100 text-zinc-600 ring-zinc-300',
+  bronze:   'bg-indigo-50 text-amber-700 ring-amber-200',
+  silver:   'bg-slate-100 text-slate-600 ring-slate-300',
   gold:     'bg-yellow-50 text-yellow-700 ring-yellow-200',
   platinum: 'bg-purple-50 text-purple-700 ring-purple-200',
 }
@@ -62,7 +62,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <div>
         <Link
           href="/clients"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-700 transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors mb-4"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Clients
@@ -70,8 +70,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-zinc-900 truncate">{client.name}</h1>
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4 mt-1.5 text-sm text-zinc-400">
+            <h1 className="text-2xl font-bold text-slate-900 truncate">{client.name}</h1>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4 mt-1.5 text-sm text-slate-400">
               <span className="flex items-center gap-1.5 min-w-0">
                 <Phone className="w-3.5 h-3.5 shrink-0" />
                 {client.phone}
@@ -93,9 +93,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map(stat => (
-          <div key={stat.label} className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
-            <p className="text-xs font-medium text-zinc-400 mb-1">{stat.label}</p>
-            <p className={`text-2xl font-bold ${stat.danger ? 'text-red-500' : 'text-zinc-900'}`}>
+          <div key={stat.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <p className="text-xs font-medium text-slate-400 mb-1">{stat.label}</p>
+            <p className={`text-2xl font-bold ${stat.danger ? 'text-red-500' : 'text-slate-900'}`}>
               {stat.value}
             </p>
           </div>
@@ -104,27 +104,27 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
       {/* Visit history */}
       <div>
-        <h2 className="text-base font-semibold text-zinc-900 mb-3">Visit history</h2>
+        <h2 className="text-base font-semibold text-slate-900 mb-3">Visit history</h2>
         {!visits?.length ? (
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-8 text-center">
-            <p className="text-zinc-400 text-sm">No visits recorded.</p>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center">
+            <p className="text-slate-400 text-sm">No visits recorded.</p>
           </div>
         ) : (
           <>
             {/* Mobile — card list */}
             <div className="space-y-3 md:hidden">
               {visits.map(visit => (
-                <div key={visit.id} className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4">
+                <div key={visit.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-zinc-500">{formatDate(visit.date)}</span>
-                    <span className="text-amber-600 font-medium text-sm">+{visit.points_earned}</span>
+                    <span className="text-sm text-slate-500">{formatDate(visit.date)}</span>
+                    <span className="text-indigo-600 font-medium text-sm">+{visit.points_earned}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 mt-1">
-                    <span className="font-medium text-zinc-900">{visit.service}</span>
-                    <span className="text-zinc-600 text-sm">
+                    <span className="font-medium text-slate-900">{visit.service}</span>
+                    <span className="text-slate-600 text-sm">
                       {visit.price != null
                         ? `$${visit.price.toFixed(2)}`
-                        : <span className="text-zinc-300">—</span>}
+                        : <span className="text-slate-300">—</span>}
                     </span>
                   </div>
                 </div>
@@ -132,28 +132,28 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </div>
 
             {/* Desktop — table */}
-            <div className="hidden md:block bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-x-auto">
+            <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 text-left">
-                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Date</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Service</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Price</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wide">Points</th>
+                  <tr className="border-b border-slate-100 text-left">
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Service</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Price</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Points</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-50">
+                <tbody className="divide-y divide-slate-50">
                   {visits.map(visit => (
-                    <tr key={visit.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-6 py-4 text-zinc-600 whitespace-nowrap">{formatDate(visit.date)}</td>
-                      <td className="px-6 py-4 font-medium text-zinc-900">{visit.service}</td>
-                      <td className="px-6 py-4 text-zinc-600">
+                    <tr key={visit.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-slate-600 whitespace-nowrap">{formatDate(visit.date)}</td>
+                      <td className="px-6 py-4 font-medium text-slate-900">{visit.service}</td>
+                      <td className="px-6 py-4 text-slate-600">
                         {visit.price != null
                           ? `$${visit.price.toFixed(2)}`
-                          : <span className="text-zinc-300">—</span>}
+                          : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-amber-600 font-medium">+{visit.points_earned}</span>
+                        <span className="text-indigo-600 font-medium">+{visit.points_earned}</span>
                       </td>
                     </tr>
                   ))}
@@ -167,8 +167,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       {/* SMS history */}
       {messages && messages.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold text-zinc-900 mb-3">SMS messages</h2>
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4 space-y-3">
+          <h2 className="text-base font-semibold text-slate-900 mb-3">SMS messages</h2>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             {messages.map(msg => (
               <div
                 key={msg.id}
@@ -176,12 +176,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               >
                 <div className={`max-w-[75%] sm:max-w-sm text-sm rounded-xl px-4 py-2.5 break-words ${
                   msg.direction === 'inbound'
-                    ? 'bg-zinc-100 text-zinc-800'
-                    : 'bg-amber-400 text-zinc-900'
+                    ? 'bg-slate-100 text-slate-800'
+                    : 'bg-indigo-600 text-slate-900'
                 }`}>
                   {msg.body}
                 </div>
-                <span className="self-end text-xs text-zinc-400 shrink-0">
+                <span className="self-end text-xs text-slate-400 shrink-0">
                   {formatDateTime(msg.created_at)}
                 </span>
               </div>

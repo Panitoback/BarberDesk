@@ -21,7 +21,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://barberpro.ca/api/cron/reactivate",
+        "url": "https://barberqueue.pro/api/cron/reactivate",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

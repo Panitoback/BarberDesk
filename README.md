@@ -1,4 +1,4 @@
-# BarberPro
+# BarberQueue
 
 Multi-tenant SaaS for independent barbershops in Toronto, Canada.
 Each shop gets its own subdomain, private dashboard, and SMS automations.
@@ -13,7 +13,7 @@ Each shop gets its own subdomain, private dashboard, and SMS automations.
 |-------|-----------|
 | Frontend | Next.js 16 + TypeScript + Tailwind + shadcn/ui |
 | Database | PostgreSQL via Supabase (RLS on all tables) |
-| Auth | Supabase Auth — magic link (PKCE) + email/password |
+| Auth | Supabase Auth — magic link (PKCE) + email/password + password reset |
 | SMS | Twilio |
 | Email | Resend |
 | Automations | n8n self-hosted on Railway |
@@ -25,8 +25,8 @@ Each shop gets its own subdomain, private dashboard, and SMS automations.
 ## Subdomain routing
 
 ```
-barberpro.ca            → landing page + registration
-[slug].barberpro.ca     → barber's private dashboard
+barberqueue.pro            → landing page + registration
+[slug].barberqueue.pro     → barber's private dashboard
 ```
 
 `proxy.ts` middleware detects the subdomain, guards auth, and injects `x-subdomain` into all requests.
@@ -40,9 +40,9 @@ npm install
 npm run dev
 ```
 
-Variables are in `.env` — Supabase keys are already filled in. Twilio, Resend, n8n, and OpenRouter keys are set when their phases are configured.
+Variables are in `.env` — all keys (Supabase, Twilio, Resend, n8n, OpenRouter) are filled in.
 
-For local dashboard testing, access `http://localhost:3000/dashboard` — the app loads the tenant with `subdomain = 'test'` automatically.
+For local dashboard testing, open `http://test.localhost:3000` — the proxy resolves the `test` tenant from the real subdomain (Chrome/Edge resolve `*.localhost` automatically). Sign in at `http://test.localhost:3000/login`.
 
 ---
 
@@ -50,28 +50,46 @@ For local dashboard testing, access `http://localhost:3000/dashboard` — the ap
 
 | # | Trigger | Action | Status |
 |---|---------|--------|--------|
-| 1 | SMS from barber | No-show → recovery SMS | API ready, n8n pending |
-| 2 | Appointment completed | Add points + notify level up | API ready, n8n pending |
-| 3 | Weekly cron | 30+ day inactive clients → SMS | API ready, n8n pending |
-| 4 | Appointment completed | Wait 30 min → review request SMS | API ready, n8n pending |
-| 5 | Inbound SMS | OpenRouter auto-reply (model selectable in n8n) | Pending |
-| 6 | Weekly cron | 30+ day inactive clients → reactivation SMS (always) + email if client has one (Resend) | Pending |
+| 1 | SMS from barber | No-show → recovery SMS | API ready, n8n built — pending verify |
+| 2 | Appointment completed | Add points + notify level up | API ready, n8n built — pending verify |
+| 3 | Weekly cron | 30+ day inactive clients → SMS | API ready, n8n built — pending verify |
+| 4 | Appointment completed | Wait 30 min → review request SMS | API ready, n8n built — pending verify |
+| 5 | Inbound SMS | OpenRouter auto-reply (model selectable in n8n) | Built — pending verify |
+| 6 | Weekly cron | 30+ day inactive clients → reactivation SMS (always) + email if client has one (Resend) | Built — pending verify |
 
 ---
 
-## Project status (2026-05-17)
+## Public booking
+
+Every shop gets a public booking page at `[slug].barberqueue.pro/book` (linked from the dashboard with a copy-to-clipboard card).
+
+- Visitors don't sign in — they pick a service, date, and 30-min slot, and enter name + phone
+- `app/api/book/slots` exposes taken times so the form hides occupied slots in real time
+- A partial unique index on `appointments (tenant_id, date, time) WHERE status IN ('pending','completed')` prevents double-booking even under concurrent submits
+- Rate limits: **10 bookings/min per shop**, **3 bookings/day per phone** (caps SMS-spend damage from abuse)
+- Suspended shops (`plan = 'suspended'`) automatically reject new bookings — both the form and the API
+- Confirmation SMS is best-effort: Twilio failures never block the booking; the outcome is persisted to `messages`
+- Dashboard `Upcoming bookings` card lets the owner cancel — cancel sends a courtesy SMS and frees the slot back up
+
+---
+
+## Project status (2026-05-23)
 
 | Module | Status |
 |--------|--------|
 | Foundation (Next.js, Supabase, Auth, middleware) | ✅ Complete |
-| Dashboard (stats, appointments, clients, loyalty) | ✅ Complete |
+| Dashboard (stats, appointments, clients, loyalty) | ✅ Complete — mobile-responsive |
+| Auth (magic link, password login, password recovery) | ✅ Complete |
 | SMS API routes (noshow, reactivate, reviews) | ✅ Complete |
 | Public landing + registration flow | ✅ Complete |
+| Public booking flow (`/book` + slot picker + cancel) | ✅ Complete |
+| Legal pages (privacy, terms, refund) | ✅ Complete |
 | Local dev working | ✅ Verified |
-| SMS infrastructure (Twilio + n8n on Railway) | ⏳ Pending credentials |
-| n8n workflows | ⏳ Blocked by infra |
-| AI auto-reply (OpenRouter vía n8n) | ⏳ Blocked by infra |
-| Deploy to Vercel + barberpro.ca | 🔲 Next step |
+| SMS infrastructure (Twilio + n8n on Railway) | ✅ Credentials set |
+| n8n workflows | 🔄 Built, pending verification |
+| AI auto-reply (OpenRouter vía n8n) | 🔄 Built, pending verification |
+| Domain (`barberqueue.pro`) | ✅ Registered |
+| Deploy to Vercel | 🔲 Pending — domain DNS + env vars |
 
 ---
 

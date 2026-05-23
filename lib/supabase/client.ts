@@ -2,7 +2,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './types'
 
 const cookieOptions = process.env.NODE_ENV === 'production'
-  ? { domain: '.barberpro.ca' }
+  ? { domain: '.barberqueue.pro' }
   : undefined
 
 export function createClient() {

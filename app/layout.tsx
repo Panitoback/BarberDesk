@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BarberPro",
+  title: "BarberQueue",
   description: "Barbershop management software",
 };
 

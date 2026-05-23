@@ -29,7 +29,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://barberpro.ca/api/reviews/request",
+        "url": "https://barberqueue.pro/api/reviews/request",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
