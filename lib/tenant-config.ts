@@ -1,0 +1,84 @@
+// Shape of `tenants.config` (JSONB column). Filled by the owner via /settings,
+// read by the AI auto-reply workflow so it stops inventing hours/prices.
+
+export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
+export type Weekday = typeof WEEKDAYS[number]
+
+export const WEEKDAY_LABELS: Record<Weekday, string> = {
+  mon: 'Monday',
+  tue: 'Tuesday',
+  wed: 'Wednesday',
+  thu: 'Thursday',
+  fri: 'Friday',
+  sat: 'Saturday',
+  sun: 'Sunday',
+}
+
+export type DayHours = { open: string; close: string } | null
+export type Service  = { name: string; price_cad: number }
+
+export type TenantConfig = {
+  hours?:    Partial<Record<Weekday, DayHours>>
+  services?: Service[]
+  address?:  string
+}
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+
+type ValidationResult =
+  | { ok: true;  config: TenantConfig }
+  | { ok: false; error: string }
+
+export function validateTenantConfig(input: unknown): ValidationResult {
+  if (typeof input !== 'object' || input === null) {
+    return { ok: false, error: 'config must be an object' }
+  }
+  const c = input as Record<string, unknown>
+  const config: TenantConfig = {}
+
+  if (c.hours !== undefined) {
+    if (typeof c.hours !== 'object' || c.hours === null) {
+      return { ok: false, error: 'hours must be an object' }
+    }
+    const raw = c.hours as Record<string, unknown>
+    const hours: Partial<Record<Weekday, DayHours>> = {}
+    for (const day of WEEKDAYS) {
+      if (!(day in raw)) continue
+      const v = raw[day]
+      if (v === null) { hours[day] = null; continue }
+      if (typeof v !== 'object') return { ok: false, error: `hours.${day} must be object or null` }
+      const dh = v as Record<string, unknown>
+      if (typeof dh.open  !== 'string' || !TIME_RE.test(dh.open))  return { ok: false, error: `hours.${day}.open must be HH:MM` }
+      if (typeof dh.close !== 'string' || !TIME_RE.test(dh.close)) return { ok: false, error: `hours.${day}.close must be HH:MM` }
+      hours[day] = { open: dh.open, close: dh.close }
+    }
+    config.hours = hours
+  }
+
+  if (c.services !== undefined) {
+    if (!Array.isArray(c.services)) return { ok: false, error: 'services must be an array' }
+    if (c.services.length > 30)     return { ok: false, error: 'services cannot exceed 30 entries' }
+    const services: Service[] = []
+    for (const [i, s] of c.services.entries()) {
+      if (typeof s !== 'object' || s === null) return { ok: false, error: `services[${i}] must be object` }
+      const sv = s as Record<string, unknown>
+      if (typeof sv.name !== 'string') return { ok: false, error: `services[${i}].name must be string` }
+      const name = sv.name.trim()
+      if (name.length === 0 || name.length > 80) return { ok: false, error: `services[${i}].name must be 1-80 chars` }
+      if (typeof sv.price_cad !== 'number' || !isFinite(sv.price_cad) || sv.price_cad < 0 || sv.price_cad > 10000) {
+        return { ok: false, error: `services[${i}].price_cad must be 0-10000` }
+      }
+      services.push({ name, price_cad: Math.round(sv.price_cad * 100) / 100 })
+    }
+    config.services = services
+  }
+
+  if (c.address !== undefined) {
+    if (typeof c.address !== 'string') return { ok: false, error: 'address must be string' }
+    const addr = c.address.trim()
+    if (addr.length > 200) return { ok: false, error: 'address must be ≤200 chars' }
+    if (addr.length > 0) config.address = addr
+  }
+
+  return { ok: true, config }
+}
