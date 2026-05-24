@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createHmac } from 'crypto'
+import { after } from 'next/server'
 
 function verifyTwilioSignature(
   authToken: string,
@@ -73,20 +74,29 @@ export async function POST(request: Request) {
     twilio_sid: sid,
   })
 
+  // `after()` keeps the runtime alive until the callback completes — without it,
+  // Vercel kills the fire-and-forget fetch before the request reaches n8n, causing
+  // intermittent auto-reply failures (especially after a cold start).
   const autoReplyUrl = process.env.N8N_AUTOREPLY_WEBHOOK_URL
   if (autoReplyUrl) {
-    fetch(autoReplyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenant_id:   tenant.id,
-        subdomain:   tenant.subdomain,
-        shop_name:   tenant.name,
-        from_number: from,
-        client_name: client?.name ?? 'there',
-        message:     body,
-      }),
-    }).catch(() => {})
+    after(async () => {
+      try {
+        await fetch(autoReplyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenant_id:   tenant.id,
+            subdomain:   tenant.subdomain,
+            shop_name:   tenant.name,
+            from_number: from,
+            client_name: client?.name ?? 'there',
+            message:     body,
+          }),
+        })
+      } catch {
+        // n8n unreachable — inbound is already persisted in `messages` so the owner can read it manually
+      }
+    })
   }
 
   return new Response('<Response/>', { headers: { 'Content-Type': 'text/xml' } })

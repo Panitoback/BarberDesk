@@ -52,12 +52,11 @@ For local dashboard testing, open `http://test.localhost:3000` — the proxy res
 
 | # | Trigger | Action | Status |
 |---|---------|--------|--------|
-| 1 | SMS from barber | No-show → recovery SMS | API ready, n8n built — pending verify |
-| 2 | Appointment completed | Add points + notify level up | API ready, n8n built — pending verify |
-| 3 | Weekly cron | 30+ day inactive clients → SMS | API ready, n8n built — pending verify |
-| 4 | Appointment completed | Wait 30 min → review request SMS | API ready, n8n built — pending verify |
-| 5 | Inbound SMS | OpenRouter auto-reply (model selectable in n8n) | Built — pending verify |
-| 6 | Weekly cron | 30+ day inactive clients → reactivation SMS (always) + email if client has one (Resend) | Built — pending verify |
+| 1 | SMS from barber | No-show → recovery SMS | ✅ API ready |
+| 2 | Appointment completed | Add points + notify level up | ✅ API ready |
+| 3 | Weekly cron | 30+ day inactive clients → SMS + email (Resend) | ✅ Verified end-to-end |
+| 4 | Appointment completed | Wait 30 min → review request SMS | ✅ Verified end-to-end |
+| 5 | Inbound SMS | OpenRouter AI auto-reply (model selectable in n8n) | 🔄 Built, pending verify |
 
 ---
 
@@ -89,7 +88,7 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 
 ---
 
-## Project status (2026-05-23)
+## Project status (2026-05-24)
 
 | Module | Status |
 |--------|--------|
@@ -101,12 +100,11 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 | Public booking flow (`/book` + slot picker + cancel) | ✅ Complete |
 | Legal pages (privacy, terms, refund) | ✅ Complete |
 | Admin dashboard (`/admin` — tenant + plan + twilio_number management) | ✅ Complete |
-| Local dev working | ✅ Verified |
-| SMS infrastructure (Twilio + n8n on Railway) | ✅ Credentials set |
-| n8n workflows | 🔄 Built, pending verification |
-| AI auto-reply (OpenRouter vía n8n) | 🔄 Built, pending verification |
-| Domain (`barberqueue.pro`) | ✅ Registered |
-| Deploy to Vercel | 🔲 Pending — domain DNS + env vars |
+| Deploy to Vercel — barberqueue.pro live | ✅ Complete |
+| Supabase Auth URLs + Twilio webhook + Resend domain | ✅ All configured |
+| n8n workflow 01 — review delay (30 min) | ✅ Verified end-to-end |
+| n8n workflow 02 — reactivation cron | ✅ Verified end-to-end |
+| n8n workflow 03 — AI auto-reply | 🔄 Pending verification |
 
 ---
 

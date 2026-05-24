@@ -1,17 +1,21 @@
 # Roadmap — BarberQueue
 
-## Status (2026-05-23)
+## Status (2026-05-24)
 
 | Phase | Status |
 |-------|--------|
 | Phase 1 — Foundation | ✅ Complete |
 | Phase 2 — Dashboard | ✅ Complete (mobile-responsive) |
-| Phase 3 — SMS Automations | 🔄 Built, pending verification |
+| Phase 3.1 — Twilio + n8n infra | ✅ Complete |
+| Phase 3.2 — SMS API routes | ✅ Complete |
+| Phase 3.3 — n8n workflow 01 (review delay) | ✅ Verified end-to-end |
+| Phase 3.3 — n8n workflow 02 (reactivation cron) | ✅ Verified end-to-end (SMS + email) |
+| Phase 3.4 — n8n workflow 03 (AI auto-reply) | 🔄 Pending verification |
 | Phase 4 — Public landing + booking | ✅ Complete (+ password recovery + public booking) |
 | Phase 4.5 — Admin dashboard | ✅ Complete (`/admin` — tenant management) |
-| Phase 5 — Deploy | 🔄 In progress — `barberqueue.pro` registered, DNS done, env vars done |
+| Phase 5 — Deploy | ✅ Live at `barberqueue.pro` — all external services configured |
 
-> Phase 5 does NOT require Phase 3 — SMS routes fail gracefully (`status: 'failed'` in DB) until Twilio is fully verified.
+> Workflow 03 (AI auto-reply) is the only remaining verification item before full production readiness.
 
 ---
 
@@ -59,13 +63,13 @@
 - `POST /api/messages/send` — send arbitrary SMS (used by the AI auto-reply workflow)
 - Cookie/session routes also accept `Bearer {WEBHOOK_SECRET}` (n8n); `cron` + `messages` are webhook-only
 
-### 3.3 — n8n workflows 🔄 Built, pending verification
-Three workflows built on the Railway n8n instance:
-- `01 · Review Request` — webhook → wait 30 min → `POST /api/reviews/request`
-- `02 · Weekly Reactivation Cron` — schedule (Mon 9am) → `POST /api/cron/reactivate`
+### 3.3 — n8n workflows
+Three workflows on the Railway n8n instance:
+- `01 · Review Request` — webhook → wait 30 min → `POST /api/reviews/request` — ✅ **Verified 2026-05-23**
+- `02 · Weekly Reactivation Cron` — schedule (Mon 9am) → `POST /api/cron/reactivate` — ✅ **Verified 2026-05-24**
   - SMS always sent (uses `clients.phone`); email only if `clients.email` is set (non-fatal if missing)
   - Email via Resend HTTP API; subject: re-engagement with 10% discount offer
-- `03 · AI Auto-Reply` — see 3.4
+- `03 · AI Auto-Reply` — see 3.4 — 🔄 pending verify
 - HTTP Request nodes authenticate via an n8n Bearer Auth credential (not `$env` — blocked by n8n)
 - ⚠️ `n8n/*.json` files are stale — live n8n instance is authoritative until re-exported
 
@@ -117,22 +121,25 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 
 ---
 
-## Phase 5 — Deploy 🔄 In progress
+## Phase 5 — Deploy ✅ Live
 
-> Domain `barberqueue.pro` is registered, DNS propagated, env vars set. Remaining work is the external services + final cleanups.
+> `barberqueue.pro` is live. All external services configured. Remaining: workflow verification + pre-launch cleanup.
 
 - [x] Register `barberqueue.pro`
 - [x] Connect repo to Vercel (auto-deploys on push to `main`)
 - [x] Environment variables in Vercel Dashboard
 - [x] Wildcard DNS (`*.barberqueue.pro → CNAME Vercel`) + domain in Vercel → Settings → Domains
-- [x] Delete the `test` tenant + sample data from Supabase
 - [x] Remove dev subdomain fallback in `lib/subdomain.ts`
 - [x] n8n on Railway (done in Phase 3.1)
-- [ ] `ADMIN_USER_IDS` env var in Vercel (production scope) — required for `/admin` access
-- [ ] Update Supabase Auth URLs (site URL + redirect allowlist) for `barberqueue.pro`
-- [ ] Twilio Console webhook → `https://barberqueue.pro/api/webhooks/twilio`
-- [ ] n8n workflows pointing to production app URL
-- [ ] Resend sender domain verified (`noreply@barberqueue.pro`)
+- [x] `ADMIN_USER_IDS` env var in Vercel — `/admin` accessible at `barberqueue.pro/admin`
+- [x] Supabase Auth URLs — site URL `https://barberqueue.pro` + redirect allowlist including `https://*.barberqueue.pro/auth/callback`
+- [x] Twilio Console webhook → `https://barberqueue.pro/api/webhooks/twilio`
+- [x] n8n workflows pointing to `barberqueue.pro` (updated from old `barberpro.ca` URL)
+- [x] Resend sender domain verified (`noreply@barberqueue.pro`) — DNS records in Vercel nameservers
+- [x] Verify n8n workflow 02 (reactivation cron) end-to-end — 2026-05-24
+- [ ] Verify n8n workflow 03 (AI auto-reply) end-to-end
+- [ ] Upgrade Twilio from trial (removes message length limit + verified-number restriction)
+- [ ] Delete test tenant (FadeKingbarbershop) + data before real launch
 
 ---
 
