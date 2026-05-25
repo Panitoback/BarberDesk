@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, subdomain')
+    .select('id, name, subdomain, config')
     .eq('twilio_number', to)
     .single()
 
@@ -88,6 +88,7 @@ export async function POST(request: Request) {
             tenant_id:   tenant.id,
             subdomain:   tenant.subdomain,
             shop_name:   tenant.name,
+            shop_data:   tenant.config ?? {},
             from_number: from,
             client_name: client?.name ?? 'there',
             message:     body,

@@ -9,12 +9,12 @@ import { createClient } from '@/lib/supabase/client'
 const navItems = [
   { href: '/',         label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/clients',  label: 'Clients',   icon: Users,           exact: false },
+  { href: '/settings', label: 'Settings',  icon: Settings,        exact: false },
 ]
 
 const comingSoonItems = [
   { label: 'Appointments', icon: Calendar },
   { label: 'Messages',     icon: MessageSquare },
-  { label: 'Settings',     icon: Settings },
 ]
 
 export default function SidebarNav({ shopName }: { shopName: string }) {
