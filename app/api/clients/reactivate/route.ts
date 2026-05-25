@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { getSubdomain } from '@/lib/subdomain'
 import { NextResponse } from 'next/server'
+import { todayInToronto, addDaysISO } from '@/lib/dates'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -39,10 +40,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ skipped: true, reason: 'reactivation automation disabled' })
   }
 
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - config.reactivation_days)
-  const cutoffDate = cutoff.toISOString().split('T')[0]
-  const cutoffISO  = cutoff.toISOString()
+  const cutoffDate = addDaysISO(todayInToronto(), -config.reactivation_days)
+  const cutoffISO  = new Date(cutoffDate + 'T00:00:00Z').toISOString()
 
   const { data: inactiveClients } = await supabase
     .from('clients')

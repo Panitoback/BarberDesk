@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -41,18 +41,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to complete appointment' }, { status: 500 })
   }
 
-  // Trigger n8n review delay workflow (fire-and-forget)
+  // Trigger n8n review delay workflow — wrapped in after() so Vercel keeps
+  // the runtime alive after the response is sent (bare fire-and-forget is
+  // killed before the request reaches n8n on cold starts).
   const reviewWebhookUrl = process.env.N8N_REVIEW_WEBHOOK_URL
   if (reviewWebhookUrl && appointment?.client_id) {
-    fetch(reviewWebhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id:    appointment.client_id,
-        subdomain,
-        completed_at: new Date().toISOString(),
-      }),
-    }).catch(() => {})
+    const payload = {
+      client_id:    appointment.client_id,
+      subdomain,
+      completed_at: new Date().toISOString(),
+    }
+    after(async () => {
+      await fetch(reviewWebhookUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      }).catch(() => {})
+    })
   }
 
   return NextResponse.json(data)

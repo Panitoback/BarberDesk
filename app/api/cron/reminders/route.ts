@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { formatDateTimeForSms } from '@/lib/dates'
+import { formatDateTimeForSms, torontoLocalToDate } from '@/lib/dates'
 
 async function sendReminderEmail(opts: {
   to:        string
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     if (!appointments?.length) continue
 
     for (const appt of appointments) {
-      const apptAt = new Date(`${appt.date}T${appt.time}`)
+      const apptAt = torontoLocalToDate(appt.date, appt.time)
       if (apptAt < windowStart || apptAt > windowEnd) continue
 
       const client = Array.isArray(appt.clients) ? appt.clients[0] : appt.clients

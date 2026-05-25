@@ -14,7 +14,8 @@
 | Phase 4 — Public landing + booking | ✅ Complete (+ password recovery + public booking) |
 | Phase 4.5 — Admin dashboard | ✅ Complete (`/admin` — tenant management) |
 | Phase 4.6 — Shop settings | ✅ Complete (`/settings` — hours, services, address, Google review link, notification email, reminder config) |
-| Phase 4.7 — Automations dashboard | ✅ Complete (`/automations` — 4 toggles + reactivation days; loyalty toggle enforced in RPC) |
+| Phase 4.7 — Automations dashboard | ✅ Complete (`/automations` — 5 toggles + reactivation days; loyalty toggle enforced in RPC) |
+| Phase 4.16 — Flash discount automation | ✅ Complete 2026-05-25 (no-show → Resend email to clients inactive 20+ days with configurable % off) |
 | Phase 4.8 — Dynamic services + revenue tracking | ✅ Complete (booking dropdown reads `tenant.config.services`; `appointments.price` → `visits.price`) |
 | Phase 4.9 — QR booking code | ✅ Complete (`BookingQRCode` in `/settings` — SVG rendered + downloadable PNG) |
 | Phase 4.10 — Appointment reminders by email | ✅ Built (`/api/cron/reminders` + n8n workflow 04 every 30 min) — **n8n not yet activated, Resend untested** |
@@ -157,11 +158,20 @@ Owner-facing settings page that grounds the AI auto-reply with verified shop dat
 Owner-facing control panel for the SMS automations, served at `[slug].barberqueue.pro/automations`.
 
 - `app/dashboard/automations/page.tsx` — server component, loads `automations_config` row via RLS, falls back to all-true defaults if the row is missing (legacy tenants pre-trigger)
-- `components/dashboard/AutomationsForm.tsx` — 4 cards with toggles (No-show recovery / Loyalty points / Review request / Win-back inactive clients) + a `reactivation_days` numeric input that only renders when win-back is active
+- `components/dashboard/AutomationsForm.tsx` — 5 cards with toggles (No-show recovery / Loyalty points / Review request / Win-back inactive clients / Flash discount on no-show) + a `reactivation_days` numeric input that only renders when win-back is active
 - `POST /api/automations` — partial update; ignores fields not in the payload, validates each toggle as boolean and `reactivation_days` as integer 7–365
 - `SidebarNav` — new "Automations" nav item (Zap icon) between Clients and Settings
 - Wiring already existed for the other three automations (`/api/noshow`, `/api/reviews/request`, `/api/cron/reactivate` all read their respective `*_active` flag); the loyalty toggle was the one missing piece — added to the `complete_appointment` RPC via migration `20260525000000`
 - The Google review URL was deliberately kept out of this page: per-tenant static info belongs in `/settings` alongside address/hours, even though the storage lives in `automations_config.review_link`
+
+## Phase 4.16 — Flash discount automation ✅
+
+Fires automatically when a client no-shows, emailing inactive clients to fill the open slot.
+
+- `automations_config.flash_active boolean DEFAULT false` + `flash_discount_pct int DEFAULT 20` — toggle and discount percentage per tenant
+- `/api/noshow` — after marking the appointment as no-show (and optionally sending recovery SMS), if `flash_active = true` and `RESEND_API_KEY` is set, fires a Resend email via `after()` to every client in the tenant that has an email address AND `last_visit <= today - 20 days`. Clients who have never visited are excluded (`last_visit IS NOT NULL` required) — they are not inactive customers
+- Email subject: `{pct}% off at {shop} — open slot right now`; body personalised with first name + shop name + discount
+- Configurable from `/automations` (toggle + discount % input)
 
 ---
 

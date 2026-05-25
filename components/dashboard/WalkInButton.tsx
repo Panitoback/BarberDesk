@@ -99,7 +99,7 @@ export default function WalkInButton({ services }: { services: Service[] }) {
                   id="wi-service"
                   value={service}
                   onChange={e => setService(e.target.value)}
-                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px] bg-white"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px] bg-white"
                 >
                   {services.map(s => (
                     <option key={s.name} value={s.name}>
@@ -121,7 +121,7 @@ export default function WalkInButton({ services }: { services: Service[] }) {
                   onChange={e => setName(e.target.value)}
                   placeholder="Walk-in"
                   maxLength={80}
-                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px]"
                 />
               </div>
 
@@ -136,7 +136,7 @@ export default function WalkInButton({ services }: { services: Service[] }) {
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="416-555-0100"
-                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px]"
                 />
               </div>
 

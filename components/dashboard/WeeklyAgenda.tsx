@@ -79,7 +79,7 @@ export default function WeeklyAgenda({
   return (
     <div className="space-y-4">
       {/* Week navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Agenda</h1>
         <div className="flex items-center gap-2">
           <button onClick={() => navigate(-1)} type="button"

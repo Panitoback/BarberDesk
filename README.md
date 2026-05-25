@@ -52,12 +52,13 @@ For local dashboard testing, open `http://test.localhost:3000` — the proxy res
 
 | # | Trigger | Action | Status |
 |---|---------|--------|--------|
-| 1 | SMS from barber | No-show → recovery SMS | ✅ API ready |
-| 2 | Appointment completed | Add points + notify level up | ✅ API ready |
-| 3 | Weekly cron (n8n 02) | N+ day inactive clients → SMS + email (Resend) | ✅ Verified end-to-end |
-| 4 | Appointment completed | Wait 30 min → review request SMS (n8n 01) | ✅ Verified end-to-end |
-| 5 | Inbound SMS | AI auto-reply grounded in shop's `/settings` data (n8n 03) | ⚠️ End-to-end works, re-verify with new prompt |
-| 6 | Every 30 min (n8n 04) | Email reminder N hours before appointment (Resend) | 📋 Built — n8n workflow not yet activated |
+| 1 | No-show marked | Recovery SMS to the no-show client | ✅ API ready |
+| 2 | No-show marked | Flash discount email to inactive clients to fill the slot (Resend) | ✅ Complete |
+| 3 | Appointment completed | Add loyalty points + notify level up | ✅ API ready |
+| 4 | Weekly cron (n8n 02) | N+ day inactive clients → SMS + email (Resend) | ✅ Verified end-to-end |
+| 5 | Appointment completed | Wait 30 min → review request SMS (n8n 01) | ✅ Verified end-to-end |
+| 6 | Inbound SMS | AI auto-reply grounded in shop's `/settings` data (n8n 03) | ⚠️ End-to-end works, re-verify with new prompt |
+| 7 | Every 30 min (n8n 04) | Email reminder N hours before appointment (Resend) | 📋 Built — n8n workflow not yet activated |
 
 Each automation has an on/off toggle (and reactivation has a configurable day threshold) on `[slug].barberqueue.pro/automations`. Toggling **Loyalty points** off is enforced inside the `complete_appointment` RPC — appointments still complete and visits still record, but no points are awarded.
 
@@ -101,7 +102,7 @@ Each shop has its own `/settings` page where the owner enters the data the AI as
 
 Each shop also has `/automations` — a control panel for the SMS automations described above.
 
-- 4 toggles (No-show recovery / Loyalty points / Review request / Win-back inactive clients), each with on/off
+- 5 toggles (No-show recovery / Flash discount / Loyalty points / Review request / Win-back inactive clients), each with on/off
 - Win-back exposes a `reactivation_days` input (7–365) — controls how many days of inactivity trigger the SMS. Validated on the API and respected by the weekly cron per tenant
 - `POST /api/automations` writes only the fields present in the payload (partial update), so the form survives schema growth
 - All four automations were already wired in the API routes (`/api/noshow`, `/api/reviews/request`, `/api/cron/reactivate`); only `loyalty_active` needed a code change (added to the `complete_appointment` RPC) since the points flow is server-side
@@ -136,7 +137,8 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 | Legal pages (privacy, terms, refund) | ✅ Complete |
 | Admin dashboard (`/admin` — tenant + plan + twilio_number management) | ✅ Complete |
 | Shop settings (`/settings` — hours, services, address, Google review link, notification email, reminder config) | ✅ Complete |
-| Automations dashboard (`/automations` — 4 toggles + reactivation days) | ✅ Complete |
+| Automations dashboard (`/automations` — 5 toggles + reactivation days) | ✅ Complete |
+| Flash discount automation on no-show (Resend email to inactive clients) | ✅ Complete — verified 2026-05-25 |
 | QR booking code (downloadable PNG in `/settings`) | ✅ Complete |
 | Walk-in queue (`WalkInButton` + `/api/walkin` — immediate revenue tracking, name/phone optional) | ✅ Complete |
 | Manual appointment creation (`NewAppointmentButton` + `/api/appointments/create`) | ✅ Complete |

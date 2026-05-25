@@ -40,11 +40,15 @@ export async function POST(request: Request) {
     phone = client.phone ?? undefined
   }
 
+  if (!phone) {
+    return NextResponse.json({ error: 'Client has no phone number' }, { status: 400 })
+  }
+
   let twilioSid: string | null = null
   let smsStatus: 'queued' | 'failed' = 'queued'
 
   try {
-    twilioSid = await sendSms(phone!, message)
+    twilioSid = await sendSms(phone, message)
   } catch {
     smsStatus = 'failed'
   }

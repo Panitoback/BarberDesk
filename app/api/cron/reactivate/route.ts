@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { NextResponse } from 'next/server'
+import { todayInToronto, addDaysISO } from '@/lib/dates'
 
 async function sendReactivationEmail(to: string, clientName: string, shopName: string): Promise<void> {
   const key = process.env.RESEND_API_KEY
@@ -55,10 +56,8 @@ export async function POST(request: Request) {
     const config = Array.isArray(cfgRaw) ? cfgRaw[0] : cfgRaw
     if (!config?.reactivation_active) continue
 
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - config.reactivation_days)
-    const cutoffDate = cutoff.toISOString().split('T')[0]
-    const cutoffISO  = cutoff.toISOString()
+    const cutoffDate = addDaysISO(todayInToronto(), -config.reactivation_days)
+    const cutoffISO  = new Date(cutoffDate + 'T00:00:00Z').toISOString()
 
     const { data: inactive } = await supabase
       .from('clients')

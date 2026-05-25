@@ -56,6 +56,19 @@ export function isPastInToronto(date: string, time: string): boolean {
 }
 
 /**
+ * Convert a naive Toronto-local (date, time) pair into the UTC Date that
+ * represents that instant. Use this whenever you need to compare a stored
+ * appointment time against wall-clock UTC (e.g. cron windows).
+ */
+export function torontoLocalToDate(date: string, time: string): Date {
+  const [h, m] = time.split(':').map(Number)
+  const utc = new Date(`${date}T00:00:00Z`)
+  utc.setUTCHours(h, m, 0, 0)
+  const tzOffsetMin = torontoOffsetMinutes(utc)
+  return new Date(utc.getTime() - tzOffsetMin * 60_000)
+}
+
+/**
  * Format a stored (date, time) — both naive Toronto-local strings — into a
  * human-readable phrase for SMS. e.g. "Thursday, May 22 at 5:00 PM".
  */

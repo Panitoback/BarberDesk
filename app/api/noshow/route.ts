@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { getSubdomain } from '@/lib/subdomain'
+import { todayInToronto, addDaysISO } from '@/lib/dates'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -64,7 +65,8 @@ export async function POST(request: Request) {
   await Promise.all([
     supabase.from('appointments')
       .update({ status: 'no_show' })
-      .eq('id', appointmentId),
+      .eq('id', appointmentId)
+      .eq('tenant_id', tenant.id),
     supabase.from('clients')
       .update({ no_show_count: client.no_show_count + 1 })
       .eq('id', appointment.client_id)
@@ -117,15 +119,15 @@ export async function POST(request: Request) {
     const adminClient = createAdminClient()
 
     after(async () => {
-      const cutoff = new Date()
-      cutoff.setDate(cutoff.getDate() - 20)
+      const cutoffDate = addDaysISO(todayInToronto(), -20)
 
       const { data: targets } = await adminClient
         .from('clients')
         .select('name, email')
         .eq('tenant_id', tenantId)
         .not('email', 'is', null)
-        .or(`last_visit.is.null,last_visit.lte.${cutoff.toISOString().slice(0, 10)}`)
+        .not('last_visit', 'is', null)
+        .lte('last_visit', cutoffDate)
 
       if (!targets?.length) return
 
