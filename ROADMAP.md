@@ -1,6 +1,6 @@
 # Roadmap — BarberQueue
 
-## Status (2026-05-24)
+## Status (2026-05-25)
 
 | Phase | Status |
 |-------|--------|
@@ -10,12 +10,17 @@
 | Phase 3.2 — SMS API routes | ✅ Complete |
 | Phase 3.3 — n8n workflow 01 (review delay) | ✅ Verified end-to-end |
 | Phase 3.3 — n8n workflow 02 (reactivation cron) | ✅ Verified end-to-end (SMS + email) |
-| Phase 3.4 — n8n workflow 03 (AI auto-reply) | 🔄 Pending verification |
+| Phase 3.4 — n8n workflow 03 (AI auto-reply) | ⚠️ End-to-end works; needs re-verify with new `shop_data` grounding |
 | Phase 4 — Public landing + booking | ✅ Complete (+ password recovery + public booking) |
 | Phase 4.5 — Admin dashboard | ✅ Complete (`/admin` — tenant management) |
+| Phase 4.6 — Shop settings | ✅ Complete (`/settings` — hours, services, address, Google review link → AI grounding) |
+| Phase 4.7 — Automations dashboard | ✅ Complete 2026-05-25 (`/automations` — 4 toggles + reactivation days; loyalty toggle enforced in RPC) |
+| Phase 4.8 — Dynamic services + revenue tracking | ✅ Complete 2026-05-25 (booking dropdown reads `tenant.config.services`; `appointments.price` → `visits.price`) — **pending push** |
 | Phase 5 — Deploy | ✅ Live at `barberqueue.pro` — all external services configured |
 
-> Workflow 03 (AI auto-reply) is the only remaining verification item before full production readiness.
+> Workflow 03 needs one more end-to-end pass after the owner fills `/settings` and the n8n System Message is updated to read `$json.body.shop_data`. The hallucination problem (invented hours/prices) is fixed at the data layer; the prompt change is the last piece.
+
+> **Next session pickup point:** Phase 4.8 is built and the migration is applied in Supabase, but the code is still local. First action tomorrow is the `git add` / `commit` / `push` for the booking + revenue changes (see commands in `CLAUDE.md` → "Pending for next session").
 
 ---
 
@@ -73,11 +78,13 @@ Three workflows on the Railway n8n instance:
 - HTTP Request nodes authenticate via an n8n Bearer Auth credential (not `$env` — blocked by n8n)
 - ⚠️ `n8n/*.json` files are stale — live n8n instance is authoritative until re-exported
 
-### 3.4 — AI auto-reply 🔄 Built, pending verification
+### 3.4 — AI auto-reply ⚠️ End-to-end works, needs re-verify with new prompt
 - Workflow `03 · AI Auto-Reply`: inbound SMS → `/api/webhooks/twilio` → n8n webhook → native **AI Agent** node → `POST /api/messages/send`
 - AI Agent uses an **OpenRouter Chat Model** sub-node + **Simple Memory** (session keyed by `from_number`)
-- Model selectable in the OpenRouter Chat Model node (e.g. `anthropic/claude-3.5-haiku`)
-- n8n webhook receives the `/api/webhooks/twilio` payload under `$json.body.*` (`message`, `from_number`, `subdomain`, …)
+- Model selectable in the OpenRouter Chat Model node (e.g. `anthropic/claude-3.5-haiku`, `openai/gpt-4.1-mini`)
+- n8n webhook receives the `/api/webhooks/twilio` payload under `$json.body.*` (`message`, `from_number`, `subdomain`, `shop_name`, `shop_data`, `client_name`)
+- **`shop_data` is the AI's source of truth** — populated from `tenants.config` (filled by owner at `/settings`). The system message must instruct the AI to use ONLY `shop_data` for hours/services/prices and say "I can't confirm" for anything else. Without this grounding the model hallucinates (e.g. inventing a 10am opening time)
+- **Vercel runtime fix:** the `/api/webhooks/twilio` fetch to n8n is wrapped in `after()` from `next/server` — without it Vercel kills the fire-and-forget promise before the request reaches n8n, causing intermittent auto-reply failures
 
 ---
 
@@ -96,8 +103,9 @@ Three workflows on the Railway n8n instance:
 - Public booking page at `[slug].barberqueue.pro/book` — no sign-in, mobile-first
 - `BookingLinkCard` on the dashboard — copy-to-clipboard widget for the shop's booking URL
 - Slot picker uses `GET /api/book/slots?date=YYYY-MM-DD` to hide occupied times in real time
-- `POST /api/book` — creates client (or reuses by phone), inserts appointment, sends confirmation SMS
-- Validation server-side: name 2–80 chars, phone normalized to E.164, service ≤80, date ≥ today (Toronto TZ), time on 30-min grid, not in the past
+- `POST /api/book` — creates client (or reuses by phone), inserts appointment with price snapshot, sends confirmation SMS
+- Service dropdown is rendered from `tenant.config.services` (max 30 entries), each option labelled `Name · $price`. Shops with no services configured see "Online booking is not available yet" instead of the form — no hardcoded fallback list (the old `DEFAULT_SERVICES` array is gone). API also re-validates the chosen service against the config and rejects unknown names with 400
+- Validation server-side: name 2–80 chars, phone normalized to E.164, service must match a configured entry, date ≥ today (Toronto TZ), time on 30-min grid, not in the past
 - Rate limits: 10 bookings/min per shop + 3 bookings/day per existing phone
 - Suspended shops (`plan = 'suspended'`) reject new bookings at the page and the API
 - Partial unique index `appointments_unique_active_slot (tenant_id, date, time) WHERE status IN ('pending','completed')` — prevents double-booking under concurrent submits; cancelled/no-show free the slot back up
@@ -118,6 +126,46 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 - `POST /api/admin/tenants/[id]/plan` — enum-validated against `trial | active | suspended`
 - Both APIs re-check `isAdmin(user.id)` — never trust the layout guard alone
 - Login supports `?next=/path` — admins without a tenant skip the default tenant-redirect to `/register`
+
+---
+
+## Phase 4.6 — Shop settings ✅
+
+Owner-facing settings page that grounds the AI auto-reply with verified shop data.
+
+- `lib/tenant-config.ts` — `TenantConfig` type + `validateTenantConfig()`: whitelists `hours`, `services`, `address`; regex-checks times (`HH:MM`), bounds-checks prices (0–10000 CAD), caps services list at 30
+- `app/dashboard/settings/page.tsx` — server component, loads `tenants.config` AND `automations_config.review_link` in parallel via RLS, coerces unknown JSON safely
+- `components/dashboard/SettingsForm.tsx` — client form, mobile-first: stacked rows on `<sm`, `min-h-[40px]` inputs, `min-h-[44px]` save button, `inputMode="decimal"` on prices, `aria-label` on every field, feedback via `role="status"`. Hours, services, address, and Google review link are all on the same form
+- `POST /api/settings` — owner-scoped via RLS, accepts `{ config, review_link }`; validates+sanitizes before writing `tenants.config` (jsonb) AND `automations_config.review_link` in the same save
+- `SidebarNav` — Settings moved from "Coming Soon" to active nav (icon already imported)
+- `/api/webhooks/twilio` — selects `config` and forwards as `shop_data` in the n8n payload, so the AI Agent's system prompt can `JSON.stringify($json.body.shop_data)` and ground its replies in real values
+- Empty fields = AI says "I can't confirm" (system prompt is explicit about NEVER inventing data). This is intentional — onboarding has zero friction; owners fill what they want
+
+---
+
+## Phase 4.7 — Automations dashboard ✅
+
+Owner-facing control panel for the SMS automations, served at `[slug].barberqueue.pro/automations`.
+
+- `app/dashboard/automations/page.tsx` — server component, loads `automations_config` row via RLS, falls back to all-true defaults if the row is missing (legacy tenants pre-trigger)
+- `components/dashboard/AutomationsForm.tsx` — 4 cards with toggles (No-show recovery / Loyalty points / Review request / Win-back inactive clients) + a `reactivation_days` numeric input that only renders when win-back is active
+- `POST /api/automations` — partial update; ignores fields not in the payload, validates each toggle as boolean and `reactivation_days` as integer 7–365
+- `SidebarNav` — new "Automations" nav item (Zap icon) between Clients and Settings
+- Wiring already existed for the other three automations (`/api/noshow`, `/api/reviews/request`, `/api/cron/reactivate` all read their respective `*_active` flag); the loyalty toggle was the one missing piece — added to the `complete_appointment` RPC via migration `20260525000000`
+- The Google review URL was deliberately kept out of this page: per-tenant static info belongs in `/settings` alongside address/hours, even though the storage lives in `automations_config.review_link`
+
+---
+
+## Phase 4.8 — Dynamic services + revenue tracking ✅ (pending push)
+
+Closes two pieces of tech debt that surfaced once owners started entering services with prices in `/settings`.
+
+- Migration `20260525010000`: `appointments.price numeric NULL` + `complete_appointment` carries `appointments.price` into `visits.price`
+- `lib/supabase/types.ts` updated by hand to include the new column (regen would lose the manual `complete_appointment` / `user_owns_tenant` additions)
+- `/api/book` looks up the chosen service in `tenant.config.services`, snapshots the canonical `price_cad` onto the appointment, and rejects services that don't exist in the config (400) or shops with no services configured (409)
+- `app/book/page.tsx` removed the hardcoded `DEFAULT_SERVICES` array; if the shop hasn't filled `/settings → Services` the page shows "Online booking is not available yet" instead of a broken form
+- `app/book/BookingForm.tsx` — service options render as `Name · $price` (e.g. `Classic Haircut · $40`, `Beard Trim · $14.99`); integer prices drop the trailing `.00`
+- Dashboard's "Revenue this month" card already summed `visits.price` — once Phase 4.8 ships, those values stop being NULL and the card starts reflecting reality
 
 ---
 
@@ -157,9 +205,11 @@ barberdesk/
 │   ├── dashboard/
 │   │   ├── layout.tsx
 │   │   ├── page.tsx                     # Stats + today's appointments
-│   │   └── clients/
-│   │       ├── page.tsx                 # Client list with search
-│   │       └── [id]/page.tsx            # Client detail
+│   │   ├── clients/
+│   │   │   ├── page.tsx                 # Client list with search
+│   │   │   └── [id]/page.tsx            # Client detail
+│   │   ├── settings/page.tsx            # Shop settings (hours, services, address, Google review link)
+│   │   └── automations/page.tsx         # Automations control panel (4 toggles + reactivation days)
 │   ├── (legal)/
 │   │   ├── layout.tsx                   # Shared legal layout
 │   │   ├── privacy/page.tsx
@@ -179,6 +229,8 @@ barberdesk/
 │   │   ├── cron/reactivate/route.ts
 │   │   ├── messages/send/route.ts
 │   │   ├── reviews/request/route.ts
+│   │   ├── settings/route.ts            # Owner saves shop config (hours/services/address) + review_link
+│   │   ├── automations/route.ts         # Owner toggles SMS automations + reactivation_days
 │   │   ├── webhooks/twilio/route.ts
 │   │   └── register/check-slug/route.ts
 │   ├── page.tsx                         # Public landing
@@ -189,7 +241,9 @@ barberdesk/
 │   │   ├── SidebarNav.tsx
 │   │   ├── AppointmentsTodayTable.tsx
 │   │   ├── BookingLinkCard.tsx          # Copy-to-clipboard for the public booking URL
-│   │   └── UpcomingBookings.tsx         # Owner-side cancel of self-bookings
+│   │   ├── UpcomingBookings.tsx         # Owner-side cancel of self-bookings
+│   │   ├── SettingsForm.tsx             # Client form for hours/services/address/review_link (mobile-first)
+│   │   └── AutomationsForm.tsx          # Toggle cards for the 4 SMS automations + reactivation days
 │   └── clients/ClientsTable.tsx
 ├── lib/
 │   ├── supabase/ (client, server, admin, types)
@@ -198,7 +252,8 @@ barberdesk/
 │   ├── slug.ts          # validateSlug(), RESERVED_SUBDOMAINS
 │   ├── subdomain.ts     # getSubdomain(), SUPABASE_COOKIE_OPTIONS
 │   ├── dates.ts         # Toronto-TZ helpers — todayInToronto, isPastInToronto, …
-│   └── twilio.ts        # sendSms() — REST client
+│   ├── twilio.ts        # sendSms() — REST client
+│   └── tenant-config.ts # TenantConfig type + validator for tenants.config (jsonb)
 ├── proxy.ts             # Next.js 16 middleware
 ├── n8n/                 # Workflow JSON exports (01 review, 02 cron, 03 AI auto-reply)
 └── supabase/migrations/
@@ -226,3 +281,10 @@ barberdesk/
 | Partial unique index on active appointments | Concurrent submits at the same slot would otherwise both succeed; cancelled/no_show must free the slot back up |
 | All datetime logic goes through `lib/dates.ts` | Vercel runs UTC but the product is Toronto-local — same-day "today" queries break silently without a TZ-aware helper |
 | Suspended tenants reject public bookings | Otherwise we'd burn SMS credit for an unpaid account |
+| `after()` from `next/server` wraps the n8n fan-out in `/api/webhooks/twilio` | Vercel kills fire-and-forget promises when the function returns; without `after()` the n8n call was dropped mid-flight on cold starts, causing intermittent AI auto-reply failures |
+| Shop data lives in `tenants.config` JSONB (Option A) | Zero new migrations, evolves freely as the AI grows; whitelisted via `validateTenantConfig` so the column can't be polluted from the API. Option B (dedicated tables for `business_hours`/`services`) is the natural next step once the UI needs CRUD per row |
+| Empty/missing fields in `tenants.config` are valid | Onboarding has zero friction. The AI's system message turns "no data" into "I can't confirm" — it's safer than forcing the owner to fill everything before activation |
+| `loyalty_active` enforced inside `complete_appointment` RPC | Points accrual is server-only; without the check the toggle would be a lie. RPC reads the flag, still records the visit (price + service) on OFF so revenue and history are unaffected. |
+| `appointments.price` captured at booking, not at completion | The customer agrees to a price when they book; the shop can change prices in `/settings` later and existing bookings keep their original quote. RPC carries it into `visits.price` so revenue math reflects what was actually charged. |
+| No hardcoded fallback service list on `/book` | Letting customers book with default services creates fake revenue ($0 visits, mismatched names). Forcing the owner to fill `/settings` first keeps revenue tracking honest and signals when a shop isn't actually open for online bookings yet. |
+| Google review URL lives in `automations_config` but is edited in `/settings` | Storage is co-located with the SMS code that reads it; the UI is co-located with the other "static shop info" (hours, address). `/api/settings` writes both tables in one save. |

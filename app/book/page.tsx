@@ -3,27 +3,15 @@ import Link from 'next/link'
 import { Scissors } from 'lucide-react'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { validateTenantConfig, type Service } from '@/lib/tenant-config'
 import BookingForm from './BookingForm'
 
 export const dynamic = 'force-dynamic'
 
-const DEFAULT_SERVICES = [
-  'Haircut',
-  'Beard trim',
-  'Haircut + beard',
-  'Lineup',
-  'Kids cut',
-]
-
-type TenantConfig = { services?: unknown }
-
-function readServices(config: unknown): string[] {
-  const cfg = (config ?? {}) as TenantConfig
-  if (!Array.isArray(cfg.services)) return DEFAULT_SERVICES
-  const list = cfg.services
-    .map(s => (typeof s === 'string' ? s.trim() : ''))
-    .filter(s => s.length > 0)
-  return list.length > 0 ? list : DEFAULT_SERVICES
+function readServices(config: unknown): Service[] {
+  const result = validateTenantConfig(config ?? {})
+  if (!result.ok) return []
+  return result.config.services ?? []
 }
 
 export default async function BookPage() {
@@ -41,6 +29,7 @@ export default async function BookPage() {
 
   const isSuspended = tenant.plan === 'suspended'
   const services = readServices(tenant.config)
+  const hasServices = services.length > 0
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -74,6 +63,13 @@ export default async function BookPage() {
         {isSuspended ? (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 text-center">
             <p className="text-slate-900 font-semibold">Online booking is paused.</p>
+            <p className="text-slate-500 text-sm mt-2">
+              Please contact {tenant.name} directly to book an appointment.
+            </p>
+          </div>
+        ) : !hasServices ? (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 text-center">
+            <p className="text-slate-900 font-semibold">Online booking is not available yet.</p>
             <p className="text-slate-500 text-sm mt-2">
               Please contact {tenant.name} directly to book an appointment.
             </p>

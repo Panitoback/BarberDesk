@@ -3,10 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, User, Phone, Scissors as ScissorsIcon, ArrowRight } from 'lucide-react'
+import type { Service } from '@/lib/tenant-config'
 
 type Props = {
-  services: string[]
+  services: Service[]
   shopName: string
+}
+
+function formatPrice(value: number): string {
+  return Number.isInteger(value) ? `$${value}` : `$${value.toFixed(2)}`
 }
 
 const ALL_SLOTS = (() => {
@@ -50,7 +55,7 @@ export default function BookingForm({ services, shopName }: Props) {
   const router = useRouter()
   const [name, setName]       = useState('')
   const [phone, setPhone]     = useState('')
-  const [service, setService] = useState(services[0] ?? '')
+  const [service, setService] = useState(services[0]?.name ?? '')
   const [date, setDate]       = useState(todayISO())
   const [time, setTime]       = useState('')
   const [taken, setTaken]     = useState<string[]>([])
@@ -188,7 +193,9 @@ export default function BookingForm({ services, shopName }: Props) {
           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
         >
           {services.map(s => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s.name} value={s.name}>
+              {s.name} · {formatPrice(s.price_cad)}
+            </option>
           ))}
         </select>
       </Field>

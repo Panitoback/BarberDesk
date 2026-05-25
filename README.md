@@ -54,9 +54,11 @@ For local dashboard testing, open `http://test.localhost:3000` — the proxy res
 |---|---------|--------|--------|
 | 1 | SMS from barber | No-show → recovery SMS | ✅ API ready |
 | 2 | Appointment completed | Add points + notify level up | ✅ API ready |
-| 3 | Weekly cron | 30+ day inactive clients → SMS + email (Resend) | ✅ Verified end-to-end |
+| 3 | Weekly cron | N+ day inactive clients → SMS + email (Resend) | ✅ Verified end-to-end |
 | 4 | Appointment completed | Wait 30 min → review request SMS | ✅ Verified end-to-end |
-| 5 | Inbound SMS | OpenRouter AI auto-reply (model selectable in n8n) | 🔄 Built, pending verify |
+| 5 | Inbound SMS | AI auto-reply grounded in shop's `/settings` data | ⚠️ End-to-end works, re-verify with new prompt |
+
+Each automation has an on/off toggle (and reactivation has a configurable day threshold) on `[slug].barberqueue.pro/automations`. Toggling **Loyalty points** off is enforced inside the `complete_appointment` RPC — appointments still complete and visits still record, but no points are awarded.
 
 ---
 
@@ -65,12 +67,38 @@ For local dashboard testing, open `http://test.localhost:3000` — the proxy res
 Every shop gets a public booking page at `[slug].barberqueue.pro/book` (linked from the dashboard with a copy-to-clipboard card).
 
 - Visitors don't sign in — they pick a service, date, and 30-min slot, and enter name + phone
+- The service dropdown is rendered from `tenant.config.services` — each entry shows `Name · $price` (e.g. `Classic Haircut · $40`). Shops with no services configured see "Online booking is not available yet" instead of the form
+- `/api/book` re-validates the chosen service against the config and snapshots the canonical `price_cad` onto `appointments.price` — the price the customer agreed to flows into `visits.price` on completion, powering the dashboard's "Revenue this month" card
 - `app/api/book/slots` exposes taken times so the form hides occupied slots in real time
 - A partial unique index on `appointments (tenant_id, date, time) WHERE status IN ('pending','completed')` prevents double-booking even under concurrent submits
 - Rate limits: **10 bookings/min per shop**, **3 bookings/day per phone** (caps SMS-spend damage from abuse)
 - Suspended shops (`plan = 'suspended'`) automatically reject new bookings — both the form and the API
 - Confirmation SMS is best-effort: Twilio failures never block the booking; the outcome is persisted to `messages`
 - Dashboard `Upcoming bookings` card lets the owner cancel — cancel sends a courtesy SMS and frees the slot back up
+
+---
+
+## Shop settings
+
+Each shop has its own `/settings` page where the owner enters the data the AI assistant uses to reply to customer SMS.
+
+- **Opening hours** — per weekday: Not set / Open (open + close times) / Closed
+- **Services & prices** — dynamic list (name + price in CAD), max 30 entries. Also drives the public booking dropdown
+- **Address** — single line, quoted verbatim to customers asking where you are
+- **Google review link** — used by the review-request SMS automation; stored in `automations_config.review_link` even though the UI sits next to address/hours
+- Stored in `tenants.config` (jsonb), validated via `lib/tenant-config.ts` (regex on times, bounds on prices, whitelisted fields). The Google link goes to `automations_config` in the same save
+- Mobile-first form: stacked rows on phones, `min-h-[44px]` touch targets, `inputMode="decimal"` for prices, full ARIA labelling
+- **AI grounding**: `/api/webhooks/twilio` forwards `tenants.config` as `shop_data` in the n8n payload. The AI Agent's system prompt instructs it to quote ONLY values found in `shop_data` and reply "I can't confirm — please call the shop" for anything missing. Empty config = AI never invents data
+- Owner-scoped via RLS — even if the subdomain is spoofed in headers, the SELECT/UPDATE only sees the user's own tenant
+
+## Automations dashboard
+
+Each shop also has `/automations` — a control panel for the SMS automations described above.
+
+- 4 toggles (No-show recovery / Loyalty points / Review request / Win-back inactive clients), each with on/off
+- Win-back exposes a `reactivation_days` input (7–365) — controls how many days of inactivity trigger the SMS. Validated on the API and respected by the weekly cron per tenant
+- `POST /api/automations` writes only the fields present in the payload (partial update), so the form survives schema growth
+- All four automations were already wired in the API routes (`/api/noshow`, `/api/reviews/request`, `/api/cron/reactivate`); only `loyalty_active` needed a code change (added to the `complete_appointment` RPC) since the points flow is server-side
 
 ---
 
@@ -88,7 +116,7 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 
 ---
 
-## Project status (2026-05-24)
+## Project status (2026-05-25)
 
 | Module | Status |
 |--------|--------|
@@ -97,14 +125,17 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 | Auth (magic link, password login, password recovery) | ✅ Complete |
 | SMS API routes (noshow, reactivate, reviews) | ✅ Complete |
 | Public landing + registration flow | ✅ Complete |
-| Public booking flow (`/book` + slot picker + cancel) | ✅ Complete |
+| Public booking flow (`/book` + slot picker + cancel + dynamic services with prices) | ✅ Complete |
+| Revenue tracking (price snapshot at booking → carried into visits on completion) | ✅ Complete (committed locally, pending deploy) |
 | Legal pages (privacy, terms, refund) | ✅ Complete |
 | Admin dashboard (`/admin` — tenant + plan + twilio_number management) | ✅ Complete |
+| Shop settings (`/settings` — hours, services, address, Google review link → AI grounding) | ✅ Complete |
+| Automations dashboard (`/automations` — 4 toggles + reactivation days) | ✅ Complete |
 | Deploy to Vercel — barberqueue.pro live | ✅ Complete |
 | Supabase Auth URLs + Twilio webhook + Resend domain | ✅ All configured |
 | n8n workflow 01 — review delay (30 min) | ✅ Verified end-to-end |
 | n8n workflow 02 — reactivation cron | ✅ Verified end-to-end |
-| n8n workflow 03 — AI auto-reply | 🔄 Pending verification |
+| n8n workflow 03 — AI auto-reply | ⚠️ Flow verified, re-verify with `shop_data` system message |
 
 ---
 

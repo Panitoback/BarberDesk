@@ -7,6 +7,7 @@ import {
   isPastInToronto,
   formatDateTimeForSms,
 } from '@/lib/dates'
+import { validateTenantConfig } from '@/lib/tenant-config'
 
 const NAME_MIN = 2
 const NAME_MAX = 80
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
 
   const { data: tenant, error: tenantErr } = await supabase
     .from('tenants')
-    .select('id, name, plan')
+    .select('id, name, plan, config')
     .eq('subdomain', subdomain)
     .single()
 
@@ -102,6 +103,23 @@ export async function POST(request: Request) {
       { status: 403 }
     )
   }
+
+  // Match the chosen service against the shop's configured services to pull
+  // the canonical price. Rejects free-text or stale clients sending services
+  // that the shop has since removed.
+  const cfgResult = validateTenantConfig(tenant.config ?? {})
+  const configuredServices = cfgResult.ok ? (cfgResult.config.services ?? []) : []
+  if (configuredServices.length === 0) {
+    return NextResponse.json(
+      { error: 'This shop has not set up online booking yet. Please contact the shop directly.' },
+      { status: 409 }
+    )
+  }
+  const matchedService = configuredServices.find(s => s.name === service)
+  if (!matchedService) {
+    return NextResponse.json({ error: 'Please pick a service.' }, { status: 400 })
+  }
+  const servicePrice = matchedService.price_cad
 
   // Tenant-wide burst guard — caps SMS spend if someone hammers the endpoint
   // with rotating phone numbers (which would slip past the per-phone limit).
@@ -169,6 +187,7 @@ export async function POST(request: Request) {
       date,
       time,
       service,
+      price: servicePrice,
       status: 'pending',
     })
 
