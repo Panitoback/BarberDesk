@@ -9,7 +9,7 @@ type Upcoming = {
   date: string
   time: string
   service: string
-  clients: { name: string; phone: string } | null
+  clients: { name: string; phone: string | null } | null
 }
 
 function formatDate(dateISO: string): string {

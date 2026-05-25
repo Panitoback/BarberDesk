@@ -61,10 +61,12 @@ export type Database = {
           date: string
           id: string
           price: number | null
+          reminder_sent_at: string | null
           service: string
           status: Database["public"]["Enums"]["appointment_status"]
           tenant_id: string
           time: string
+          walkin: boolean
         }
         Insert: {
           client_id: string
@@ -72,10 +74,12 @@ export type Database = {
           date: string
           id?: string
           price?: number | null
+          reminder_sent_at?: string | null
           service: string
           status?: Database["public"]["Enums"]["appointment_status"]
           tenant_id: string
           time: string
+          walkin?: boolean
         }
         Update: {
           client_id?: string
@@ -83,10 +87,12 @@ export type Database = {
           date?: string
           id?: string
           price?: number | null
+          reminder_sent_at?: string | null
           service?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           tenant_id?: string
           time?: string
+          walkin?: boolean
         }
         Relationships: [
           {
@@ -113,6 +119,8 @@ export type Database = {
           noshow_message: string | null
           reactivation_active: boolean
           reactivation_days: number
+          reminder_active: boolean
+          reminder_hours: number
           review_active: boolean
           review_link: string | null
           tenant_id: string
@@ -125,6 +133,8 @@ export type Database = {
           noshow_message?: string | null
           reactivation_active?: boolean
           reactivation_days?: number
+          reminder_active?: boolean
+          reminder_hours?: number
           review_active?: boolean
           review_link?: string | null
           tenant_id: string
@@ -137,6 +147,8 @@ export type Database = {
           noshow_message?: string | null
           reactivation_active?: boolean
           reactivation_days?: number
+          reminder_active?: boolean
+          reminder_hours?: number
           review_active?: boolean
           review_link?: string | null
           tenant_id?: string
@@ -160,7 +172,7 @@ export type Database = {
           last_visit: string | null
           name: string
           no_show_count: number
-          phone: string
+          phone: string | null
           tenant_id: string
         }
         Insert: {
@@ -170,7 +182,7 @@ export type Database = {
           last_visit?: string | null
           name: string
           no_show_count?: number
-          phone: string
+          phone?: string | null
           tenant_id: string
         }
         Update: {
@@ -180,7 +192,7 @@ export type Database = {
           last_visit?: string | null
           name?: string
           no_show_count?: number
-          phone?: string
+          phone?: string | null
           tenant_id?: string
         }
         Relationships: [

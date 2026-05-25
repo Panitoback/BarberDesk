@@ -5,45 +5,44 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "review-delay",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "id": "b7d456ad-8c7a-476b-b755-f37f8e1a6446",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        0,
+        0
+      ],
       "webhookId": "review-delay"
     },
     {
       "parameters": {
-        "amount": 30,
         "unit": "minutes"
       },
-      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "id": "d1396439-6f36-48b1-887a-d594593d8b2a",
       "name": "Wait 30 min",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [460, 300]
+      "position": [
+        224,
+        0
+      ],
+      "webhookId": "956192ba-eb52-44bd-a430-0636d2ebe464"
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://barberqueue.pro/api/reviews/request",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.WEBHOOK_SECRET }}"
-            },
-            {
               "name": "x-subdomain",
               "value": "={{ $json.body.subdomain }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
             }
           ]
         },
@@ -58,29 +57,56 @@
           }
         }
       },
-      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "id": "473bd3a4-c6bd-468b-abb3-2b25351206ee",
       "name": "Send Review Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300]
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "nm7RIfv3z6lWIy72",
+          "name": "Barber Pro webhook"
+        }
+      }
     }
   ],
+  "pinData": {},
   "connections": {
     "Webhook": {
       "main": [
-        [{ "node": "Wait 30 min", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Wait 30 min",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Wait 30 min": {
       "main": [
-        [{ "node": "Send Review Request", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1" },
-  "meta": {
-    "templateId": "barberqueue-review-delay"
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
+  "versionId": "a422bd90-b557-4f63-9e0f-e2b303dd7809",
+  "meta": {
+    "instanceId": "f2d88b16f70955ba1f4dddf4394eea1e7f9d3668af6d5335739ed80e4bf4e4b1"
+  },
+  "id": "8neIooH5Epb7Ss06",
   "tags": []
 }

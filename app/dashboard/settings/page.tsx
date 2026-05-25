@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import SettingsForm from '@/components/dashboard/SettingsForm'
+import BookingQRCode from '@/components/dashboard/BookingQRCode'
 import { validateTenantConfig, type TenantConfig } from '@/lib/tenant-config'
 
 export default async function SettingsPage() {
@@ -14,13 +15,15 @@ export default async function SettingsPage() {
     { data: automationsRow },
   ] = await Promise.all([
     supabase.from('tenants').select('config').eq('id', tenant.id).single(),
-    supabase.from('automations_config').select('review_link').eq('tenant_id', tenant.id).single(),
+    supabase.from('automations_config').select('review_link, reminder_active, reminder_hours').eq('tenant_id', tenant.id).single(),
   ])
 
   // Coerce unknown JSON to a safe TenantConfig — old/malformed values become `{}`.
   const result = validateTenantConfig(tenantRow?.config ?? {})
   const initialConfig: TenantConfig = result.ok ? result.config : {}
-  const initialReviewLink = automationsRow?.review_link ?? ''
+  const initialReviewLink    = automationsRow?.review_link    ?? ''
+  const initialReminderActive = automationsRow?.reminder_active ?? true
+  const initialReminderHours  = automationsRow?.reminder_hours  ?? 24
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -31,7 +34,13 @@ export default async function SettingsPage() {
           if you&apos;d rather the assistant say &quot;I can&apos;t confirm — please call us.&quot;
         </p>
       </div>
-      <SettingsForm initialConfig={initialConfig} initialReviewLink={initialReviewLink} />
+      <SettingsForm
+        initialConfig={initialConfig}
+        initialReviewLink={initialReviewLink}
+        initialReminderActive={initialReminderActive}
+        initialReminderHours={initialReminderHours}
+      />
+      <BookingQRCode subdomain={tenant.subdomain} />
     </div>
   )
 }

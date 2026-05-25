@@ -8,6 +8,8 @@ import StatsCard from '@/components/dashboard/StatsCard'
 import AppointmentsTodayTable from '@/components/dashboard/AppointmentsTodayTable'
 import BookingLinkCard from '@/components/dashboard/BookingLinkCard'
 import UpcomingBookings from '@/components/dashboard/UpcomingBookings'
+import WalkInButton from '@/components/dashboard/WalkInButton'
+import { validateTenantConfig } from '@/lib/tenant-config'
 
 export default async function DashboardPage() {
   const tenant = await getTenant()
@@ -26,6 +28,7 @@ export default async function DashboardPage() {
     { data: upcomingAppointments },
     { count: monthlyVisits },
     { data: revenueData },
+    { data: tenantRow },
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('date', today),
@@ -33,7 +36,11 @@ export default async function DashboardPage() {
     supabase.from('appointments').select('id, date, time, service, clients(name, phone)').eq('tenant_id', tenant.id).eq('status', 'pending').gt('date', today).lte('date', weekOutISO).order('date').order('time').limit(10),
     supabase.from('visits').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).gte('date', firstOfMonth),
     supabase.from('visits').select('price').eq('tenant_id', tenant.id).gte('date', firstOfMonth),
+    supabase.from('tenants').select('config').eq('id', tenant.id).single(),
   ])
+
+  const cfgResult = validateTenantConfig(tenantRow?.config ?? {})
+  const services  = cfgResult.ok ? (cfgResult.config.services ?? []) : []
 
   const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
 
@@ -63,7 +70,10 @@ export default async function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="text-base font-semibold text-slate-900 mb-3">Today&apos;s appointments</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-slate-900">Today&apos;s appointments</h2>
+          <WalkInButton services={services} />
+        </div>
         <AppointmentsTodayTable appointments={(todayAppointments ?? []) as Parameters<typeof AppointmentsTodayTable>[0]['appointments']} />
       </div>
 

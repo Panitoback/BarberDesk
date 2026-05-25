@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, Phone, Scissors as ScissorsIcon, ArrowRight } from 'lucide-react'
+import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight } from 'lucide-react'
 import type { Service } from '@/lib/tenant-config'
 
 type Props = {
@@ -55,6 +55,7 @@ export default function BookingForm({ services, shopName }: Props) {
   const router = useRouter()
   const [name, setName]       = useState('')
   const [phone, setPhone]     = useState('')
+  const [email, setEmail]     = useState('')
   const [service, setService] = useState(services[0]?.name ?? '')
   const [date, setDate]       = useState(todayISO())
   const [time, setTime]       = useState('')
@@ -129,6 +130,7 @@ export default function BookingForm({ services, shopName }: Props) {
         body: JSON.stringify({
           name:  name.trim(),
           phone: phone.trim(),
+          email: email.trim() || undefined,
           service,
           date,
           time: effectiveTime,
@@ -181,6 +183,17 @@ export default function BookingForm({ services, shopName }: Props) {
           placeholder="+1 416 555 1234"
           autoComplete="tel"
           required
+          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+        />
+      </Field>
+
+      <Field label="Email" icon={Mail} hint="Optional — we'll send you a reminder before your appointment.">
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="optional"
+          autoComplete="email"
           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
         />
       </Field>

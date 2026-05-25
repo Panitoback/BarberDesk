@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Tables } from '@/lib/supabase/types'
 
 type AppointmentWithClient = Tables<'appointments'> & {
-  clients: { name: string; phone: string } | null
+  clients: { name: string; phone: string | null } | null
 }
 
 const statusStyles: Record<string, string> = {

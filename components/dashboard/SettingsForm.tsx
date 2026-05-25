@@ -17,17 +17,23 @@ type HoursMap = Partial<Record<Weekday, DayHours>>
 export default function SettingsForm({
   initialConfig,
   initialReviewLink,
+  initialReminderActive,
+  initialReminderHours,
 }: {
-  initialConfig:     TenantConfig
-  initialReviewLink: string
+  initialConfig:        TenantConfig
+  initialReviewLink:    string
+  initialReminderActive: boolean
+  initialReminderHours:  number
 }) {
   const router = useRouter()
-  const [hours,      setHours]      = useState<HoursMap>(initialConfig.hours ?? {})
-  const [services,   setServices]   = useState<Service[]>(initialConfig.services ?? [])
-  const [address,    setAddress]    = useState(initialConfig.address ?? '')
-  const [reviewLink, setReviewLink] = useState(initialReviewLink)
-  const [saving,     setSaving]     = useState(false)
-  const [feedback,   setFeedback]   = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [hours,           setHours]           = useState<HoursMap>(initialConfig.hours ?? {})
+  const [services,        setServices]        = useState<Service[]>(initialConfig.services ?? [])
+  const [address,         setAddress]         = useState(initialConfig.address ?? '')
+  const [reviewLink,      setReviewLink]      = useState(initialReviewLink)
+  const [reminderActive,  setReminderActive]  = useState(initialReminderActive)
+  const [reminderHours,   setReminderHours]   = useState(initialReminderHours)
+  const [saving,          setSaving]          = useState(false)
+  const [feedback,        setFeedback]        = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   function changeDayMode(day: Weekday, mode: 'unset' | 'open' | 'closed') {
     setHours(h => {
@@ -78,10 +84,17 @@ export default function SettingsForm({
       const cleanAddress = address.trim()
       if (cleanAddress.length > 0) config.address = cleanAddress
 
+      const hours_val = Math.min(72, Math.max(1, Math.round(reminderHours) || 24))
+
       const res = await fetch('/api/settings', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ config, review_link: reviewLink.trim() }),
+        body:    JSON.stringify({
+          config,
+          review_link:      reviewLink.trim(),
+          reminder_active:  reminderActive,
+          reminder_hours:   hours_val,
+        }),
       })
       const json = await res.json() as { ok?: boolean; error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Failed to save')
@@ -250,6 +263,49 @@ export default function SettingsForm({
           aria-label="Google review link"
           className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
         />
+      </section>
+
+      {/* Appointment reminder */}
+      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Appointment reminder</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Automatic SMS sent to clients before their appointment.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={reminderActive}
+            onClick={() => setReminderActive(v => !v)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+              reminderActive ? 'bg-indigo-600' : 'bg-slate-200'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+                reminderActive ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <div className={`flex items-center gap-3 ${!reminderActive ? 'opacity-40 pointer-events-none' : ''}`}>
+          <label htmlFor="reminder-hours" className="text-sm text-slate-700 whitespace-nowrap">
+            Send reminder
+          </label>
+          <input
+            id="reminder-hours"
+            type="number"
+            min={1}
+            max={72}
+            step={1}
+            value={reminderHours}
+            onChange={e => setReminderHours(Number(e.target.value) || 24)}
+            className="w-20 text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px] text-center"
+          />
+          <span className="text-sm text-slate-700">hours before</span>
+        </div>
       </section>
 
       {/* Save bar */}

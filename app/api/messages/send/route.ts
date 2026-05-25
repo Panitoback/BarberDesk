@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       .single()
 
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    phone = client.phone
+    phone = client.phone ?? undefined
   }
 
   let twilioSid: string | null = null

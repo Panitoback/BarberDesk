@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
+import type { Database } from '@/lib/supabase/types'
+
+type AutomationsUpdate = Database['public']['Tables']['automations_config']['Update']
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -17,9 +20,16 @@ export async function POST(request: Request) {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
-  const { config: rawConfig, review_link: rawReviewLink } = body as {
-    config?:      unknown
-    review_link?: unknown
+  const {
+    config:          rawConfig,
+    review_link:     rawReviewLink,
+    reminder_active: rawReminderActive,
+    reminder_hours:  rawReminderHours,
+  } = body as {
+    config?:          unknown
+    review_link?:     unknown
+    reminder_active?: unknown
+    reminder_hours?:  unknown
   }
 
   const result = validateTenantConfig(rawConfig ?? {})
@@ -59,13 +69,34 @@ export async function POST(request: Request) {
 
   if (configErr) return NextResponse.json({ error: 'Could not save settings' }, { status: 500 })
 
+  const automationsUpdate: AutomationsUpdate = {}
+
   if (rawReviewLink !== undefined) {
-    const { error: linkErr } = await supabase
+    automationsUpdate.review_link = reviewLink
+  }
+
+  if (rawReminderActive !== undefined) {
+    if (typeof rawReminderActive !== 'boolean') {
+      return NextResponse.json({ error: 'reminder_active must be a boolean' }, { status: 400 })
+    }
+    automationsUpdate.reminder_active = rawReminderActive
+  }
+
+  if (rawReminderHours !== undefined) {
+    const h = Number(rawReminderHours)
+    if (!Number.isInteger(h) || h < 1 || h > 72) {
+      return NextResponse.json({ error: 'reminder_hours must be between 1 and 72' }, { status: 400 })
+    }
+    automationsUpdate.reminder_hours = h
+  }
+
+  if (Object.keys(automationsUpdate).length > 0) {
+    const { error: autoErr } = await supabase
       .from('automations_config')
-      .update({ review_link: reviewLink })
+      .update(automationsUpdate)
       .eq('tenant_id', tenant.id)
 
-    if (linkErr) return NextResponse.json({ error: 'Could not save review link' }, { status: 500 })
+    if (autoErr) return NextResponse.json({ error: 'Could not save automation settings' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

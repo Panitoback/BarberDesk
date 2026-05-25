@@ -85,7 +85,8 @@ export async function POST(request: Request) {
       let smsStatus: 'queued' | 'failed' = 'queued'
 
       try {
-        twilioSid = await sendSms(client.phone, smsBody)
+        if (client.phone) twilioSid = await sendSms(client.phone, smsBody)
+        else smsStatus = 'failed'
       } catch {
         smsStatus = 'failed'
       }

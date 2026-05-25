@@ -48,6 +48,7 @@ export async function POST(request: Request) {
   let body: {
     name?: string
     phone?: string
+    email?: string
     service?: string
     date?: string
     time?: string
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
   const date    = (body.date ?? '').trim()
   const time    = (body.time ?? '').trim()
   const phone   = normalizePhone(body.phone ?? '')
+  const email   = (body.email ?? '').trim().toLowerCase() || null
 
   if (name.length < NAME_MIN || name.length > NAME_MAX) {
     return NextResponse.json({ error: 'Please enter your full name.' }, { status: 400 })
@@ -141,7 +143,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from('clients')
-    .select('id')
+    .select('id, email')
     .eq('tenant_id', tenant.id)
     .eq('phone', phone)
     .maybeSingle()
@@ -165,11 +167,16 @@ export async function POST(request: Request) {
       )
     }
 
+    // Capture email on returning clients who didn't have one yet
+    if (email && !existing.email) {
+      await supabase.from('clients').update({ email }).eq('id', existing.id)
+    }
+
     clientId = existing.id
   } else {
     const { data: created, error: clientErr } = await supabase
       .from('clients')
-      .insert({ tenant_id: tenant.id, name, phone })
+      .insert({ tenant_id: tenant.id, name, phone, email })
       .select('id')
       .single()
 
