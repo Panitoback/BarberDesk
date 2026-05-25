@@ -113,6 +113,8 @@ export type Database = {
       }
       automations_config: {
         Row: {
+          flash_active: boolean
+          flash_discount_pct: number
           id: string
           loyalty_active: boolean
           noshow_active: boolean
@@ -127,6 +129,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          flash_active?: boolean
+          flash_discount_pct?: number
           id?: string
           loyalty_active?: boolean
           noshow_active?: boolean
@@ -141,6 +145,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          flash_active?: boolean
+          flash_discount_pct?: number
           id?: string
           loyalty_active?: boolean
           noshow_active?: boolean

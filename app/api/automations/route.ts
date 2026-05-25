@@ -8,6 +8,7 @@ type AutomationsPayload = {
   review_active?:       boolean
   reactivation_active?: boolean
   reactivation_days?:   number
+  flash_active?:        boolean
 }
 
 export async function POST(request: Request) {
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   const b = body as Record<string, unknown>
   const update: AutomationsPayload = {}
 
-  for (const key of ['noshow_active', 'loyalty_active', 'review_active', 'reactivation_active'] as const) {
+  for (const key of ['noshow_active', 'loyalty_active', 'review_active', 'reactivation_active', 'flash_active'] as const) {
     if (b[key] !== undefined) {
       if (typeof b[key] !== 'boolean') {
         return NextResponse.json({ error: `${key} must be boolean` }, { status: 400 })

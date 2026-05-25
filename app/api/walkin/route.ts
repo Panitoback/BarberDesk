@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
-import { todayInToronto } from '@/lib/dates'
+import { todayInToronto, nowTimeInToronto } from '@/lib/dates'
 
 function normalizePhone(input: string): string | null {
   const digits = (input ?? '').replace(/\D/g, '')
@@ -10,14 +10,6 @@ function normalizePhone(input: string): string | null {
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
   if (digits.length >= 11 && digits.length <= 15) return `+${digits}`
   return null
-}
-
-function currentTimeHHMM(): string {
-  const now = new Date()
-  const hh = String(now.getHours()).padStart(2, '0')
-  const mm = String(now.getMinutes()).padStart(2, '0')
-  const ss = String(now.getSeconds()).padStart(2, '0')
-  return `${hh}:${mm}:${ss}`
 }
 
 export async function POST(request: Request) {
@@ -78,7 +70,7 @@ export async function POST(request: Request) {
       tenant_id: tenant.id,
       client_id: client.id,
       date:      todayInToronto(),
-      time:      currentTimeHHMM(),
+      time:      nowTimeInToronto(),
       service,
       price:     matched.price_cad,
       walkin:    true,

@@ -34,6 +34,12 @@ export function todayInToronto(): string {
   return `${year}-${month}-${day}`
 }
 
+/** Current time in Toronto, as HH:MM. */
+export function nowTimeInToronto(): string {
+  const { hour, minute } = formatPartsInToronto(new Date())
+  return `${hour}:${minute}`
+}
+
 /** Add `days` to a YYYY-MM-DD date (UTC-stable — used for end-of-range filters). */
 export function addDaysISO(dateISO: string, days: number): string {
   const d = new Date(`${dateISO}T00:00:00Z`)

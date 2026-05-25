@@ -15,15 +15,16 @@ export default async function SettingsPage() {
     { data: automationsRow },
   ] = await Promise.all([
     supabase.from('tenants').select('config').eq('id', tenant.id).single(),
-    supabase.from('automations_config').select('review_link, reminder_active, reminder_hours').eq('tenant_id', tenant.id).single(),
+    supabase.from('automations_config').select('review_link, reminder_active, reminder_hours, flash_discount_pct').eq('tenant_id', tenant.id).single(),
   ])
 
   // Coerce unknown JSON to a safe TenantConfig — old/malformed values become `{}`.
   const result = validateTenantConfig(tenantRow?.config ?? {})
   const initialConfig: TenantConfig = result.ok ? result.config : {}
-  const initialReviewLink    = automationsRow?.review_link    ?? ''
-  const initialReminderActive = automationsRow?.reminder_active ?? true
-  const initialReminderHours  = automationsRow?.reminder_hours  ?? 24
+  const initialReviewLink      = automationsRow?.review_link      ?? ''
+  const initialReminderActive  = automationsRow?.reminder_active  ?? true
+  const initialReminderHours   = automationsRow?.reminder_hours   ?? 24
+  const initialFlashDiscountPct = automationsRow?.flash_discount_pct ?? 20
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -39,6 +40,7 @@ export default async function SettingsPage() {
         initialReviewLink={initialReviewLink}
         initialReminderActive={initialReminderActive}
         initialReminderHours={initialReminderHours}
+        initialFlashDiscountPct={initialFlashDiscountPct}
       />
       <BookingQRCode subdomain={tenant.subdomain} />
     </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarX, Star, Sparkles, MessageCircleHeart, type LucideIcon } from 'lucide-react'
+import { CalendarX, Star, Sparkles, MessageCircleHeart, Zap, type LucideIcon } from 'lucide-react'
 
 export type AutomationsState = {
   noshow_active:       boolean
@@ -10,6 +10,7 @@ export type AutomationsState = {
   review_active:       boolean
   reactivation_active: boolean
   reactivation_days:   number
+  flash_active:        boolean
 }
 
 type AutomationKey = Exclude<keyof AutomationsState, 'reactivation_days'>
@@ -41,10 +42,16 @@ const CARDS: AutomationCard[] = [
     description: 'After a completed visit, ask the client for a Google review with your link.',
   },
   {
-    key:         'reactivation_active',
+    key:         ‘reactivation_active’,
     icon:        MessageCircleHeart,
-    title:       'Win-back inactive clients',
-    description: 'Reach out by SMS to clients who haven’t come in for a while.',
+    title:       ‘Win-back inactive clients’,
+    description: ‘Reach out by SMS to clients who haven’t come in for a while.’,
+  },
+  {
+    key:         ‘flash_active’,
+    icon:        Zap,
+    title:       ‘Flash discount on no-show’,
+    description: ‘When a client no-shows, instantly email all clients who haven’t visited in 20+ days with a discount offer to fill the open slot.’,
   },
 ]
 

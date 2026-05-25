@@ -21,15 +21,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
   const {
-    config:          rawConfig,
-    review_link:     rawReviewLink,
-    reminder_active: rawReminderActive,
-    reminder_hours:  rawReminderHours,
+    config:              rawConfig,
+    review_link:         rawReviewLink,
+    reminder_active:     rawReminderActive,
+    reminder_hours:      rawReminderHours,
+    flash_discount_pct:  rawFlashDiscountPct,
   } = body as {
-    config?:          unknown
-    review_link?:     unknown
-    reminder_active?: unknown
-    reminder_hours?:  unknown
+    config?:             unknown
+    review_link?:        unknown
+    reminder_active?:    unknown
+    reminder_hours?:     unknown
+    flash_discount_pct?: unknown
   }
 
   const result = validateTenantConfig(rawConfig ?? {})
@@ -88,6 +90,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'reminder_hours must be between 1 and 72' }, { status: 400 })
     }
     automationsUpdate.reminder_hours = h
+  }
+
+  if (rawFlashDiscountPct !== undefined) {
+    const pct = Number(rawFlashDiscountPct)
+    if (!Number.isInteger(pct) || pct < 1 || pct > 100) {
+      return NextResponse.json({ error: 'flash_discount_pct must be an integer between 1 and 100' }, { status: 400 })
+    }
+    automationsUpdate.flash_discount_pct = pct
   }
 
   if (Object.keys(automationsUpdate).length > 0) {

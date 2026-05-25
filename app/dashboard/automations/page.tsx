@@ -10,7 +10,7 @@ export default async function AutomationsPage() {
   const supabase = await createClient()
   const { data: row } = await supabase
     .from('automations_config')
-    .select('noshow_active, loyalty_active, review_active, reactivation_active, reactivation_days')
+    .select('noshow_active, loyalty_active, review_active, reactivation_active, reactivation_days, flash_active')
     .eq('tenant_id', tenant.id)
     .single()
 
@@ -20,6 +20,7 @@ export default async function AutomationsPage() {
     review_active:       row?.review_active       ?? true,
     reactivation_active: row?.reactivation_active ?? true,
     reactivation_days:   row?.reactivation_days   ?? 30,
+    flash_active:        row?.flash_active        ?? false,
   }
 
   return (
