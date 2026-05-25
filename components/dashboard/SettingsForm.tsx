@@ -19,11 +19,13 @@ export default function SettingsForm({
   initialReviewLink,
   initialReminderActive,
   initialReminderHours,
+  initialFlashDiscountPct,
 }: {
-  initialConfig:        TenantConfig
-  initialReviewLink:    string
-  initialReminderActive: boolean
-  initialReminderHours:  number
+  initialConfig:           TenantConfig
+  initialReviewLink:       string
+  initialReminderActive:   boolean
+  initialReminderHours:    number
+  initialFlashDiscountPct: number
 }) {
   const router = useRouter()
   const [hours,              setHours]              = useState<HoursMap>(initialConfig.hours ?? {})
@@ -33,6 +35,7 @@ export default function SettingsForm({
   const [reviewLink,         setReviewLink]         = useState(initialReviewLink)
   const [reminderActive,     setReminderActive]     = useState(initialReminderActive)
   const [reminderHours,      setReminderHours]      = useState(initialReminderHours)
+  const [flashDiscountPct,   setFlashDiscountPct]   = useState(initialFlashDiscountPct)
   const [saving,          setSaving]          = useState(false)
   const [feedback,        setFeedback]        = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -90,14 +93,17 @@ export default function SettingsForm({
 
       const hours_val = Math.min(72, Math.max(1, Math.round(reminderHours) || 24))
 
+      const pct = Math.min(100, Math.max(1, Math.round(flashDiscountPct) || 20))
+
       const res = await fetch('/api/settings', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           config,
-          review_link:      reviewLink.trim(),
-          reminder_active:  reminderActive,
-          reminder_hours:   hours_val,
+          review_link:         reviewLink.trim(),
+          reminder_active:     reminderActive,
+          reminder_hours:      hours_val,
+          flash_discount_pct:  pct,
         }),
       })
       const json = await res.json() as { ok?: boolean; error?: string }
@@ -292,7 +298,7 @@ export default function SettingsForm({
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Appointment reminder</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Automatic SMS sent to clients before their appointment.
+              Automatic email sent to clients before their appointment.
             </p>
           </div>
           <button
@@ -326,6 +332,30 @@ export default function SettingsForm({
             className="w-20 text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px] text-center"
           />
           <span className="text-sm text-slate-700">hours before</span>
+        </div>
+      </section>
+
+      {/* Flash discount */}
+      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Flash discount</h2>
+        <p className="text-sm text-slate-500 mt-1 mb-4">
+          Discount percentage offered in the flash deal email sent to inactive clients when a
+          no-show occurs. Requires the <span className="font-medium text-slate-700">Flash discount on no-show</span> toggle
+          to be active in <a href="/automations" className="text-indigo-600 hover:underline">Automations</a>.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            inputMode="numeric"
+            value={flashDiscountPct}
+            onChange={e => setFlashDiscountPct(Number(e.target.value) || 20)}
+            aria-label="Flash discount percentage"
+            className="w-24 text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px] text-center"
+          />
+          <span className="text-sm text-slate-700">% off</span>
         </div>
       </section>
 

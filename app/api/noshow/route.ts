@@ -1,8 +1,8 @@
+import { NextResponse, after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { getSubdomain } from '@/lib/subdomain'
-import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -35,13 +35,9 @@ export async function POST(request: Request) {
 
   const { data: config } = await supabase
     .from('automations_config')
-    .select('noshow_active, noshow_message')
+    .select('noshow_active, noshow_message, flash_active, flash_discount_pct')
     .eq('tenant_id', tenant.id)
     .single()
-
-  if (!config?.noshow_active) {
-    return NextResponse.json({ skipped: true, reason: 'noshow automation disabled' })
-  }
 
   const { data: appointment } = await supabase
     .from('appointments')
@@ -64,6 +60,7 @@ export async function POST(request: Request) {
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
+  // Always update status + count regardless of automation toggle.
   await Promise.all([
     supabase.from('appointments')
       .update({ status: 'no_show' })
@@ -73,6 +70,11 @@ export async function POST(request: Request) {
       .eq('id', appointment.client_id)
       .eq('tenant_id', tenant.id),
   ])
+
+  // Recovery SMS — only when automation is active.
+  if (!config?.noshow_active) {
+    return NextResponse.json({ ok: true, skipped_sms: true })
+  }
 
   const defaultMessage = `Hi {name}, we noticed you missed your appointment at {shop} today. We'd love to reschedule — just reply to this message.`
   const message = (config.noshow_message ?? defaultMessage)
@@ -105,6 +107,48 @@ export async function POST(request: Request) {
       metadata:  { appointment_id: appointmentId, sms_status: smsStatus },
     }),
   ])
+
+  // Flash discount — fire-and-forget after response so noshow resolves immediately.
+  if (config?.flash_active && process.env.RESEND_API_KEY) {
+    const resendKey   = process.env.RESEND_API_KEY
+    const tenantId    = tenant.id
+    const shopName    = tenant.name
+    const discountPct = config.flash_discount_pct ?? 20
+    const adminClient = createAdminClient()
+
+    after(async () => {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 20)
+
+      const { data: targets } = await adminClient
+        .from('clients')
+        .select('name, email')
+        .eq('tenant_id', tenantId)
+        .not('email', 'is', null)
+        .or(`last_visit.is.null,last_visit.lte.${cutoff.toISOString().slice(0, 10)}`)
+
+      if (!targets?.length) return
+
+      await Promise.all(targets.map(c => {
+        const firstName = c.name.split(' ')[0]
+        return fetch('https://api.resend.com/emails', {
+          method:  'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from:    `BarberQueue <noreply@barberqueue.pro>`,
+            to:      [c.email],
+            subject: `${discountPct}% off at ${shopName} — open slot right now`,
+            html: `
+              <p>Hi <strong>${firstName}</strong>,</p>
+              <p><strong>${shopName}</strong> just had a cancellation and has an open slot available right now.</p>
+              <p>Come in within the next hour and get <strong>${discountPct}% off</strong> your visit.</p>
+              <p>It's been a while since we've seen you — we'd love to have you back. Just show up!</p>
+            `,
+          }),
+        }).catch(() => {})
+      }))
+    })
+  }
 
   if (smsStatus === 'failed') {
     return NextResponse.json({ error: 'SMS delivery failed' }, { status: 502 })
