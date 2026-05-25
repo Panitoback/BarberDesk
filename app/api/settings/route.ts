@@ -14,8 +14,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const result = validateTenantConfig(body)
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
+  }
+  const { config: rawConfig, review_link: rawReviewLink } = body as {
+    config?:      unknown
+    review_link?: unknown
+  }
+
+  const result = validateTenantConfig(rawConfig ?? {})
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
+
+  let reviewLink: string | null = null
+  if (rawReviewLink !== undefined) {
+    if (typeof rawReviewLink !== 'string') {
+      return NextResponse.json({ error: 'review_link must be a string' }, { status: 400 })
+    }
+    const trimmed = rawReviewLink.trim()
+    if (trimmed.length > 500) {
+      return NextResponse.json({ error: 'review_link must be ≤500 chars' }, { status: 400 })
+    }
+    if (trimmed.length > 0 && !/^https?:\/\//i.test(trimmed)) {
+      return NextResponse.json({ error: 'review_link must start with http:// or https://' }, { status: 400 })
+    }
+    reviewLink = trimmed.length > 0 ? trimmed : null
+  }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,12 +52,21 @@ export async function POST(request: Request) {
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
-  const { error } = await supabase
+  const { error: configErr } = await supabase
     .from('tenants')
     .update({ config: result.config })
     .eq('id', tenant.id)
 
-  if (error) return NextResponse.json({ error: 'Could not save settings' }, { status: 500 })
+  if (configErr) return NextResponse.json({ error: 'Could not save settings' }, { status: 500 })
+
+  if (rawReviewLink !== undefined) {
+    const { error: linkErr } = await supabase
+      .from('automations_config')
+      .update({ review_link: reviewLink })
+      .eq('tenant_id', tenant.id)
+
+    if (linkErr) return NextResponse.json({ error: 'Could not save review link' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

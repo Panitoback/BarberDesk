@@ -9,15 +9,18 @@ export default async function SettingsPage() {
   if (!tenant) redirect('/login')
 
   const supabase = await createClient()
-  const { data: row } = await supabase
-    .from('tenants')
-    .select('config')
-    .eq('id', tenant.id)
-    .single()
+  const [
+    { data: tenantRow },
+    { data: automationsRow },
+  ] = await Promise.all([
+    supabase.from('tenants').select('config').eq('id', tenant.id).single(),
+    supabase.from('automations_config').select('review_link').eq('tenant_id', tenant.id).single(),
+  ])
 
   // Coerce unknown JSON to a safe TenantConfig — old/malformed values become `{}`.
-  const result = validateTenantConfig(row?.config ?? {})
+  const result = validateTenantConfig(tenantRow?.config ?? {})
   const initialConfig: TenantConfig = result.ok ? result.config : {}
+  const initialReviewLink = automationsRow?.review_link ?? ''
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -28,7 +31,7 @@ export default async function SettingsPage() {
           if you&apos;d rather the assistant say &quot;I can&apos;t confirm — please call us.&quot;
         </p>
       </div>
-      <SettingsForm initialConfig={initialConfig} />
+      <SettingsForm initialConfig={initialConfig} initialReviewLink={initialReviewLink} />
     </div>
   )
 }
