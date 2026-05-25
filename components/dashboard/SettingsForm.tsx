@@ -14,13 +14,20 @@ import {
 
 type HoursMap = Partial<Record<Weekday, DayHours>>
 
-export default function SettingsForm({ initialConfig }: { initialConfig: TenantConfig }) {
+export default function SettingsForm({
+  initialConfig,
+  initialReviewLink,
+}: {
+  initialConfig:     TenantConfig
+  initialReviewLink: string
+}) {
   const router = useRouter()
-  const [hours,    setHours]    = useState<HoursMap>(initialConfig.hours ?? {})
-  const [services, setServices] = useState<Service[]>(initialConfig.services ?? [])
-  const [address,  setAddress]  = useState(initialConfig.address ?? '')
-  const [saving,   setSaving]   = useState(false)
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [hours,      setHours]      = useState<HoursMap>(initialConfig.hours ?? {})
+  const [services,   setServices]   = useState<Service[]>(initialConfig.services ?? [])
+  const [address,    setAddress]    = useState(initialConfig.address ?? '')
+  const [reviewLink, setReviewLink] = useState(initialReviewLink)
+  const [saving,     setSaving]     = useState(false)
+  const [feedback,   setFeedback]   = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   function changeDayMode(day: Weekday, mode: 'unset' | 'open' | 'closed') {
     setHours(h => {
@@ -74,7 +81,7 @@ export default function SettingsForm({ initialConfig }: { initialConfig: TenantC
       const res = await fetch('/api/settings', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(config),
+        body:    JSON.stringify({ config, review_link: reviewLink.trim() }),
       })
       const json = await res.json() as { ok?: boolean; error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Failed to save')
@@ -223,6 +230,24 @@ export default function SettingsForm({ initialConfig }: { initialConfig: TenantC
           placeholder="123 Queen St W, Toronto, ON"
           maxLength={200}
           aria-label="Shop address"
+          className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
+        />
+      </section>
+
+      {/* Google review link */}
+      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Google review link</h2>
+        <p className="text-sm text-slate-500 mt-1 mb-4">
+          Sent in the review-request SMS after a completed appointment. Paste the short link from
+          your Google Business profile (e.g. <span className="font-mono text-xs">https://g.page/r/…</span>).
+        </p>
+        <input
+          type="url"
+          value={reviewLink}
+          onChange={(e) => setReviewLink(e.target.value)}
+          placeholder="https://g.page/r/your-shop/review"
+          maxLength={500}
+          aria-label="Google review link"
           className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
         />
       </section>

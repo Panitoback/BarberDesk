@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, LogOut, Scissors, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, LogOut, Scissors, Menu, X, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
-  { href: '/',         label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/clients',  label: 'Clients',   icon: Users,           exact: false },
-  { href: '/settings', label: 'Settings',  icon: Settings,        exact: false },
+  { href: '/',            label: 'Dashboard',   icon: LayoutDashboard, exact: true },
+  { href: '/clients',     label: 'Clients',     icon: Users,           exact: false },
+  { href: '/automations', label: 'Automations', icon: Zap,             exact: false },
+  { href: '/settings',    label: 'Settings',    icon: Settings,        exact: false },
 ]
 
 const comingSoonItems = [
