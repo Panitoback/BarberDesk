@@ -33,7 +33,7 @@ const CARDS: AutomationCard[] = [
     key:         'loyalty_active',
     icon:        Sparkles,
     title:       'Loyalty points',
-    description: 'Award points on completed visits and move clients up tiers (Bronze → Platinum).',
+    description: 'Award points on completed visits and move clients up tiers (Bronze to Platinum).',
   },
   {
     key:         'review_active',
@@ -42,16 +42,16 @@ const CARDS: AutomationCard[] = [
     description: 'After a completed visit, ask the client for a Google review with your link.',
   },
   {
-    key:         ‘reactivation_active’,
+    key:         'reactivation_active',
     icon:        MessageCircleHeart,
-    title:       ‘Win-back inactive clients’,
-    description: "Reach out by SMS to clients who haven’t come in for a while.",
+    title:       'Win-back inactive clients',
+    description: "Reach out by SMS to clients who haven't come in for a while.",
   },
   {
-    key:         ‘flash_active’,
+    key:         'flash_active',
     icon:        Zap,
-    title:       ‘Flash discount on no-show’,
-    description: "When a client no-shows, instantly email all clients who haven’t visited in 20+ days with a discount offer to fill the open slot.",
+    title:       'Flash discount on no-show',
+    description: "When a client no-shows, instantly email clients who haven't visited in 20+ days with a discount to fill the open slot.",
   },
 ]
 
@@ -161,7 +161,7 @@ export default function AutomationsForm({ initial }: { initial: AutomationsState
           disabled={saving}
           className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
         >
-          {saving ? 'Saving…' : 'Save automations'}
+          {saving ? 'Saving...' : 'Save automations'}
         </button>
       </div>
     </div>
