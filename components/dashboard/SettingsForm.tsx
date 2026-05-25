@@ -26,12 +26,13 @@ export default function SettingsForm({
   initialReminderHours:  number
 }) {
   const router = useRouter()
-  const [hours,           setHours]           = useState<HoursMap>(initialConfig.hours ?? {})
-  const [services,        setServices]        = useState<Service[]>(initialConfig.services ?? [])
-  const [address,         setAddress]         = useState(initialConfig.address ?? '')
-  const [reviewLink,      setReviewLink]      = useState(initialReviewLink)
-  const [reminderActive,  setReminderActive]  = useState(initialReminderActive)
-  const [reminderHours,   setReminderHours]   = useState(initialReminderHours)
+  const [hours,              setHours]              = useState<HoursMap>(initialConfig.hours ?? {})
+  const [services,           setServices]           = useState<Service[]>(initialConfig.services ?? [])
+  const [address,            setAddress]            = useState(initialConfig.address ?? '')
+  const [notificationEmail,  setNotificationEmail]  = useState(initialConfig.notification_email ?? '')
+  const [reviewLink,         setReviewLink]         = useState(initialReviewLink)
+  const [reminderActive,     setReminderActive]     = useState(initialReminderActive)
+  const [reminderHours,      setReminderHours]      = useState(initialReminderHours)
   const [saving,          setSaving]          = useState(false)
   const [feedback,        setFeedback]        = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -83,6 +84,9 @@ export default function SettingsForm({
 
       const cleanAddress = address.trim()
       if (cleanAddress.length > 0) config.address = cleanAddress
+
+      const cleanNotifEmail = notificationEmail.trim().toLowerCase()
+      if (cleanNotifEmail.length > 0) config.notification_email = cleanNotifEmail
 
       const hours_val = Math.min(72, Math.max(1, Math.round(reminderHours) || 24))
 
@@ -243,6 +247,23 @@ export default function SettingsForm({
           placeholder="123 Queen St W, Toronto, ON"
           maxLength={200}
           aria-label="Shop address"
+          className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
+        />
+      </section>
+
+      {/* Notification email */}
+      <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Notification email</h2>
+        <p className="text-sm text-slate-500 mt-1 mb-4">
+          You&apos;ll receive an email here every time a client books online.
+        </p>
+        <input
+          type="email"
+          value={notificationEmail}
+          onChange={(e) => setNotificationEmail(e.target.value)}
+          placeholder="you@example.com"
+          maxLength={200}
+          aria-label="Notification email"
           className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
         />
       </section>

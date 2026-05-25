@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
@@ -209,6 +209,26 @@ export async function POST(request: Request) {
       )
     }
     return NextResponse.json({ error: 'Could not save the appointment. Try again.' }, { status: 500 })
+  }
+
+  // Owner notification email — wrapped in after() so Vercel keeps the runtime
+  // alive after the response is sent (plain fire-and-forget gets killed early).
+  const notifEmail = cfgResult.ok ? cfgResult.config.notification_email : undefined
+  if (notifEmail && process.env.RESEND_API_KEY) {
+    const resendKey = process.env.RESEND_API_KEY
+    const emailPayload = {
+      from:    `BarberQueue <noreply@barberqueue.pro>`,
+      to:      [notifEmail],
+      subject: `New booking: ${name} — ${service}`,
+      html:    `<p><strong>New booking received</strong></p><p>Client: ${name}<br>Service: ${service}<br>When: ${formatDateTimeForSms(date, time)}</p>`,
+    }
+    after(async () => {
+      await fetch('https://api.resend.com/emails', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify(emailPayload),
+      }).catch(() => {})
+    })
   }
 
   // Best-effort confirmation SMS — persist outcome to messages, never fail the booking.

@@ -9,6 +9,7 @@ import AppointmentsTodayTable from '@/components/dashboard/AppointmentsTodayTabl
 import BookingLinkCard from '@/components/dashboard/BookingLinkCard'
 import UpcomingBookings from '@/components/dashboard/UpcomingBookings'
 import WalkInButton from '@/components/dashboard/WalkInButton'
+import NewAppointmentButton from '@/components/dashboard/NewAppointmentButton'
 import { validateTenantConfig } from '@/lib/tenant-config'
 
 export default async function DashboardPage() {
@@ -72,7 +73,10 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-slate-900">Today&apos;s appointments</h2>
-          <WalkInButton services={services} />
+          <div className="flex items-center gap-2">
+            <NewAppointmentButton services={services} />
+            <WalkInButton services={services} />
+          </div>
         </div>
         <AppointmentsTodayTable appointments={(todayAppointments ?? []) as Parameters<typeof AppointmentsTodayTable>[0]['appointments']} />
       </div>

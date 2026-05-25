@@ -18,9 +18,10 @@ export type DayHours = { open: string; close: string } | null
 export type Service  = { name: string; price_cad: number }
 
 export type TenantConfig = {
-  hours?:    Partial<Record<Weekday, DayHours>>
-  services?: Service[]
-  address?:  string
+  hours?:              Partial<Record<Weekday, DayHours>>
+  services?:           Service[]
+  address?:            string
+  notification_email?: string
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -78,6 +79,15 @@ export function validateTenantConfig(input: unknown): ValidationResult {
     const addr = c.address.trim()
     if (addr.length > 200) return { ok: false, error: 'address must be ≤200 chars' }
     if (addr.length > 0) config.address = addr
+  }
+
+  if (c.notification_email !== undefined) {
+    if (typeof c.notification_email !== 'string') return { ok: false, error: 'notification_email must be string' }
+    const email = c.notification_email.trim().toLowerCase()
+    if (email.length > 0) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'notification_email must be a valid email' }
+      config.notification_email = email
+    }
   }
 
   return { ok: true, config }

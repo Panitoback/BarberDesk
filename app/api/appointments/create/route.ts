@@ -1,0 +1,120 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { getSubdomain } from '@/lib/subdomain'
+import { validateTenantConfig } from '@/lib/tenant-config'
+import { todayInToronto, isPastInToronto } from '@/lib/dates'
+
+function normalizePhone(input: string): string | null {
+  const digits = (input ?? '').replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`
+  return null
+}
+
+function isValidDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  return s >= todayInToronto()
+}
+
+function isValidTime(s: string): boolean {
+  return /^([01]\d|2[0-3]):(00|30)$/.test(s)
+}
+
+export async function POST(request: Request) {
+  const subdomain = await getSubdomain()
+  if (!subdomain) return NextResponse.json({ error: 'No subdomain' }, { status: 400 })
+
+  let body: unknown
+  try { body = await request.json() } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const { client_name: rawName, client_phone: rawPhone, service: rawService, date: rawDate, time: rawTime } = body as {
+    client_name?: unknown; client_phone?: unknown; service?: unknown; date?: unknown; time?: unknown
+  }
+
+  const clientName = typeof rawName    === 'string' ? rawName.trim()    : ''
+  const clientPhone = typeof rawPhone  === 'string' ? rawPhone.trim()   : ''
+  const service     = typeof rawService === 'string' ? rawService.trim() : ''
+  const date        = typeof rawDate   === 'string' ? rawDate.trim()    : ''
+  const time        = typeof rawTime   === 'string' ? rawTime.trim()    : ''
+
+  if (clientName.length < 2) return NextResponse.json({ error: 'Client name is required.' }, { status: 400 })
+  if (!service)              return NextResponse.json({ error: 'Service is required.' }, { status: 400 })
+  if (!isValidDate(date))    return NextResponse.json({ error: 'Pick a valid date (today or later).' }, { status: 400 })
+  if (!isValidTime(time))    return NextResponse.json({ error: 'Pick a valid time slot.' }, { status: 400 })
+  if (isPastInToronto(date, time)) return NextResponse.json({ error: 'That time is in the past.' }, { status: 400 })
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id, config')
+    .eq('subdomain', subdomain)
+    .single()
+
+  if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+
+  const cfgResult = validateTenantConfig(tenant.config ?? {})
+  const services  = cfgResult.ok ? (cfgResult.config.services ?? []) : []
+  const matched   = services.find(s => s.name === service)
+  if (!matched) return NextResponse.json({ error: 'Service not found.' }, { status: 400 })
+
+  const phone = clientPhone ? (normalizePhone(clientPhone) ?? null) : null
+
+  // Try to find existing client by phone, otherwise create one
+  let clientId: string
+
+  if (phone) {
+    const { data: existing } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('phone', phone)
+      .maybeSingle()
+
+    if (existing) {
+      clientId = existing.id
+    } else {
+      const { data: created, error } = await supabase
+        .from('clients')
+        .insert({ tenant_id: tenant.id, name: clientName, phone })
+        .select('id')
+        .single()
+      if (error || !created) return NextResponse.json({ error: 'Could not create client.' }, { status: 500 })
+      clientId = created.id
+    }
+  } else {
+    const { data: created, error } = await supabase
+      .from('clients')
+      .insert({ tenant_id: tenant.id, name: clientName, phone: null })
+      .select('id')
+      .single()
+    if (error || !created) return NextResponse.json({ error: 'Could not create client.' }, { status: 500 })
+    clientId = created.id
+  }
+
+  const { error: apptErr } = await supabase
+    .from('appointments')
+    .insert({
+      tenant_id: tenant.id,
+      client_id: clientId,
+      date,
+      time,
+      service,
+      price:  matched.price_cad,
+      status: 'pending',
+    })
+
+  if (apptErr) {
+    if (apptErr.code === '23505') {
+      return NextResponse.json({ error: 'That slot is already taken.' }, { status: 409 })
+    }
+    return NextResponse.json({ error: 'Could not save appointment.' }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}

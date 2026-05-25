@@ -3,19 +3,19 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, LogOut, Scissors, Menu, X, Zap } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/',            label: 'Dashboard',   icon: LayoutDashboard, exact: true },
+  { href: '/agenda',      label: 'Agenda',      icon: CalendarDays,    exact: false },
   { href: '/clients',     label: 'Clients',     icon: Users,           exact: false },
   { href: '/automations', label: 'Automations', icon: Zap,             exact: false },
   { href: '/settings',    label: 'Settings',    icon: Settings,        exact: false },
 ]
 
 const comingSoonItems = [
-  { label: 'Appointments', icon: Calendar },
-  { label: 'Messages',     icon: MessageSquare },
+  { label: 'Messages', icon: MessageSquare },
 ]
 
 export default function SidebarNav({ shopName }: { shopName: string }) {
