@@ -45,13 +45,13 @@ const CARDS: AutomationCard[] = [
     key:         ‘reactivation_active’,
     icon:        MessageCircleHeart,
     title:       ‘Win-back inactive clients’,
-    description: ‘Reach out by SMS to clients who haven’t come in for a while.’,
+    description: "Reach out by SMS to clients who haven’t come in for a while.",
   },
   {
     key:         ‘flash_active’,
     icon:        Zap,
     title:       ‘Flash discount on no-show’,
-    description: ‘When a client no-shows, instantly email all clients who haven’t visited in 20+ days with a discount offer to fill the open slot.’,
+    description: "When a client no-shows, instantly email all clients who haven’t visited in 20+ days with a discount offer to fill the open slot.",
   },
 ]
 
