@@ -10,17 +10,22 @@
 | Phase 3.2 — SMS API routes | ✅ Complete |
 | Phase 3.3 — n8n workflow 01 (review delay) | ✅ Verified end-to-end |
 | Phase 3.3 — n8n workflow 02 (reactivation cron) | ✅ Verified end-to-end (SMS + email) |
-| Phase 3.4 — n8n workflow 03 (AI auto-reply) | ⚠️ End-to-end works; needs re-verify with new `shop_data` grounding |
+| Phase 3.4 — n8n workflow 03 (AI auto-reply) | ⚠️ End-to-end works; needs re-verify with `shop_data` grounding |
 | Phase 4 — Public landing + booking | ✅ Complete (+ password recovery + public booking) |
 | Phase 4.5 — Admin dashboard | ✅ Complete (`/admin` — tenant management) |
-| Phase 4.6 — Shop settings | ✅ Complete (`/settings` — hours, services, address, Google review link → AI grounding) |
-| Phase 4.7 — Automations dashboard | ✅ Complete 2026-05-25 (`/automations` — 4 toggles + reactivation days; loyalty toggle enforced in RPC) |
-| Phase 4.8 — Dynamic services + revenue tracking | ✅ Complete 2026-05-25 (booking dropdown reads `tenant.config.services`; `appointments.price` → `visits.price`) — **pending push** |
+| Phase 4.6 — Shop settings | ✅ Complete (`/settings` — hours, services, address, Google review link, notification email, reminder config) |
+| Phase 4.7 — Automations dashboard | ✅ Complete (`/automations` — 4 toggles + reactivation days; loyalty toggle enforced in RPC) |
+| Phase 4.8 — Dynamic services + revenue tracking | ✅ Complete (booking dropdown reads `tenant.config.services`; `appointments.price` → `visits.price`) |
+| Phase 4.9 — QR booking code | ✅ Complete (`BookingQRCode` in `/settings` — SVG rendered + downloadable PNG) |
+| Phase 4.10 — Appointment reminders by email | ✅ Built (`/api/cron/reminders` + n8n workflow 04 every 30 min) — **n8n not yet activated, Resend untested** |
+| Phase 4.11 — Walk-in queue | ✅ Complete (`WalkInButton` + `/api/walkin` — immediate revenue tracking; name/phone optional) |
+| Phase 4.12 — Email capture in booking form | ✅ Complete (optional email field in `BookingForm`; stored on client) |
+| Phase 4.13 — Owner notification email | ✅ Built (`/api/book` fires Resend via `after()` when `notification_email` set) — **Resend untested** |
+| Phase 4.14 — Manual appointment creation | ✅ Complete (`NewAppointmentButton` + `/api/appointments/create`) |
+| Phase 4.15 — Weekly agenda view | ✅ Complete (`/agenda` — 7-column grid, Mon–Sun, 8am–8pm, week navigation) |
 | Phase 5 — Deploy | ✅ Live at `barberqueue.pro` — all external services configured |
 
-> Workflow 03 needs one more end-to-end pass after the owner fills `/settings` and the n8n System Message is updated to read `$json.body.shop_data`. The hallucination problem (invented hours/prices) is fixed at the data layer; the prompt change is the last piece.
-
-> **Next session pickup point:** Phase 4.8 is built and the migration is applied in Supabase, but the code is still local. First action tomorrow is the `git add` / `commit` / `push` for the booking + revenue changes (see commands in `CLAUDE.md` → "Pending for next session").
+> **Priority for next session:** (1) Import + activate n8n workflow 04 in Railway n8n. (2) Test all three Resend paths end-to-end (owner notification, reminder, reactivation email). (3) Re-verify workflow 03 with shop_data system message.
 
 ---
 
@@ -69,14 +74,18 @@
 - Cookie/session routes also accept `Bearer {WEBHOOK_SECRET}` (n8n); `cron` + `messages` are webhook-only
 
 ### 3.3 — n8n workflows
-Three workflows on the Railway n8n instance:
-- `01 · Review Request` — webhook → wait 30 min → `POST /api/reviews/request` — ✅ **Verified 2026-05-23**
-- `02 · Weekly Reactivation Cron` — schedule (Mon 9am) → `POST /api/cron/reactivate` — ✅ **Verified 2026-05-24**
+Four workflows on the Railway n8n instance (all JSON exports committed to `n8n/`):
+- `01 · Review Request` — webhook → wait 30 min → `POST /api/reviews/request` — ✅ **Verified 2026-05-23**. JSON: `n8n/01-review-delay.json`
+- `02 · Weekly Reactivation Cron` — schedule (Mon 9am) → `POST /api/cron/reactivate` — ✅ **Verified 2026-05-24**. JSON: `n8n/02-reactivation-cron.json`
   - SMS always sent (uses `clients.phone`); email only if `clients.email` is set (non-fatal if missing)
   - Email via Resend HTTP API; subject: re-engagement with 10% discount offer
-- `03 · AI Auto-Reply` — see 3.4 — 🔄 pending verify
+- `03 · AI Auto-Reply` — see 3.4 — ⚠️ pending re-verify. JSON: `n8n/03-ai-autoreply.json`
+- `04 · Appointment Reminders` — schedule (every 30 min) → `POST /api/cron/reminders` — 📋 **JSON ready, not yet activated**. JSON: `n8n/4 - Appointment Reminder.json`
+  - Sends Resend emails to clients with email addresses, N hours before appointment
+  - N is `automations_config.reminder_hours` per tenant (default 24h); skips if `reminder_active = false`
+  - No `x-subdomain` header needed — the route iterates all tenants internally
 - HTTP Request nodes authenticate via an n8n Bearer Auth credential (not `$env` — blocked by n8n)
-- ⚠️ `n8n/*.json` files are stale — live n8n instance is authoritative until re-exported
+- ✅ All 4 workflow JSONs are up to date and committed
 
 ### 3.4 — AI auto-reply ⚠️ End-to-end works, needs re-verify with new prompt
 - Workflow `03 · AI Auto-Reply`: inbound SMS → `/api/webhooks/twilio` → n8n webhook → native **AI Agent** node → `POST /api/messages/send`
@@ -156,7 +165,7 @@ Owner-facing control panel for the SMS automations, served at `[slug].barberqueu
 
 ---
 
-## Phase 4.8 — Dynamic services + revenue tracking ✅ (pending push)
+## Phase 4.8 — Dynamic services + revenue tracking ✅
 
 Closes two pieces of tech debt that surfaced once owners started entering services with prices in `/settings`.
 
@@ -165,7 +174,67 @@ Closes two pieces of tech debt that surfaced once owners started entering servic
 - `/api/book` looks up the chosen service in `tenant.config.services`, snapshots the canonical `price_cad` onto the appointment, and rejects services that don't exist in the config (400) or shops with no services configured (409)
 - `app/book/page.tsx` removed the hardcoded `DEFAULT_SERVICES` array; if the shop hasn't filled `/settings → Services` the page shows "Online booking is not available yet" instead of a broken form
 - `app/book/BookingForm.tsx` — service options render as `Name · $price` (e.g. `Classic Haircut · $40`, `Beard Trim · $14.99`); integer prices drop the trailing `.00`
-- Dashboard's "Revenue this month" card already summed `visits.price` — once Phase 4.8 ships, those values stop being NULL and the card starts reflecting reality
+- Dashboard's "Revenue this month" card sums `visits.price` — now populated correctly
+
+---
+
+## Phase 4.9 — QR booking code ✅
+
+- `components/dashboard/BookingQRCode.tsx` — client component using `react-qr-code` (SVG)
+- Displayed below the settings form at `/settings`; shows the shop's `[slug].barberqueue.pro/book` URL as a scannable QR code
+- Download button converts the SVG to PNG via XMLSerializer + canvas + `toDataURL` — owner can print or share without extra tooling
+- No server round-trip; purely client-side
+
+---
+
+## Phase 4.10 — Appointment reminders by email ✅ (Resend untested)
+
+- Migration `add_appointment_reminders` (MCP-applied, no local SQL file): `automations_config.reminder_active boolean DEFAULT true`, `automations_config.reminder_hours int DEFAULT 24`, `appointments.reminder_sent_at timestamptz NULL`
+- `app/api/cron/reminders/route.ts` — n8n-triggered (every 30 min), selects appointments within `[now, now + reminder_hours]` that haven't been reminded yet, skips clients without email, marks `reminder_sent_at` BEFORE sending to prevent duplicates on cron overlap, sends via Resend HTTP API, treats failures as non-fatal
+- Configured in `/settings`: toggle (reminder_active) + hours-before input (1–72h). Writes to `automations_config`
+- n8n workflow 04 JSON in `n8n/4 - Appointment Reminder.json` — **not yet imported/activated in live n8n**
+- **Resend email send path untested** — verify end-to-end before relying on it
+
+---
+
+## Phase 4.11 — Walk-in queue ✅
+
+- Migration `add_walkin_support` (MCP-applied, no local SQL file): `clients.phone` made nullable; `appointments.walkin boolean DEFAULT false`
+- `components/dashboard/WalkInButton.tsx` — modal on the dashboard; service required, name and phone optional (for when the shop is slammed). Submits to `/api/walkin`
+- `app/api/walkin/route.ts` — creates a client (name defaults to "Walk-in" if blank), inserts appointment with `walkin: true`, immediately calls `complete_appointment` RPC for instant revenue tracking. No SMS (client has no phone by default)
+- Walk-ins can't be deduplicated by phone (they may have no phone) — always creates a new client record
+- All SMS routes null-guard `client.phone` before calling `sendSms()` — making phone nullable cascaded to 6 routes
+
+---
+
+## Phase 4.12 — Email capture in public booking form ✅
+
+- `app/book/BookingForm.tsx` — optional email field added between phone and service picker. Placeholder "optional" with hint "we'll send you a reminder before your appointment"
+- `/api/book` reads the `email` field, stores it on the client record (new or returning), used by the reminder cron
+
+---
+
+## Phase 4.13 — Owner notification email on new booking ✅ (Resend untested)
+
+- `lib/tenant-config.ts` — `TenantConfig` type extended with `notification_email?: string` (validated as email format)
+- `components/dashboard/SettingsForm.tsx` — new "Notification email" field in the settings form; saves via `/api/settings`
+- `app/api/book/route.ts` — after inserting the appointment, wraps a Resend email send in `after()` so Vercel keeps the runtime alive after the response returns. Only fires if `RESEND_API_KEY` is set and `notification_email` is configured. **Resend path untested**
+
+---
+
+## Phase 4.14 — Manual appointment creation ✅
+
+- `components/dashboard/NewAppointmentButton.tsx` — modal on the dashboard alongside the Walk-in button. Owner enters client name, phone (optional), service, date, and time. Fetches slot availability from `/api/book/slots` to grey out taken times. Syncs `time` state to the first available slot after loading (prevents submitting a taken slot silently)
+- `app/api/appointments/create/route.ts` — owner-authenticated (session cookie), validates date/time, finds or creates client by phone, inserts appointment as `pending`, handles 23505 slot conflict (concurrent book)
+- `app/dashboard/page.tsx` — both `WalkInButton` and `NewAppointmentButton` rendered side by side; both receive the shop's configured services list
+
+---
+
+## Phase 4.15 — Weekly agenda view ✅
+
+- `app/dashboard/agenda/page.tsx` — server component; reads `?week=YYYY-MM-DD` from searchParams, computes Mon–Sun range, fetches appointments for the week filtered by `tenant_id`. Uses `todayInToronto()` (not `new Date()`) for the "today" highlight
+- `components/dashboard/WeeklyAgenda.tsx` — client component; 7-column CSS grid (56px time gutter + 7 equal columns), 8am–8pm in 30-min slots, appointments rendered as colored badges by status (indigo pending, green completed, red no_show, slate cancelled). Week navigation via `router.push('/agenda?week=...')`
+- `components/dashboard/SidebarNav.tsx` — `CalendarDays` icon + "Agenda" added to navItems between Clients and Automations
 
 ---
 
@@ -204,11 +273,12 @@ barberdesk/
 │   ├── auth/callback/route.ts           # PKCE callback — session + tenant creation
 │   ├── dashboard/
 │   │   ├── layout.tsx
-│   │   ├── page.tsx                     # Stats + today's appointments
+│   │   ├── page.tsx                     # Stats + today's appointments + WalkIn + NewAppointment buttons
+│   │   ├── agenda/page.tsx              # Weekly agenda server page (Mon–Sun grid)
 │   │   ├── clients/
 │   │   │   ├── page.tsx                 # Client list with search
 │   │   │   └── [id]/page.tsx            # Client detail
-│   │   ├── settings/page.tsx            # Shop settings (hours, services, address, Google review link)
+│   │   ├── settings/page.tsx            # Shop settings + QR code
 │   │   └── automations/page.tsx         # Automations control panel (4 toggles + reactivation days)
 │   ├── (legal)/
 │   │   ├── layout.tsx                   # Shared legal layout
@@ -217,19 +287,22 @@ barberdesk/
 │   │   └── refund/page.tsx
 │   ├── book/
 │   │   ├── page.tsx                     # Public booking page (no sign-in)
-│   │   ├── BookingForm.tsx              # Client component — name/phone/service/date/time
+│   │   ├── BookingForm.tsx              # Client component — name/phone/email/service/date/time
 │   │   └── confirmed/page.tsx           # Post-booking confirmation
 │   ├── api/
 │   │   ├── appointments/complete/route.ts
 │   │   ├── appointments/cancel/route.ts
-│   │   ├── book/route.ts                # Public booking — rate-limited + admin client
+│   │   ├── appointments/create/route.ts  # Owner adds future appointment manually
+│   │   ├── walkin/route.ts              # Owner adds walk-in → immediate complete_appointment
+│   │   ├── book/route.ts                # Public booking — rate-limited + admin client + owner email
 │   │   ├── book/slots/route.ts          # Returns taken times for a given date
 │   │   ├── noshow/route.ts
 │   │   ├── clients/reactivate/route.ts
 │   │   ├── cron/reactivate/route.ts
+│   │   ├── cron/reminders/route.ts      # Email reminders N hours before appointments (n8n every 30 min)
 │   │   ├── messages/send/route.ts
 │   │   ├── reviews/request/route.ts
-│   │   ├── settings/route.ts            # Owner saves shop config (hours/services/address) + review_link
+│   │   ├── settings/route.ts            # Owner saves shop config + review_link + notification_email + reminder config
 │   │   ├── automations/route.ts         # Owner toggles SMS automations + reactivation_days
 │   │   ├── webhooks/twilio/route.ts
 │   │   └── register/check-slug/route.ts
@@ -238,11 +311,15 @@ barberdesk/
 ├── components/
 │   ├── dashboard/
 │   │   ├── StatsCard.tsx
-│   │   ├── SidebarNav.tsx
+│   │   ├── SidebarNav.tsx               # Includes Agenda nav item (CalendarDays icon)
 │   │   ├── AppointmentsTodayTable.tsx
 │   │   ├── BookingLinkCard.tsx          # Copy-to-clipboard for the public booking URL
+│   │   ├── BookingQRCode.tsx            # QR code + downloadable PNG (react-qr-code)
+│   │   ├── WalkInButton.tsx             # Quick walk-in modal (name/phone optional)
+│   │   ├── NewAppointmentButton.tsx     # Manual future appointment modal with slot picker
+│   │   ├── WeeklyAgenda.tsx             # 7-column weekly grid client component
 │   │   ├── UpcomingBookings.tsx         # Owner-side cancel of self-bookings
-│   │   ├── SettingsForm.tsx             # Client form for hours/services/address/review_link (mobile-first)
+│   │   ├── SettingsForm.tsx             # Client form for hours/services/address/review_link/notification_email/reminder
 │   │   └── AutomationsForm.tsx          # Toggle cards for the 4 SMS automations + reactivation days
 │   └── clients/ClientsTable.tsx
 ├── lib/
@@ -253,9 +330,9 @@ barberdesk/
 │   ├── subdomain.ts     # getSubdomain(), SUPABASE_COOKIE_OPTIONS
 │   ├── dates.ts         # Toronto-TZ helpers — todayInToronto, isPastInToronto, …
 │   ├── twilio.ts        # sendSms() — REST client
-│   └── tenant-config.ts # TenantConfig type + validator for tenants.config (jsonb)
+│   └── tenant-config.ts # TenantConfig type + validator (jsonb); includes notification_email
 ├── proxy.ts             # Next.js 16 middleware
-├── n8n/                 # Workflow JSON exports (01 review, 02 cron, 03 AI auto-reply)
+├── n8n/                 # Workflow JSON exports (01 review, 02 cron, 03 AI auto-reply, 04 reminders)
 └── supabase/migrations/
 ```
 
@@ -288,3 +365,8 @@ barberdesk/
 | `appointments.price` captured at booking, not at completion | The customer agrees to a price when they book; the shop can change prices in `/settings` later and existing bookings keep their original quote. RPC carries it into `visits.price` so revenue math reflects what was actually charged. |
 | No hardcoded fallback service list on `/book` | Letting customers book with default services creates fake revenue ($0 visits, mismatched names). Forcing the owner to fill `/settings` first keeps revenue tracking honest and signals when a shop isn't actually open for online bookings yet. |
 | Google review URL lives in `automations_config` but is edited in `/settings` | Storage is co-located with the SMS code that reads it; the UI is co-located with the other "static shop info" (hours, address). `/api/settings` writes both tables in one save. |
+| `clients.phone` nullable — null guards in every SMS route | Walk-ins created by the owner may have no phone. Making phone nullable broke 6 routes that passed it to `sendSms()` directly; each now guards with `if (client.phone)` before calling. Public `/api/book` still requires phone (clients need a confirmation SMS). |
+| Walk-ins call `complete_appointment` immediately | A walk-in is a client who is already in the chair; recording it as `pending` and waiting for the owner to click Complete would delay revenue tracking and create an extra step. Immediate RPC call keeps the visit row and revenue in sync with reality. |
+| Reminder emails sent before marking `reminder_sent_at` | If the mark-then-send order were reversed, a Resend failure would leave the appointment permanently un-reminded. Marking first means a failed send is retried on the next cron run (at most `reminder_hours` later). |
+| QR code is client-side only | The booking URL is deterministic (`[slug].barberqueue.pro/book`) — no server call needed. Client-side SVG → canvas → PNG avoids an extra API route and keeps the download instant. |
+| `NewAppointmentButton` syncs time to first available slot | After fetching taken slots, if the current `time` state is taken, the component resets to the first available. Without this the form submits a taken slot silently and gets a 409 error the user wasn't warned about. |
