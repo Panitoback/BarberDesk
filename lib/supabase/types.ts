@@ -260,6 +260,7 @@ export type Database = {
           created_at: string
           direction: Database["public"]["Enums"]["message_direction"]
           id: string
+          read_at: string | null
           status: Database["public"]["Enums"]["message_status"]
           tenant_id: string
           twilio_sid: string | null
@@ -270,6 +271,7 @@ export type Database = {
           created_at?: string
           direction: Database["public"]["Enums"]["message_direction"]
           id?: string
+          read_at?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           tenant_id: string
           twilio_sid?: string | null
@@ -280,6 +282,7 @@ export type Database = {
           created_at?: string
           direction?: Database["public"]["Enums"]["message_direction"]
           id?: string
+          read_at?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           tenant_id?: string
           twilio_sid?: string | null

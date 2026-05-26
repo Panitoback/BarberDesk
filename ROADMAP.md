@@ -1,6 +1,6 @@
 # Roadmap — BarberQueue
 
-## Status (2026-05-25)
+## Status (2026-05-26)
 
 | Phase | Status |
 |-------|--------|
@@ -18,15 +18,18 @@
 | Phase 4.16 — Flash discount automation | ✅ Complete 2026-05-25 (no-show → Resend email to clients inactive 20+ days with configurable % off) |
 | Phase 4.8 — Dynamic services + revenue tracking | ✅ Complete (booking dropdown reads `tenant.config.services`; `appointments.price` → `visits.price`) |
 | Phase 4.9 — QR booking code | ✅ Complete (`BookingQRCode` in `/settings` — SVG rendered + downloadable PNG) |
-| Phase 4.10 — Appointment reminders by email | ✅ Built (`/api/cron/reminders` + n8n workflow 04 every 30 min) — **n8n not yet activated, Resend untested** |
+| Phase 4.10 — Appointment reminders by email | ✅ Built (`/api/cron/reminders` + n8n workflow 04 every 30 min) — n8n workflow 04 ✅ active in Railway. Resend untested |
 | Phase 4.11 — Walk-in queue | ✅ Complete (`WalkInButton` + `/api/walkin` — immediate revenue tracking; name/phone optional) |
 | Phase 4.12 — Email capture in booking form | ✅ Complete (optional email field in `BookingForm`; stored on client) |
-| Phase 4.13 — Owner notification email | ✅ Built (`/api/book` fires Resend via `after()` when `notification_email` set) — **Resend untested** |
+| Phase 4.13 — Owner notification email | ✅ Verified end-to-end (`/api/book` fires Resend via `after()` when `notification_email` set — confirmed 2026-05-26) |
 | Phase 4.14 — Manual appointment creation | ✅ Complete (`NewAppointmentButton` + `/api/appointments/create`) |
 | Phase 4.15 — Weekly agenda view | ✅ Complete (`/agenda` — 7-column grid, Mon–Sun, 8am–8pm, week navigation) |
+| Phase 4.17 — Password-only registration | ✅ Complete (`signUp+password`; `/api/register/create-tenant`; fixes Gmail scanner) |
+| Phase 4.18 — SMS notification bell | ✅ Complete (`NotificationBell.tsx` + Supabase Realtime; `messages.read_at`; `MarkMessagesRead.tsx`) |
+| Phase 4.19 — Extra perks at completion / walk-in | ✅ Complete (`CompleteModal.tsx` + `WalkInButton.tsx` extras + `p_price_override` in RPC) |
 | Phase 5 — Deploy | ✅ Live at `barberqueue.pro` — all external services configured |
 
-> **Priority for next session:** (1) Import + activate n8n workflow 04 in Railway n8n. (2) Test all three Resend paths end-to-end (owner notification, reminder, reactivation email). (3) Re-verify workflow 03 with shop_data system message.
+> **Priority for next session:** (1) Verify n8n workflow 03 end-to-end with `shop_data` system message. (2) Test Resend reminder + reactivation email paths end-to-end. (3) Upgrade Twilio from trial. (4) Pre-launch cleanup: delete test tenant + orphan auth.users.
 
 ---
 
@@ -81,7 +84,7 @@ Four workflows on the Railway n8n instance (all JSON exports committed to `n8n/`
   - SMS always sent (uses `clients.phone`); email only if `clients.email` is set (non-fatal if missing)
   - Email via Resend HTTP API; subject: re-engagement with 10% discount offer
 - `03 · AI Auto-Reply` — see 3.4 — ⚠️ pending re-verify. JSON: `n8n/03-ai-autoreply.json`
-- `04 · Appointment Reminders` — schedule (every 30 min) → `POST /api/cron/reminders` — 📋 **JSON ready, not yet activated**. JSON: `n8n/4 - Appointment Reminder.json`
+- `04 · Appointment Reminders` — schedule (every 30 min) → `POST /api/cron/reminders` — ✅ **Active in Railway** (verified 2026-05-26). JSON: `n8n/4 - Appointment Reminder.json`
   - Sends Resend emails to clients with email addresses, N hours before appointment
   - N is `automations_config.reminder_hours` per tenant (default 24h); skips if `reminder_active = false`
   - No `x-subdomain` header needed — the route iterates all tenants internally
@@ -228,7 +231,7 @@ Closes two pieces of tech debt that surfaced once owners started entering servic
 
 - `lib/tenant-config.ts` — `TenantConfig` type extended with `notification_email?: string` (validated as email format)
 - `components/dashboard/SettingsForm.tsx` — new "Notification email" field in the settings form; saves via `/api/settings`
-- `app/api/book/route.ts` — after inserting the appointment, wraps a Resend email send in `after()` so Vercel keeps the runtime alive after the response returns. Only fires if `RESEND_API_KEY` is set and `notification_email` is configured. **Resend path untested**
+- `app/api/book/route.ts` — after inserting the appointment, wraps a Resend email send in `after()` so Vercel keeps the runtime alive after the response returns. Only fires if `RESEND_API_KEY` is set and `notification_email` is configured. **Verified end-to-end 2026-05-26**
 
 ---
 
@@ -237,6 +240,39 @@ Closes two pieces of tech debt that surfaced once owners started entering servic
 - `components/dashboard/NewAppointmentButton.tsx` — modal on the dashboard alongside the Walk-in button. Owner enters client name, phone (optional), service, date, and time. Fetches slot availability from `/api/book/slots` to grey out taken times. Syncs `time` state to the first available slot after loading (prevents submitting a taken slot silently)
 - `app/api/appointments/create/route.ts` — owner-authenticated (session cookie), validates date/time, finds or creates client by phone, inserts appointment as `pending`, handles 23505 slot conflict (concurrent book)
 - `app/dashboard/page.tsx` — both `WalkInButton` and `NewAppointmentButton` rendered side by side; both receive the shop's configured services list
+
+---
+
+## Phase 4.17 — Password-only registration ✅
+
+- **Root cause:** Gmail's anti-phishing scanner GETs every URL in incoming mail, consuming the one-time Supabase PKCE code before the user clicks. The real click lands on `/login?error=auth` with no valid token
+- `/register` replaced `signInWithOtp` with `supabase.auth.signUp({ email, password })` — no URL to prefetch, no scanner interference
+- New `POST /api/register/create-tenant` route: authenticated (cookie session from `signUp`), validates slug, idempotent on 23505, returns `{ subdomain }`
+- Registration flow: form → `signUp` → if `!data.session` show error about "Confirm email must be OFF" → POST `/api/register/create-tenant` → `window.location.href = tenantUrl(subdomain)`
+- **Requires "Confirm email" OFF** in Supabase Auth → Email Settings — otherwise `signUp` returns no session
+- The old `shop`+`slug` branch in `/auth/callback` is now dead code (kept harmless)
+
+---
+
+## Phase 4.18 — SMS notification bell ✅
+
+- Migration `20260526000000_messages_read_at_and_realtime.sql`: `messages.read_at timestamptz NULL` + `ALTER PUBLICATION supabase_realtime ADD TABLE public.messages`
+- `components/dashboard/NotificationBell.tsx` — bell icon with indigo badge; groups unread inbound messages by client (most recent per client); dropdown with client name + truncated last message + time-ago; closes on outside click via `containerRef` mousedown listener; `max-w-[calc(100vw-16px)]` prevents overflow on small screens
+- `components/dashboard/MarkMessagesRead.tsx` — invisible component, fires `POST /api/messages/read` on mount; placed on the client detail page so opening a conversation marks it read
+- `app/api/messages/read/route.ts` — authenticated, updates `read_at = now()` for all unread inbound messages from a given `client_id` in the owner's tenant
+- Realtime subscription: `supabase.channel('inbound-messages').on('postgres_changes', { event: 'INSERT'|'UPDATE', filter: 'direction=eq.inbound' }, fetchUnread)`
+- Mounted in `SidebarNav.tsx`: mobile top bar and desktop sidebar header both render `<NotificationBell />`
+
+---
+
+## Phase 4.19 — Extra perks at completion / walk-in ✅
+
+- Migration `20260526000001_complete_appointment_price_override.sql`: adds `p_price_override numeric DEFAULT NULL` to `complete_appointment` RPC; `v_final_price := COALESCE(p_price_override, v_price)` — override wins when set
+- `components/dashboard/CompleteModal.tsx` — bottom-sheet modal (mobile) / centered (desktop); shows base service + price; service dropdown to add extras from `tenant.config.services`; each extra gets its own row with trash delete; running CAD total = base + extras; confirms with `onConfirm(total)` or `onConfirm(null)` when no price
+- `components/dashboard/WalkInButton.tsx` — same pattern integrated into the walk-in form; primary service (required) + extras section; sends `final_price` in body only when extras added
+- Both send `final_price` → `/api/appointments/complete` or `/api/walkin` → `p_price_override` in RPC → `visits.price` reflects true revenue with add-ons
+- `lib/supabase/types.ts` updated by hand to add `p_price_override?: number | null` to `complete_appointment` Args (regeneration would lose this and the `user_owns_tenant` addition)
+- Extras list capped with `max-h-36 overflow-y-auto` to prevent modal overflow on mobile with many extras
 
 ---
 
@@ -311,26 +347,31 @@ barberdesk/
 │   │   ├── cron/reactivate/route.ts
 │   │   ├── cron/reminders/route.ts      # Email reminders N hours before appointments (n8n every 30 min)
 │   │   ├── messages/send/route.ts
+│   │   ├── messages/read/route.ts       # Marks inbound messages from a client as read (read_at = now())
 │   │   ├── reviews/request/route.ts
 │   │   ├── settings/route.ts            # Owner saves shop config + review_link + notification_email + reminder config
 │   │   ├── automations/route.ts         # Owner toggles SMS automations + reactivation_days
 │   │   ├── webhooks/twilio/route.ts
-│   │   └── register/check-slug/route.ts
+│   │   ├── register/check-slug/route.ts
+│   │   └── register/create-tenant/route.ts  # Authenticated tenant creation after signUp (password flow)
 │   ├── page.tsx                         # Public landing
 │   └── layout.tsx
 ├── components/
 │   ├── dashboard/
 │   │   ├── StatsCard.tsx
-│   │   ├── SidebarNav.tsx               # Includes Agenda nav item (CalendarDays icon)
-│   │   ├── AppointmentsTodayTable.tsx
+│   │   ├── SidebarNav.tsx               # Includes Agenda nav item (CalendarDays icon) + NotificationBell
+│   │   ├── AppointmentsTodayTable.tsx   # Complete/No show/Cancel buttons; opens CompleteModal
+│   │   ├── CompleteModal.tsx            # Extra perks dropdown + running total; fires p_price_override
+│   │   ├── NotificationBell.tsx         # Live unread SMS badge + dropdown (Supabase Realtime)
+│   │   ├── MarkMessagesRead.tsx         # Invisible — fires /api/messages/read on mount
 │   │   ├── BookingLinkCard.tsx          # Copy-to-clipboard for the public booking URL
 │   │   ├── BookingQRCode.tsx            # QR code + downloadable PNG (react-qr-code)
-│   │   ├── WalkInButton.tsx             # Quick walk-in modal (name/phone optional)
+│   │   ├── WalkInButton.tsx             # Quick walk-in modal (name/phone optional + extras)
 │   │   ├── NewAppointmentButton.tsx     # Manual future appointment modal with slot picker
 │   │   ├── WeeklyAgenda.tsx             # 7-column weekly grid client component
 │   │   ├── UpcomingBookings.tsx         # Owner-side cancel of self-bookings
 │   │   ├── SettingsForm.tsx             # Client form for hours/services/address/review_link/notification_email/reminder
-│   │   └── AutomationsForm.tsx          # Toggle cards for the 4 SMS automations + reactivation days
+│   │   └── AutomationsForm.tsx          # Toggle cards for the 5 SMS automations + reactivation days
 │   └── clients/ClientsTable.tsx
 ├── lib/
 │   ├── supabase/ (client, server, admin, types)

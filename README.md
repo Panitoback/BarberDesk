@@ -13,7 +13,7 @@ Each shop gets its own subdomain, private dashboard, and SMS automations.
 |-------|-----------|
 | Frontend | Next.js 16 + TypeScript + Tailwind + shadcn/ui |
 | Database | PostgreSQL via Supabase (RLS on all tables) |
-| Auth | Supabase Auth — magic link (PKCE) + email/password + password reset |
+| Auth | Supabase Auth — email/password (registration) + password login + password reset |
 | SMS | Twilio |
 | Email | Resend |
 | Automations | n8n self-hosted on Railway |
@@ -123,7 +123,7 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 
 ---
 
-## Project status (2026-05-25)
+## Project status (2026-05-26)
 
 | Module | Status |
 |--------|--------|
@@ -140,18 +140,21 @@ Platform-owner panel at `barberqueue.pro/admin` for managing tenants without tou
 | Automations dashboard (`/automations` — 5 toggles + reactivation days) | ✅ Complete |
 | Flash discount automation on no-show (Resend email to inactive clients) | ✅ Complete — verified 2026-05-25 |
 | QR booking code (downloadable PNG in `/settings`) | ✅ Complete |
-| Walk-in queue (`WalkInButton` + `/api/walkin` — immediate revenue tracking, name/phone optional) | ✅ Complete |
+| Walk-in queue (`WalkInButton` + `/api/walkin` — immediate revenue tracking, name/phone optional, supports extras) | ✅ Complete |
 | Manual appointment creation (`NewAppointmentButton` + `/api/appointments/create`) | ✅ Complete |
 | Weekly agenda view (`/agenda` — 7-column grid, week navigation) | ✅ Complete |
 | Email capture in public booking form (optional, used for Resend reminders) | ✅ Complete |
-| Owner notification email on new booking (Resend via `/api/book`) | ✅ Built — **Resend untested** |
-| Appointment reminders by email (`/api/cron/reminders` + n8n workflow 04) | ✅ Built — **n8n workflow not yet activated, Resend untested** |
+| Owner notification email on new booking (Resend via `/api/book`) | ✅ Verified end-to-end |
+| Appointment reminders by email (`/api/cron/reminders` + n8n workflow 04) | ✅ Built — n8n ✅ active in Railway. Resend untested |
+| Password-only registration (`signUp+password` + `/api/register/create-tenant` — fixes Gmail scanner) | ✅ Complete |
+| SMS notification bell (`NotificationBell.tsx` + Supabase Realtime + `messages.read_at`) | ✅ Complete |
+| Extra perks at completion / walk-in (`CompleteModal.tsx` + `p_price_override` in RPC) | ✅ Complete |
 | Deploy to Vercel — barberqueue.pro live | ✅ Complete |
 | Supabase Auth URLs + Twilio webhook + Resend domain | ✅ All configured |
 | n8n workflow 01 — review delay (30 min) | ✅ Verified end-to-end |
 | n8n workflow 02 — reactivation cron | ✅ Verified end-to-end |
 | n8n workflow 03 — AI auto-reply | ⚠️ Flow verified, re-verify with `shop_data` system message |
-| n8n workflow 04 — appointment reminders | 📋 JSON ready (`n8n/4 - Appointment Reminder.json`) — needs import to live n8n |
+| n8n workflow 04 — appointment reminders | ✅ Active in Railway |
 
 ---
 
