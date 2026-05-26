@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('date', today),
-    supabase.from('appointments').select('id, time, service, status, clients(name, phone)').eq('tenant_id', tenant.id).eq('date', today).order('time'),
+    supabase.from('appointments').select('id, time, service, price, status, clients(name, phone)').eq('tenant_id', tenant.id).eq('date', today).order('time'),
     supabase.from('appointments').select('id, date, time, service, clients(name, phone)').eq('tenant_id', tenant.id).eq('status', 'pending').gt('date', today).lte('date', weekOutISO).order('date').order('time').limit(10),
     supabase.from('visits').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).gte('date', firstOfMonth),
     supabase.from('visits').select('price').eq('tenant_id', tenant.id).gte('date', firstOfMonth),
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
         <StatsCard label="Registered clients"  value={totalClients ?? 0}                    icon={Users} />
         <StatsCard label="Appointments today"  value={todayCount ?? 0}                      icon={Calendar} description="Pending + completed" />
         <StatsCard label="Visits this month"   value={monthlyVisits ?? 0}                   icon={Scissors} />
-        <StatsCard label="Revenue this month"  value={`$${monthlyRevenue.toFixed(2)}`}      icon={DollarSign} description="USD" />
+        <StatsCard label="Revenue this month"  value={`$${monthlyRevenue.toFixed(2)}`}      icon={DollarSign} description="CAD" />
       </div>
 
       <div>
@@ -78,7 +78,10 @@ export default async function DashboardPage() {
             <WalkInButton services={services} />
           </div>
         </div>
-        <AppointmentsTodayTable appointments={(todayAppointments ?? []) as Parameters<typeof AppointmentsTodayTable>[0]['appointments']} />
+        <AppointmentsTodayTable
+          appointments={(todayAppointments ?? []) as Parameters<typeof AppointmentsTodayTable>[0]['appointments']}
+          services={services}
+        />
       </div>
 
       <div>

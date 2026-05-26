@@ -34,6 +34,8 @@ const slugColor: Record<SlugStatus, string> = {
   invalid:   'text-red-600',
 }
 
+const MIN_PASSWORD_LEN = 8
+
 export default function RegisterPage() {
   return (
     <Suspense>
@@ -46,17 +48,20 @@ function RegisterForm() {
   const [shopName, setShopName]     = useState('')
   const [slug, setSlug]             = useState('')
   const [email, setEmail]           = useState('')
+  const [password, setPassword]     = useState('')
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
-  const [sent, setSent]             = useState(false)
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchParams = useSearchParams()
 
-  // Handle slug-taken error returned from /auth/callback after race condition
+  // Surface errors thrown by the legacy magic-link callback path
   useEffect(() => {
-    if (searchParams.get('error') === 'slug-taken') {
+    const err = searchParams.get('error')
+    if (err === 'slug-taken') {
       setError('That subdomain was just taken by someone else. Please choose a different one.')
+    } else if (err === 'slug-invalid') {
+      setError('That subdomain is not allowed. Please choose a different one.')
     }
   }, [searchParams])
 
@@ -88,61 +93,69 @@ function RegisterForm() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [slug])
 
+  function tenantUrl(subdomain: string): string {
+    const { protocol, hostname, port } = window.location
+    const portSuffix = port ? `:${port}` : ''
+    const parts = hostname.split('.')
+    const baseHost = parts.length > 2 ? parts.slice(1).join('.') : hostname
+    return `${protocol}//${subdomain}.${baseHost}${portSuffix}/`
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (slugStatus !== 'available') return
+    if (password.length < MIN_PASSWORD_LEN) {
+      setError(`Password must be at least ${MIN_PASSWORD_LEN} characters.`)
+      return
+    }
 
     setLoading(true)
     setError(null)
 
     const supabase = createClient()
-    const { protocol, hostname, port } = window.location
-    const portSuffix = port ? `:${port}` : ''
 
-    // Strip subdomain to get base origin (matches login page logic)
-    const parts = hostname.split('.')
-    const baseHost = parts.length > 2 ? parts.slice(1).join('.') : hostname
-    const baseOrigin = `${protocol}//${baseHost}${portSuffix}`
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
 
-    const params = new URLSearchParams({ shop: shopName.trim(), slug, next: '/' })
-    const redirectTo = `${baseOrigin}/auth/callback?${params.toString()}`
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirectTo },
-    })
-
-    if (otpError) {
-      setError(otpError.message)
-    } else {
-      setSent(true)
+    if (signUpError) {
+      setError(signUpError.message)
+      setLoading(false)
+      return
     }
 
-    setLoading(false)
-  }
+    // If the Supabase project still has "Confirm email" on, signUp returns
+    // a user but no session. Surface a clear message instead of silently failing.
+    if (!data.session) {
+      setError(
+        'Account created, but email confirmation is required by this project. ' +
+        'Disable "Confirm email" in Supabase Auth settings, or sign in once you have confirmed.'
+      )
+      setLoading(false)
+      return
+    }
 
-  if (sent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
-          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center mx-auto">
-            <Check className="w-7 h-7 text-indigo-500" />
-          </div>
-          <h1 className="text-xl font-bold text-slate-900">Check your email</h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            We sent a sign-in link to{' '}
-            <span className="font-semibold text-slate-800">{email}</span>.
-            Click it to create your shop and access your dashboard.
-          </p>
-          <div className="bg-slate-50 rounded-xl px-4 py-3 mt-2">
-            <p className="text-xs text-slate-400 mb-0.5">Your shop will be at</p>
-            <p className="font-mono text-sm font-semibold text-slate-700">
-              {slug}.barberqueue.pro
-            </p>
-          </div>
-        </div>
-      </div>
-    )
+    const res = await fetch('/api/register/create-tenant', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ shop: shopName.trim(), slug }),
+    })
+
+    if (!res.ok) {
+      const { error: apiError } = await res.json().catch(() => ({ error: 'unknown' }))
+      if (apiError === 'slug_taken') {
+        setError('That subdomain was just taken. Please choose a different one.')
+        setSlugStatus('taken')
+      } else if (apiError === 'slug_invalid') {
+        setError('That subdomain is not allowed.')
+        setSlugStatus('invalid')
+      } else {
+        setError('Could not create your shop. Please try again.')
+      }
+      setLoading(false)
+      return
+    }
+
+    const { subdomain } = await res.json()
+    window.location.href = tenantUrl(subdomain)
   }
 
   const slugIcon = {
@@ -152,6 +165,12 @@ function RegisterForm() {
     taken:     <X className="w-3.5 h-3.5 text-red-500" />,
     invalid:   <X className="w-3.5 h-3.5 text-red-500" />,
   }
+
+  const submitDisabled =
+    loading ||
+    slugStatus !== 'available' ||
+    !email ||
+    password.length < MIN_PASSWORD_LEN
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
@@ -231,14 +250,32 @@ function RegisterForm() {
             />
           </div>
 
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              minLength={MIN_PASSWORD_LEN}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-slate-400">Minimum 8 characters.</p>
+          </div>
+
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button
             type="submit"
-            disabled={loading || slugStatus !== 'available' || !email}
+            disabled={submitDisabled}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors text-sm"
           >
-            {loading ? 'Sending link...' : 'Create my shop'}
+            {loading ? 'Creating your shop...' : 'Create my shop'}
           </button>
         </form>
 

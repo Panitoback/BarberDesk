@@ -392,7 +392,7 @@ export type Database = {
     Functions: {
       user_owns_tenant: { Args: { target_tenant_id: string }; Returns: boolean }
       complete_appointment: {
-        Args: { p_appointment_id: string; p_tenant_id: string }
+        Args: { p_appointment_id: string; p_tenant_id: string; p_price_override?: number | null }
         Returns: Json
       }
     }

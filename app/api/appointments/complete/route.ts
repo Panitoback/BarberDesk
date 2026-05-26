@@ -8,6 +8,7 @@ export async function POST(request: Request) {
 
   const body = await request.json()
   const appointmentId: string = body.appointment_id
+  const finalPrice: number | null = typeof body.final_price === 'number' ? body.final_price : null
   if (!appointmentId) return NextResponse.json({ error: 'appointment_id is required' }, { status: 400 })
 
   const supabase = await createClient()
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase.rpc('complete_appointment', {
     p_appointment_id: appointmentId,
-    p_tenant_id: tenant.id,
+    p_tenant_id:      tenant.id,
+    ...(finalPrice !== null ? { p_price_override: finalPrice } : {}),
   })
 
   if (error) {

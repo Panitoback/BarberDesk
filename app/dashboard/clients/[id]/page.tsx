@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'
 import type { LoyaltyLevel } from '@/lib/loyalty'
+import MarkMessagesRead from '@/components/dashboard/MarkMessagesRead'
 
 const levelStyles: Record<LoyaltyLevel, string> = {
   bronze:   'bg-indigo-50 text-amber-700 ring-amber-200',
@@ -51,7 +52,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const stats = [
     { label: 'Total visits',   value: visits?.length ?? 0,                  danger: false },
     { label: 'Points',         value: loyalty?.points ?? 0,                  danger: false },
-    { label: 'Total revenue',  value: `$${totalRevenue.toFixed(2)}`,         danger: false },
+    { label: 'Total revenue',  value: `$${totalRevenue.toFixed(2)} CAD`,     danger: false },
     { label: 'No-shows',       value: client.no_show_count,                  danger: client.no_show_count > 0 },
   ]
 
@@ -163,6 +164,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </>
         )}
       </div>
+
+      {/* Mark all inbound messages from this client as read */}
+      <MarkMessagesRead clientId={id} />
 
       {/* SMS history */}
       {messages && messages.length > 0 && (

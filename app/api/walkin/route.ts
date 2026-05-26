@@ -21,13 +21,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { service: rawService, name: rawName, phone: rawPhone } = body as {
-    service?: unknown; name?: unknown; phone?: unknown
+  const { service: rawService, name: rawName, phone: rawPhone, final_price: rawFinalPrice } = body as {
+    service?: unknown; name?: unknown; phone?: unknown; final_price?: unknown
   }
 
-  const service = typeof rawService === 'string' ? rawService.trim() : ''
-  const name    = typeof rawName   === 'string' ? rawName.trim()    : ''
-  const phone   = typeof rawPhone  === 'string' ? rawPhone.trim()   : ''
+  const service    = typeof rawService    === 'string' ? rawService.trim() : ''
+  const name       = typeof rawName       === 'string' ? rawName.trim()    : ''
+  const phone      = typeof rawPhone      === 'string' ? rawPhone.trim()   : ''
+  const finalPrice = typeof rawFinalPrice === 'number' && rawFinalPrice >= 0 ? rawFinalPrice : null
 
   if (!service) return NextResponse.json({ error: 'service is required' }, { status: 400 })
 
@@ -83,10 +84,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not create appointment' }, { status: 500 })
   }
 
-  // Complete immediately — walk-in = client is already in the chair
+  // Complete immediately — walk-in = client is already in the chair.
+  // If extra services were added in the UI, final_price overrides the base price.
   const { error: rpcErr } = await supabase.rpc('complete_appointment', {
     p_appointment_id: appt.id,
     p_tenant_id:      tenant.id,
+    ...(finalPrice !== null ? { p_price_override: finalPrice } : {}),
   })
 
   if (rpcErr) {

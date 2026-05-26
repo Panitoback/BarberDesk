@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Tables } from '@/lib/supabase/types'
+import type { Service } from '@/lib/tenant-config'
+import CompleteModal from '@/components/dashboard/CompleteModal'
 
 type AppointmentWithClient = Tables<'appointments'> & {
   clients: { name: string; phone: string | null } | null
@@ -19,43 +21,66 @@ const statusLabel: Record<string, string> = {
   pending:   'Pending',
   completed: 'Completed',
   no_show:   'No show',
-  cancelled:  'Cancelled',
+  cancelled: 'Cancelled',
 }
 
-export default function AppointmentsTodayTable({ appointments: initialAppointments }: { appointments: AppointmentWithClient[] }) {
+type ModalState = { appointmentId: string; service: string; basePrice: number | null }
+
+export default function AppointmentsTodayTable({
+  appointments: initialAppointments,
+  services,
+}: {
+  appointments: AppointmentWithClient[]
+  services: Service[]
+}) {
   const [appointments, setAppointments] = useState(initialAppointments)
-  const [completing, setCompleting] = useState<string | null>(null)
-  const [marking, setMarking]       = useState<string | null>(null)
-  const [cancelling, setCancelling] = useState<string | null>(null)
+  const [modal, setModal]               = useState<ModalState | null>(null)
+  const [completing, setCompleting]     = useState(false)
+  const [marking, setMarking]           = useState<string | null>(null)
+  const [cancelling, setCancelling]     = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
 
-  async function completeAppointment(appointmentId: string) {
-    setCompleting(appointmentId)
+  function openModal(appt: AppointmentWithClient) {
+    setModal({
+      appointmentId: appt.id,
+      service:       appt.service,
+      basePrice:     appt.price ?? null,
+    })
+  }
+
+  async function handleComplete(finalPrice: number | null) {
+    if (!modal) return
+    setCompleting(true)
+
+    const body: Record<string, unknown> = { appointment_id: modal.appointmentId }
+    if (finalPrice !== null) body.final_price = finalPrice
 
     const res = await fetch('/api/appointments/complete', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointment_id: appointmentId }),
+      body:    JSON.stringify(body),
     })
 
     if (res.ok) {
+      const id = modal.appointmentId
       setAppointments(prev =>
-        prev.map(a => a.id === appointmentId ? { ...a, status: 'completed' as const } : a)
+        prev.map(a => a.id === id ? { ...a, status: 'completed' as const } : a)
       )
+      setModal(null)
       startTransition(() => router.refresh())
     }
 
-    setCompleting(null)
+    setCompleting(false)
   }
 
   async function markNoShow(appointmentId: string) {
     setMarking(appointmentId)
 
     const res = await fetch('/api/noshow', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointment_id: appointmentId }),
+      body:    JSON.stringify({ appointment_id: appointmentId }),
     })
 
     if (res.ok || res.status === 502) {
@@ -74,9 +99,9 @@ export default function AppointmentsTodayTable({ appointments: initialAppointmen
     setCancelling(appointmentId)
 
     const res = await fetch('/api/appointments/cancel', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointment_id: appointmentId }),
+      body:    JSON.stringify({ appointment_id: appointmentId }),
     })
 
     if (res.ok) {
@@ -89,30 +114,30 @@ export default function AppointmentsTodayTable({ appointments: initialAppointmen
     setCancelling(null)
   }
 
-  function ActionButtons({ id, full }: { id: string; full?: boolean }) {
-    const busy = completing === id || marking === id || cancelling === id
+  function ActionButtons({ appt, full }: { appt: AppointmentWithClient; full?: boolean }) {
+    const busy = completing || marking === appt.id || cancelling === appt.id
     return (
       <div className="flex items-center gap-2 flex-wrap">
         <button
-          onClick={() => completeAppointment(id)}
+          onClick={() => openModal(appt)}
           disabled={busy}
           className={`text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}
         >
-          {completing === id ? 'Saving...' : 'Complete'}
+          Complete
         </button>
         <button
-          onClick={() => markNoShow(id)}
+          onClick={() => markNoShow(appt.id)}
           disabled={busy}
           className={`text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}
         >
-          {marking === id ? 'Saving...' : 'No show'}
+          {marking === appt.id ? 'Saving...' : 'No show'}
         </button>
         <button
-          onClick={() => cancelAppointment(id)}
+          onClick={() => cancelAppointment(appt.id)}
           disabled={busy}
           className={`text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}
         >
-          {cancelling === id ? 'Cancelling...' : 'Cancel'}
+          {cancelling === appt.id ? 'Cancelling...' : 'Cancel'}
         </button>
       </div>
     )
@@ -128,6 +153,17 @@ export default function AppointmentsTodayTable({ appointments: initialAppointmen
 
   return (
     <>
+      {modal && (
+        <CompleteModal
+          service={modal.service}
+          basePrice={modal.basePrice}
+          services={services}
+          onClose={() => setModal(null)}
+          onConfirm={handleComplete}
+          loading={completing}
+        />
+      )}
+
       {/* Mobile — card list */}
       <div className="space-y-3 md:hidden">
         {appointments.map((appointment) => (
@@ -145,9 +181,12 @@ export default function AppointmentsTodayTable({ appointments: initialAppointmen
               <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
             </div>
             <p className="text-sm text-slate-600 mt-1">{appointment.service}</p>
+            {appointment.price !== null && appointment.price !== undefined && (
+              <p className="text-xs text-slate-400 mt-0.5">${appointment.price.toFixed(2)} CAD</p>
+            )}
             {appointment.status === 'pending' && (
               <div className="mt-3">
-                <ActionButtons id={appointment.id} full />
+                <ActionButtons appt={appointment} full />
               </div>
             )}
           </div>
@@ -162,6 +201,7 @@ export default function AppointmentsTodayTable({ appointments: initialAppointmen
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Time</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Client</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Service</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Price</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Action</th>
             </tr>
@@ -177,13 +217,18 @@ export default function AppointmentsTodayTable({ appointments: initialAppointmen
                   <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
                 </td>
                 <td className="px-6 py-4 text-slate-600">{appointment.service}</td>
+                <td className="px-6 py-4 text-slate-600 font-mono whitespace-nowrap">
+                  {appointment.price !== null && appointment.price !== undefined
+                    ? `$${appointment.price.toFixed(2)}`
+                    : <span className="text-slate-300">—</span>}
+                </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[appointment.status]}`}>
                     {statusLabel[appointment.status]}
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  {appointment.status === 'pending' && <ActionButtons id={appointment.id} />}
+                  {appointment.status === 'pending' && <ActionButtons appt={appointment} />}
                 </td>
               </tr>
             ))}

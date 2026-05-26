@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import NotificationBell from '@/components/dashboard/NotificationBell'
 
 const navItems = [
   { href: '/',            label: 'Dashboard',   icon: LayoutDashboard, exact: true },
@@ -40,13 +41,16 @@ export default function SidebarNav({ shopName }: { shopName: string }) {
           <Scissors className="w-5 h-5 text-indigo-400 shrink-0" />
           <span className="text-white font-semibold truncate">{shopName}</span>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-          className="text-slate-400 hover:text-white p-2 -mr-2"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Open menu"
+            className="text-slate-400 hover:text-white p-2 -mr-2"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
       </header>
 
       {/* Backdrop */}
@@ -72,13 +76,18 @@ export default function SidebarNav({ shopName }: { shopName: string }) {
             </div>
             <p className="text-white font-semibold text-lg leading-tight truncate">{shopName}</p>
           </div>
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close menu"
-            className="md:hidden text-slate-400 hover:text-white shrink-0 -mr-1"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="hidden md:block">
+              <NotificationBell />
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close menu"
+              className="md:hidden text-slate-400 hover:text-white -mr-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
