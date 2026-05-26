@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useId } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -30,6 +30,7 @@ function timeAgo(iso: string): string {
 
 export default function NotificationBell() {
   const router = useRouter()
+  const instanceId = useId()
   const [groups, setGroups] = useState<ClientGroup[]>([])
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -68,7 +69,7 @@ export default function NotificationBell() {
 
     const supabase = createClient()
     const channel = supabase
-      .channel('inbound-messages')
+      .channel(`inbound-messages-${instanceId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: 'direction=eq.inbound' },
@@ -82,7 +83,7 @@ export default function NotificationBell() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [fetchUnread])
+  }, [fetchUnread, instanceId])
 
   // Close dropdown when clicking outside
   useEffect(() => {
