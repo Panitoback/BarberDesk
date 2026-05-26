@@ -46,6 +46,7 @@ export default async function DashboardPage() {
   const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
 
   const todayLabel = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Toronto',
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   })
 

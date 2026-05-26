@@ -14,13 +14,15 @@ const levelStyles: Record<LoyaltyLevel, string> = {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-CA', {
+  return new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-CA', {
+    timeZone: 'America/Toronto',
     day: 'numeric', month: 'short', year: 'numeric',
   })
 }
 
 function formatDateTime(isoStr: string) {
   return new Date(isoStr).toLocaleDateString('en-CA', {
+    timeZone: 'America/Toronto',
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 }

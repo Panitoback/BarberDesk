@@ -81,6 +81,16 @@ export async function POST(request: Request) {
     .single()
 
   if (apptErr || !appt) {
+    // 23505 = unique_violation. After migration 20260526010000 the partial
+    // unique index excludes walk-ins, so this should no longer fire — but if
+    // the migration hasn't been applied yet, surface a clear message instead
+    // of a generic 500 so the owner knows to just retry.
+    if (apptErr?.code === '23505') {
+      return NextResponse.json(
+        { error: 'A walk-in was just recorded at the same time — try again.' },
+        { status: 409 }
+      )
+    }
     return NextResponse.json({ error: 'Could not create appointment' }, { status: 500 })
   }
 

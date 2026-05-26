@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useId } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell } from 'lucide-react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 type UnreadMessage = {
@@ -28,14 +29,19 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d`
 }
 
-export default function NotificationBell() {
-  const router = useRouter()
-  const instanceId = useId()
-  const [groups, setGroups] = useState<ClientGroup[]>([])
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+// Module-level singleton: NotificationBell is rendered twice (mobile header +
+// desktop sidebar) but only one of the two is visible at a time via CSS. To
+// avoid duplicate Realtime channels + duplicate fetches, all instances share a
+// single subscription refcounted by mount/unmount.
+type Subscriber = (groups: ClientGroup[]) => void
+const subscribers = new Set<Subscriber>()
+let cachedGroups: ClientGroup[] = []
+let activeChannel: RealtimeChannel | null = null
+let inflightFetch: Promise<void> | null = null
 
-  const fetchUnread = useCallback(async () => {
+async function fetchUnreadShared(): Promise<void> {
+  if (inflightFetch) return inflightFetch
+  inflightFetch = (async () => {
     const supabase = createClient()
     const { data } = await supabase
       .from('messages')
@@ -45,9 +51,8 @@ export default function NotificationBell() {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (!data) return
+    if (!data) { inflightFetch = null; return }
 
-    // Group by client, keep most recent per client
     const seen = new Set<string>()
     const grouped: ClientGroup[] = []
     for (const msg of data as UnreadMessage[]) {
@@ -60,30 +65,52 @@ export default function NotificationBell() {
         last_at:      msg.created_at,
       })
     }
-    setGroups(grouped)
-  }, [])
+    cachedGroups = grouped
+    subscribers.forEach(cb => cb(grouped))
+    inflightFetch = null
+  })()
+  return inflightFetch
+}
 
-  // Initial fetch + Realtime subscription
-  useEffect(() => {
-    fetchUnread()
+function subscribe(cb: Subscriber): () => void {
+  subscribers.add(cb)
+  cb(cachedGroups)
 
+  if (subscribers.size === 1) {
     const supabase = createClient()
-    const channel = supabase
-      .channel(`inbound-messages-${instanceId}`)
+    activeChannel = supabase
+      .channel('inbound-messages-shared')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: 'direction=eq.inbound' },
-        () => { fetchUnread() }
+        () => { fetchUnreadShared() }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'direction=eq.inbound' },
-        () => { fetchUnread() }
+        () => { fetchUnreadShared() }
       )
       .subscribe()
+    fetchUnreadShared()
+  }
 
-    return () => { supabase.removeChannel(channel) }
-  }, [fetchUnread, instanceId])
+  return () => {
+    subscribers.delete(cb)
+    if (subscribers.size === 0 && activeChannel) {
+      const supabase = createClient()
+      supabase.removeChannel(activeChannel)
+      activeChannel = null
+    }
+  }
+}
+
+export default function NotificationBell() {
+  const router = useRouter()
+  const [groups, setGroups] = useState<ClientGroup[]>(cachedGroups)
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => subscribe(setGroups), [])
 
   // Close dropdown when clicking outside
   useEffect(() => {

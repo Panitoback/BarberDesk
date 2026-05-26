@@ -23,12 +23,19 @@ export async function POST(request: Request) {
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
-  const { data: appointment } = await supabase
-    .from('appointments')
-    .select('client_id')
-    .eq('id', appointmentId)
-    .eq('tenant_id', tenant.id)
-    .single()
+  const [{ data: appointment }, { data: autoCfg }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select('client_id')
+      .eq('id', appointmentId)
+      .eq('tenant_id', tenant.id)
+      .single(),
+    supabase
+      .from('automations_config')
+      .select('review_active')
+      .eq('tenant_id', tenant.id)
+      .single(),
+  ])
 
   const { data, error } = await supabase.rpc('complete_appointment', {
     p_appointment_id: appointmentId,
@@ -46,8 +53,10 @@ export async function POST(request: Request) {
   // Trigger n8n review delay workflow — wrapped in after() so Vercel keeps
   // the runtime alive after the response is sent (bare fire-and-forget is
   // killed before the request reaches n8n on cold starts).
+  // Skip when review automation is off so we don't waste a 30-min n8n delay
+  // + HTTP round-trip just to have /api/reviews/request bail at the toggle.
   const reviewWebhookUrl = process.env.N8N_REVIEW_WEBHOOK_URL
-  if (reviewWebhookUrl && appointment?.client_id) {
+  if (reviewWebhookUrl && appointment?.client_id && autoCfg?.review_active) {
     const payload = {
       client_id:    appointment.client_id,
       subdomain,
