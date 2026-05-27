@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { NextResponse, after } from 'next/server'
+import { logError } from '@/lib/error-logger'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -47,6 +48,13 @@ export async function POST(request: Request) {
     if (error.code === 'P0001') {
       return NextResponse.json({ error: 'Appointment not found or not pending' }, { status: 409 })
     }
+    await logError({
+      route: '/api/appointments/complete', method: 'POST', status: 500,
+      tenantId: tenant.id, userId: user.id,
+      message: error.message ?? 'rpc_complete_appointment_failed',
+      errorCode: error.code ?? null,
+      metadata: { appointment_id: appointmentId, final_price: finalPrice },
+    })
     return NextResponse.json({ error: 'Failed to complete appointment' }, { status: 500 })
   }
 

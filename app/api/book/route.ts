@@ -8,6 +8,7 @@ import {
   formatDateTimeForSms,
 } from '@/lib/dates'
 import { validateTenantConfig } from '@/lib/tenant-config'
+import { logError } from '@/lib/error-logger'
 
 const NAME_MIN = 2
 const NAME_MAX = 80
@@ -181,6 +182,13 @@ export async function POST(request: Request) {
       .single()
 
     if (clientErr || !created) {
+      await logError({
+        route: '/api/book', method: 'POST', status: 500, tenantId: tenant.id,
+        message: clientErr?.message ?? 'client_insert_failed',
+        errorCode: clientErr?.code ?? null,
+        metadata: { stage: 'create_client', subdomain },
+        requestBody: { name, phone, email, service, date, time },
+      })
       return NextResponse.json({ error: 'Could not create your record. Try again.' }, { status: 500 })
     }
     clientId = created.id
@@ -208,6 +216,13 @@ export async function POST(request: Request) {
         { status: 409 }
       )
     }
+    await logError({
+      route: '/api/book', method: 'POST', status: 500, tenantId: tenant.id,
+      message: apptErr.message ?? 'appointment_insert_failed',
+      errorCode: apptErr.code ?? null,
+      metadata: { stage: 'insert_appointment', subdomain, client_id: clientId },
+      requestBody: { service, date, time, price: servicePrice },
+    })
     return NextResponse.json({ error: 'Could not save the appointment. Try again.' }, { status: 500 })
   }
 

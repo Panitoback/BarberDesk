@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
 import { todayInToronto, nowTimeInToronto } from '@/lib/dates'
+import { logError } from '@/lib/error-logger'
 
 function normalizePhone(input: string): string | null {
   const digits = (input ?? '').replace(/\D/g, '')
@@ -62,6 +63,13 @@ export async function POST(request: Request) {
     .single()
 
   if (clientErr || !client) {
+    await logError({
+      route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
+      message: clientErr?.message ?? 'client_insert_failed',
+      errorCode: clientErr?.code ?? null,
+      metadata: { stage: 'insert_client' },
+      requestBody: { service, name: clientName, phone: clientPhone },
+    })
     return NextResponse.json({ error: 'Could not create client record' }, { status: 500 })
   }
 
@@ -91,6 +99,13 @@ export async function POST(request: Request) {
         { status: 409 }
       )
     }
+    await logError({
+      route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
+      message: apptErr?.message ?? 'appointment_insert_failed',
+      errorCode: apptErr?.code ?? null,
+      metadata: { stage: 'insert_appointment', client_id: client.id },
+      requestBody: { service, walkin: true },
+    })
     return NextResponse.json({ error: 'Could not create appointment' }, { status: 500 })
   }
 
@@ -103,6 +118,12 @@ export async function POST(request: Request) {
   })
 
   if (rpcErr) {
+    await logError({
+      route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
+      message: rpcErr.message ?? 'rpc_complete_appointment_failed',
+      errorCode: rpcErr.code ?? null,
+      metadata: { stage: 'complete_appointment_rpc', appointment_id: appt.id, final_price: finalPrice },
+    })
     return NextResponse.json({ error: 'Could not complete walk-in' }, { status: 500 })
   }
 

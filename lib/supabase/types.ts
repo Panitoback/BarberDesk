@@ -211,6 +211,62 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          id: string
+          message: string
+          metadata: Json
+          method: string | null
+          request_body: Json | null
+          route: string | null
+          source: string
+          stack: string | null
+          status: number | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          message: string
+          metadata?: Json
+          method?: string | null
+          request_body?: Json | null
+          route?: string | null
+          source: string
+          stack?: string | null
+          status?: number | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          message?: string
+          metadata?: Json
+          method?: string | null
+          request_body?: Json | null
+          route?: string | null
+          source?: string
+          stack?: string | null
+          status?: number | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_points: {
         Row: {
           client_id: string
