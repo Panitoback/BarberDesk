@@ -89,6 +89,7 @@ export async function POST(request: Request) {
             subdomain:   tenant.subdomain,
             shop_name:   tenant.name,
             shop_data:   tenant.config ?? {},
+            booking_url: `${appUrl.replace('https://', `https://${tenant.subdomain}.`)}/book`,
             from_number: from,
             client_name: client?.name ?? 'there',
             message:     body,

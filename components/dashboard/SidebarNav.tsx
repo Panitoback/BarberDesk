@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 
@@ -15,9 +15,6 @@ const navItems = [
   { href: '/settings',    label: 'Settings',    icon: Settings,        exact: false },
 ]
 
-const comingSoonItems = [
-  { label: 'Messages', icon: MessageSquare },
-]
 
 export default function SidebarNav({ shopName }: { shopName: string }) {
   const pathname = usePathname()
@@ -78,7 +75,7 @@ export default function SidebarNav({ shopName }: { shopName: string }) {
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <div className="hidden md:block">
-              <NotificationBell />
+              <NotificationBell align="left" />
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -109,19 +106,6 @@ export default function SidebarNav({ shopName }: { shopName: string }) {
             )
           })}
 
-          <div className="pt-2 border-t border-slate-800 mt-2 space-y-1">
-            {comingSoonItems.map(({ label, icon: Icon }) => (
-              <div
-                key={label}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed select-none"
-                title="Coming soon"
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-                <span className="ml-auto text-[10px] text-slate-600 font-normal">Soon</span>
-              </div>
-            ))}
-          </div>
         </nav>
 
         <div className="p-4 border-t border-slate-800">
