@@ -8,6 +8,14 @@ import CompleteModal from '@/components/dashboard/CompleteModal'
 
 type AppointmentWithClient = Tables<'appointments'> & {
   clients: { name: string; phone: string | null } | null
+  visits: { price: number | null }[] | null
+}
+
+function displayPrice(a: AppointmentWithClient): number | null {
+  // Once completed, visits.price reflects extras the owner added at checkout.
+  // Pending rows fall back to the booking snapshot on appointments.price.
+  const visitPrice = a.visits?.[0]?.price
+  return visitPrice ?? a.price ?? null
 }
 
 const statusStyles: Record<string, string> = {
@@ -66,7 +74,11 @@ export default function AppointmentsTodayTable({
       const id = modal.appointmentId
       setAppointments(prev =>
         prev.map(a => a.id === id
-          ? { ...a, status: 'completed' as const, price: finalPrice ?? a.price }
+          ? {
+              ...a,
+              status: 'completed' as const,
+              visits: [{ price: finalPrice ?? a.price }],
+            }
           : a)
       )
       setModal(null)
@@ -183,9 +195,12 @@ export default function AppointmentsTodayTable({
               <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
             </div>
             <p className="text-sm text-slate-600 mt-1">{appointment.service}</p>
-            {appointment.price !== null && appointment.price !== undefined && (
-              <p className="text-xs text-slate-400 mt-0.5">${appointment.price.toFixed(2)} CAD</p>
-            )}
+            {(() => {
+              const price = displayPrice(appointment)
+              return price !== null
+                ? <p className="text-xs text-slate-400 mt-0.5">${price.toFixed(2)} CAD</p>
+                : null
+            })()}
             {appointment.status === 'pending' && (
               <div className="mt-3">
                 <ActionButtons appt={appointment} full />
@@ -220,9 +235,12 @@ export default function AppointmentsTodayTable({
                 </td>
                 <td className="px-6 py-4 text-slate-600">{appointment.service}</td>
                 <td className="px-6 py-4 text-slate-600 font-mono whitespace-nowrap">
-                  {appointment.price !== null && appointment.price !== undefined
-                    ? `$${appointment.price.toFixed(2)}`
-                    : <span className="text-slate-300">—</span>}
+                  {(() => {
+                    const price = displayPrice(appointment)
+                    return price !== null
+                      ? `$${price.toFixed(2)}`
+                      : <span className="text-slate-300">—</span>
+                  })()}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[appointment.status]}`}>
