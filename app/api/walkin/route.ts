@@ -54,30 +54,65 @@ export async function POST(request: Request) {
   const clientName  = name.length >= 2 ? name : 'Walk-in'
   const clientPhone = phone ? (normalizePhone(phone) ?? null) : null
 
-  // Create a new client record for every walk-in — anonymous walk-ins don't have
-  // a phone to match against, so deduplication isn't possible.
-  const { data: client, error: clientErr } = await supabase
-    .from('clients')
-    .insert({ tenant_id: tenant.id, name: clientName, phone: clientPhone })
-    .select('id')
-    .single()
+  // Find existing client by phone, or create a new one.
+  // Anonymous walk-ins (no phone) always create a new record.
+  let clientId: string
 
-  if (clientErr || !client) {
-    await logError({
-      route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
-      message: clientErr?.message ?? 'client_insert_failed',
-      errorCode: clientErr?.code ?? null,
-      metadata: { stage: 'insert_client' },
-      requestBody: { service, name: clientName, phone: clientPhone },
-    })
-    return NextResponse.json({ error: 'Could not create client record' }, { status: 500 })
+  if (clientPhone) {
+    const { data: existing } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('phone', clientPhone)
+      .maybeSingle()
+
+    if (existing) {
+      clientId = existing.id
+      await supabase.from('clients').update({ name: clientName }).eq('id', existing.id)
+    } else {
+      const { data: created, error: clientErr } = await supabase
+        .from('clients')
+        .insert({ tenant_id: tenant.id, name: clientName, phone: clientPhone })
+        .select('id')
+        .single()
+
+      if (clientErr || !created) {
+        await logError({
+          route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
+          message: clientErr?.message ?? 'client_insert_failed',
+          errorCode: clientErr?.code ?? null,
+          metadata: { stage: 'insert_client' },
+          requestBody: { service, name: clientName, phone: clientPhone },
+        })
+        return NextResponse.json({ error: 'Could not create client record' }, { status: 500 })
+      }
+      clientId = created.id
+    }
+  } else {
+    const { data: created, error: clientErr } = await supabase
+      .from('clients')
+      .insert({ tenant_id: tenant.id, name: clientName, phone: null })
+      .select('id')
+      .single()
+
+    if (clientErr || !created) {
+      await logError({
+        route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
+        message: clientErr?.message ?? 'client_insert_failed',
+        errorCode: clientErr?.code ?? null,
+        metadata: { stage: 'insert_client' },
+        requestBody: { service, name: clientName, phone: null },
+      })
+      return NextResponse.json({ error: 'Could not create client record' }, { status: 500 })
+    }
+    clientId = created.id
   }
 
   const { data: appt, error: apptErr } = await supabase
     .from('appointments')
     .insert({
       tenant_id: tenant.id,
-      client_id: client.id,
+      client_id: clientId,
       date:      todayInToronto(),
       time:      nowTimeInToronto(),
       service,
@@ -103,7 +138,7 @@ export async function POST(request: Request) {
       route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
       message: apptErr?.message ?? 'appointment_insert_failed',
       errorCode: apptErr?.code ?? null,
-      metadata: { stage: 'insert_appointment', client_id: client.id },
+      metadata: { stage: 'insert_appointment', client_id: clientId },
       requestBody: { service, walkin: true },
     })
     return NextResponse.json({ error: 'Could not create appointment' }, { status: 500 })

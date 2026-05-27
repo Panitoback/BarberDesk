@@ -65,7 +65,9 @@ export default function AppointmentsTodayTable({
     if (res.ok) {
       const id = modal.appointmentId
       setAppointments(prev =>
-        prev.map(a => a.id === id ? { ...a, status: 'completed' as const } : a)
+        prev.map(a => a.id === id
+          ? { ...a, status: 'completed' as const, price: finalPrice ?? a.price }
+          : a)
       )
       setModal(null)
       startTransition(() => router.refresh())
