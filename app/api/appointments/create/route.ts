@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
-import { todayInToronto, isPastInToronto } from '@/lib/dates'
+import { todayInToronto, isPastInToronto, formatDateTimeForSms } from '@/lib/dates'
+import { sendSms } from '@/lib/twilio'
 
 function normalizePhone(input: string): string | null {
   const digits = (input ?? '').replace(/\D/g, '')
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, config')
+    .select('id, name, config')
     .eq('subdomain', subdomain)
     .single()
 
@@ -78,6 +79,8 @@ export async function POST(request: Request) {
 
     if (existing) {
       clientId = existing.id
+      // Update name in case the owner is correcting a previous entry
+      await supabase.from('clients').update({ name: clientName }).eq('id', existing.id)
     } else {
       const { data: created, error } = await supabase
         .from('clients')
@@ -114,6 +117,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'That slot is already taken.' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Could not save appointment.' }, { status: 500 })
+  }
+
+  // Best-effort confirmation SMS — only when client has a phone number.
+  if (phone) {
+    const firstName = clientName.split(' ')[0]
+    const smsBody = `Hi ${firstName}, your ${service} at ${tenant!.name} is confirmed for ${formatDateTimeForSms(date, time)}.`
+    try {
+      const sid = await sendSms(phone, smsBody)
+      await supabase.from('messages').insert({
+        tenant_id:  tenant!.id,
+        client_id:  clientId,
+        direction:  'outbound',
+        body:       smsBody,
+        status:     'sent',
+        twilio_sid: sid,
+      })
+    } catch {
+      await supabase.from('messages').insert({
+        tenant_id: tenant!.id,
+        client_id: clientId,
+        direction: 'outbound',
+        body:      smsBody,
+        status:    'failed',
+      })
+    }
   }
 
   return NextResponse.json({ ok: true })
