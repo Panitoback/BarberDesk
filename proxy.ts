@@ -61,7 +61,7 @@ export async function proxy(request: NextRequest) {
       // is fail-silent and size-capped, no auth needed.
       pathname === '/api/errors'
 
-    if (!user && !isAuthPath && !isPublicPath) {
+    if (!user && !isAuthPath && !isPublicPath && !isApiPath) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
