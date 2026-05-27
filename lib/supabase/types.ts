@@ -177,6 +177,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_anonymous: boolean
           last_visit: string | null
           name: string
           no_show_count: number
@@ -187,6 +188,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_anonymous?: boolean
           last_visit?: string | null
           name: string
           no_show_count?: number
@@ -197,6 +199,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_anonymous?: boolean
           last_visit?: string | null
           name?: string
           no_show_count?: number
@@ -401,6 +404,7 @@ export type Database = {
           client_id: string
           created_at: string
           date: string
+          extras: Json
           id: string
           notes: string | null
           points_earned: number
@@ -413,6 +417,7 @@ export type Database = {
           client_id: string
           created_at?: string
           date?: string
+          extras?: Json
           id?: string
           notes?: string | null
           points_earned?: number
@@ -425,6 +430,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           date?: string
+          extras?: Json
           id?: string
           notes?: string | null
           points_earned?: number
@@ -464,6 +470,7 @@ export type Database = {
       complete_appointment: {
         Args: {
           p_appointment_id: string
+          p_extras?: Json
           p_price_override?: number
           p_tenant_id: string
         }

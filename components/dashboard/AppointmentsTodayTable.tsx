@@ -4,11 +4,14 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Tables } from '@/lib/supabase/types'
 import type { Service } from '@/lib/tenant-config'
+import type { VisitExtra } from '@/lib/extras'
+import { parseExtras } from '@/lib/extras'
 import CompleteModal from '@/components/dashboard/CompleteModal'
+import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
 
 type AppointmentWithClient = Tables<'appointments'> & {
   clients: { name: string; phone: string | null } | null
-  visits: { price: number | null }[] | null
+  visits: { price: number | null; extras: unknown }[] | null
 }
 
 function displayPrice(a: AppointmentWithClient): number | null {
@@ -16,6 +19,10 @@ function displayPrice(a: AppointmentWithClient): number | null {
   // Pending rows fall back to the booking snapshot on appointments.price.
   const visitPrice = a.visits?.[0]?.price
   return visitPrice ?? a.price ?? null
+}
+
+function visitExtras(a: AppointmentWithClient): VisitExtra[] {
+  return parseExtras(a.visits?.[0]?.extras)
 }
 
 const statusStyles: Record<string, string> = {
@@ -57,12 +64,13 @@ export default function AppointmentsTodayTable({
     })
   }
 
-  async function handleComplete(finalPrice: number | null) {
+  async function handleComplete(finalPrice: number | null, extras: VisitExtra[]) {
     if (!modal) return
     setCompleting(true)
 
     const body: Record<string, unknown> = { appointment_id: modal.appointmentId }
     if (finalPrice !== null) body.final_price = finalPrice
+    if (extras.length > 0)   body.extras      = extras
 
     const res = await fetch('/api/appointments/complete', {
       method:  'POST',
@@ -77,7 +85,7 @@ export default function AppointmentsTodayTable({
           ? {
               ...a,
               status: 'completed' as const,
-              visits: [{ price: finalPrice ?? a.price }],
+              visits: [{ price: finalPrice ?? a.price, extras }],
             }
           : a)
       )
@@ -194,7 +202,15 @@ export default function AppointmentsTodayTable({
               <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
               <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
             </div>
-            <p className="text-sm text-slate-600 mt-1">{appointment.service}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <p className="text-sm text-slate-600">{appointment.service}</p>
+              <ServiceBreakdown
+                service={appointment.service}
+                basePrice={appointment.price}
+                extras={visitExtras(appointment)}
+                total={displayPrice(appointment)}
+              />
+            </div>
             {(() => {
               const price = displayPrice(appointment)
               return price !== null
@@ -233,7 +249,17 @@ export default function AppointmentsTodayTable({
                   <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
                   <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
                 </td>
-                <td className="px-6 py-4 text-slate-600">{appointment.service}</td>
+                <td className="px-6 py-4 text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span>{appointment.service}</span>
+                    <ServiceBreakdown
+                      service={appointment.service}
+                      basePrice={appointment.price}
+                      extras={visitExtras(appointment)}
+                      total={displayPrice(appointment)}
+                    />
+                  </div>
+                </td>
                 <td className="px-6 py-4 text-slate-600 font-mono whitespace-nowrap">
                   {(() => {
                     const price = displayPrice(appointment)

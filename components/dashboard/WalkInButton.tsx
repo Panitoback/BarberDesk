@@ -63,7 +63,10 @@ export default function WalkInButton({ services }: { services: Service[] }) {
         name:    name.trim(),
         phone:   phone.trim(),
       }
-      if (extras.length > 0) body.final_price = total
+      if (extras.length > 0) {
+        body.final_price = total
+        body.extras      = extras.map(({ name, price }) => ({ name, price }))
+      }
 
       const res = await fetch('/api/walkin', {
         method:  'POST',

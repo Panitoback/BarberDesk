@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       .from('clients')
       .select('id, name, phone, email')
       .eq('tenant_id', tenant.id)
+      .eq('is_anonymous', false)
       .lt('last_visit', cutoffDate)
 
     if (!inactive?.length) continue

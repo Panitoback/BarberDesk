@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
 import type { Service } from '@/lib/tenant-config'
+import type { VisitExtra } from '@/lib/extras'
 
 type Extra = { id: number; name: string; price: number }
 
@@ -11,7 +12,7 @@ interface Props {
   basePrice: number | null
   services: Service[]
   onClose: () => void
-  onConfirm: (finalPrice: number | null) => void
+  onConfirm: (finalPrice: number | null, extras: VisitExtra[]) => void
   loading: boolean
 }
 
@@ -157,7 +158,7 @@ export default function CompleteModal({
             Cancel
           </button>
           <button
-            onClick={() => onConfirm(finalPrice)}
+            onClick={() => onConfirm(finalPrice, extras.map(({ name, price }) => ({ name, price })))}
             disabled={loading}
             className="flex-1 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

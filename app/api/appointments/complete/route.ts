@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { NextResponse, after } from 'next/server'
 import { logError } from '@/lib/error-logger'
+import { parseExtras } from '@/lib/extras'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
   const body = await request.json()
   const appointmentId: string = body.appointment_id
   const finalPrice: number | null = typeof body.final_price === 'number' ? body.final_price : null
+  const extras = parseExtras(body.extras)
   if (!appointmentId) return NextResponse.json({ error: 'appointment_id is required' }, { status: 400 })
 
   const supabase = await createClient()
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
     p_appointment_id: appointmentId,
     p_tenant_id:      tenant.id,
     ...(finalPrice !== null ? { p_price_override: finalPrice } : {}),
+    ...(extras.length > 0 ? { p_extras: extras } : {}),
   })
 
   if (error) {

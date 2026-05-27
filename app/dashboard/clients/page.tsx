@@ -13,6 +13,7 @@ export default async function ClientsPage() {
     .from('clients')
     .select('id, name, phone, email, no_show_count, last_visit, loyalty_points(points, level)')
     .eq('tenant_id', tenant.id)
+    .eq('is_anonymous', false)
     .order('name')
 
   return (

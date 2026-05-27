@@ -35,7 +35,7 @@ async function getTenants(): Promise<TenantRow[]> {
   // have 100+ tenants.
   const stats = await Promise.all(tenants.map(async (t) => {
     const [c, a, m] = await Promise.all([
-      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('tenant_id', t.id),
+      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('tenant_id', t.id).eq('is_anonymous', false),
       supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('tenant_id', t.id),
       supabase.from('messages').select('id', { count: 'exact', head: true }).eq('tenant_id', t.id).eq('direction', 'outbound'),
     ])

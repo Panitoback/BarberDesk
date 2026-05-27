@@ -4,6 +4,7 @@ import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
 import { todayInToronto, nowTimeInToronto } from '@/lib/dates'
 import { logError } from '@/lib/error-logger'
+import { parseExtras } from '@/lib/extras'
 
 function normalizePhone(input: string): string | null {
   const digits = (input ?? '').replace(/\D/g, '')
@@ -22,14 +23,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { service: rawService, name: rawName, phone: rawPhone, final_price: rawFinalPrice } = body as {
-    service?: unknown; name?: unknown; phone?: unknown; final_price?: unknown
+  const { service: rawService, name: rawName, phone: rawPhone, final_price: rawFinalPrice, extras: rawExtras } = body as {
+    service?: unknown; name?: unknown; phone?: unknown; final_price?: unknown; extras?: unknown
   }
 
   const service    = typeof rawService    === 'string' ? rawService.trim() : ''
   const name       = typeof rawName       === 'string' ? rawName.trim()    : ''
   const phone      = typeof rawPhone      === 'string' ? rawPhone.trim()   : ''
   const finalPrice = typeof rawFinalPrice === 'number' && rawFinalPrice >= 0 ? rawFinalPrice : null
+  const extras     = parseExtras(rawExtras)
 
   if (!service) return NextResponse.json({ error: 'service is required' }, { status: 400 })
 
@@ -51,11 +53,15 @@ export async function POST(request: Request) {
   const matched   = services.find(s => s.name === service)
   if (!matched) return NextResponse.json({ error: 'Service not found' }, { status: 400 })
 
-  const clientName  = name.length >= 2 ? name : 'Walk-in'
+  const hasName     = name.length >= 2
+  const clientName  = hasName ? name : 'Walk-in'
   const clientPhone = phone ? (normalizePhone(phone) ?? null) : null
 
-  // Find existing client by phone, or create a new one.
-  // Anonymous walk-ins (no phone) always create a new record.
+  // Routing:
+  // - phone provided    → find-or-create by phone (existing behaviour)
+  // - phone + name only → still creates a tracked client (caller cares about the name)
+  // - no phone, no name → channel into the per-tenant anonymous bucket
+  //   (single is_anonymous=true row) to stop polluting the clients list.
   let clientId: string
 
   if (clientPhone) {
@@ -88,7 +94,7 @@ export async function POST(request: Request) {
       }
       clientId = created.id
     }
-  } else {
+  } else if (hasName) {
     const { data: created, error: clientErr } = await supabase
       .from('clients')
       .insert({ tenant_id: tenant.id, name: clientName, phone: null })
@@ -106,6 +112,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Could not create client record' }, { status: 500 })
     }
     clientId = created.id
+  } else {
+    const { data: bucket } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('is_anonymous', true)
+      .maybeSingle()
+
+    if (bucket) {
+      clientId = bucket.id
+    } else {
+      const { data: created, error: clientErr } = await supabase
+        .from('clients')
+        .insert({ tenant_id: tenant.id, name: 'Walk-in', phone: null, is_anonymous: true })
+        .select('id')
+        .single()
+
+      if (clientErr || !created) {
+        await logError({
+          route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
+          message: clientErr?.message ?? 'anon_bucket_insert_failed',
+          errorCode: clientErr?.code ?? null,
+          metadata: { stage: 'insert_anon_bucket' },
+        })
+        return NextResponse.json({ error: 'Could not create walk-in record' }, { status: 500 })
+      }
+      clientId = created.id
+    }
   }
 
   const { data: appt, error: apptErr } = await supabase
@@ -150,6 +184,7 @@ export async function POST(request: Request) {
     p_appointment_id: appt.id,
     p_tenant_id:      tenant.id,
     ...(finalPrice !== null ? { p_price_override: finalPrice } : {}),
+    ...(extras.length > 0 ? { p_extras: extras } : {}),
   })
 
   if (rpcErr) {

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'
 import type { LoyaltyLevel } from '@/lib/loyalty'
 import MarkMessagesRead from '@/components/dashboard/MarkMessagesRead'
+import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
+import { parseExtras } from '@/lib/extras'
 
 const levelStyles: Record<LoyaltyLevel, string> = {
   bronze:   'bg-indigo-50 text-amber-700 ring-amber-200',
@@ -40,13 +42,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { data: visits },
     { data: messages },
   ] = await Promise.all([
-    supabase.from('clients').select('id, name, phone, email, no_show_count').eq('id', id).eq('tenant_id', tenant.id).single(),
+    supabase.from('clients').select('id, name, phone, email, no_show_count, is_anonymous').eq('id', id).eq('tenant_id', tenant.id).single(),
     supabase.from('loyalty_points').select('points, level').eq('client_id', id).eq('tenant_id', tenant.id).single(),
-    supabase.from('visits').select('id, date, service, price, points_earned').eq('client_id', id).eq('tenant_id', tenant.id).order('date', { ascending: false }),
+    supabase.from('visits').select('id, date, service, price, points_earned, extras').eq('client_id', id).eq('tenant_id', tenant.id).order('date', { ascending: false }),
     supabase.from('messages').select('id, direction, body, status, created_at').eq('client_id', id).eq('tenant_id', tenant.id).order('created_at', { ascending: false }).limit(20),
   ])
 
-  if (!client) notFound()
+  if (!client || client.is_anonymous) notFound()
 
   const level = (loyalty?.level ?? 'bronze') as LoyaltyLevel
   const totalRevenue = visits?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
@@ -116,22 +118,35 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <>
             {/* Mobile — card list */}
             <div className="space-y-3 md:hidden">
-              {visits.map(visit => (
-                <div key={visit.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-slate-500">{formatDate(visit.date)}</span>
-                    <span className="text-indigo-600 font-medium text-sm">+{visit.points_earned}</span>
+              {visits.map(visit => {
+                const extras    = parseExtras(visit.extras)
+                const extrasSum = extras.reduce((s, e) => s + e.price, 0)
+                const basePrice = visit.price != null ? Math.max(visit.price - extrasSum, 0) : null
+                return (
+                  <div key={visit.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-slate-500">{formatDate(visit.date)}</span>
+                      <span className="text-indigo-600 font-medium text-sm">+{visit.points_earned}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 mt-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-slate-900 truncate">{visit.service}</span>
+                        <ServiceBreakdown
+                          service={visit.service}
+                          basePrice={basePrice}
+                          extras={extras}
+                          total={visit.price}
+                        />
+                      </div>
+                      <span className="text-slate-600 text-sm">
+                        {visit.price != null
+                          ? `$${visit.price.toFixed(2)}`
+                          : <span className="text-slate-300">—</span>}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-3 mt-1">
-                    <span className="font-medium text-slate-900">{visit.service}</span>
-                    <span className="text-slate-600 text-sm">
-                      {visit.price != null
-                        ? `$${visit.price.toFixed(2)}`
-                        : <span className="text-slate-300">—</span>}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Desktop — table */}
@@ -146,20 +161,35 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {visits.map(visit => (
-                    <tr key={visit.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-slate-600 whitespace-nowrap">{formatDate(visit.date)}</td>
-                      <td className="px-6 py-4 font-medium text-slate-900">{visit.service}</td>
-                      <td className="px-6 py-4 text-slate-600">
-                        {visit.price != null
-                          ? `$${visit.price.toFixed(2)}`
-                          : <span className="text-slate-300">—</span>}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-indigo-600 font-medium">+{visit.points_earned}</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {visits.map(visit => {
+                    const extras    = parseExtras(visit.extras)
+                    const extrasSum = extras.reduce((s, e) => s + e.price, 0)
+                    const basePrice = visit.price != null ? Math.max(visit.price - extrasSum, 0) : null
+                    return (
+                      <tr key={visit.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 text-slate-600 whitespace-nowrap">{formatDate(visit.date)}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900">
+                          <div className="flex items-center gap-1.5">
+                            <span>{visit.service}</span>
+                            <ServiceBreakdown
+                              service={visit.service}
+                              basePrice={basePrice}
+                              extras={extras}
+                              total={visit.price}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">
+                          {visit.price != null
+                            ? `$${visit.price.toFixed(2)}`
+                            : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-indigo-600 font-medium">+{visit.points_earned}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
