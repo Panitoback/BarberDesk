@@ -8,6 +8,7 @@ import {
   formatDateTimeForSms,
 } from '@/lib/dates'
 import { validateTenantConfig } from '@/lib/tenant-config'
+import { getSlotsForDate } from '@/lib/slots'
 import { logError } from '@/lib/error-logger'
 
 const NAME_MIN = 2
@@ -123,6 +124,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please pick a service.' }, { status: 400 })
   }
   const servicePrice = matchedService.price_cad
+
+  // Reject times outside the shop's opening hours for that weekday.
+  const validSlots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
+  if (!validSlots.includes(time)) {
+    return NextResponse.json(
+      { error: 'The shop is closed at that time. Please pick another slot.' },
+      { status: 400 }
+    )
+  }
 
   // Tenant-wide burst guard — caps SMS spend if someone hammers the endpoint
   // with rotating phone numbers (which would slip past the per-phone limit).

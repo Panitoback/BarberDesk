@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { validateTenantConfig } from '@/lib/tenant-config'
+import { getSlotsForDate } from '@/lib/slots'
 
 export async function GET(request: Request) {
   const subdomain = await getSubdomain()
@@ -18,13 +20,16 @@ export async function GET(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id')
+    .select('id, config')
     .eq('subdomain', subdomain)
     .single()
 
   if (!tenant) {
-    return NextResponse.json({ taken: [] satisfies string[] })
+    return NextResponse.json({ taken: [] satisfies string[], slots: [] satisfies string[] })
   }
+
+  const cfgResult = validateTenantConfig(tenant.config ?? {})
+  const slots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
 
   const { data: appts } = await supabase
     .from('appointments')
@@ -35,5 +40,5 @@ export async function GET(request: Request) {
 
   const taken = (appts ?? []).map(a => a.time.slice(0, 5))
 
-  return NextResponse.json({ taken })
+  return NextResponse.json({ taken, slots })
 }

@@ -6,17 +6,6 @@ import { CalendarPlus, X } from 'lucide-react'
 
 type Service = { name: string; price_cad: number }
 
-const ALL_SLOTS = (() => {
-  const slots: string[] = []
-  for (let h = 8; h <= 20; h++) {
-    for (const m of [0, 30]) {
-      if (h === 20 && m === 30) continue
-      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-    }
-  }
-  return slots
-})()
-
 function formatTimeLabel(t: string): string {
   const [hStr, m] = t.split(':')
   const h = parseInt(hStr, 10)
@@ -36,8 +25,9 @@ export default function NewAppointmentButton({ services }: { services: Service[]
   const [clientPhone, setClientPhone] = useState('')
   const [service,    setService]    = useState(services[0]?.name ?? '')
   const [date,       setDate]       = useState(todayISO())
-  const [time,       setTime]       = useState(ALL_SLOTS[0])
+  const [time,       setTime]       = useState('')
   const [taken,      setTaken]      = useState<string[]>([])
+  const [daySlots,   setDaySlots]   = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving,     setSaving]     = useState(false)
   const [error,      setError]      = useState<string | null>(null)
@@ -48,24 +38,25 @@ export default function NewAppointmentButton({ services }: { services: Service[]
     if (!open || !date) return
     setLoadingSlots(true)
     fetch(`/api/book/slots?date=${encodeURIComponent(date)}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : { taken: [] })
-      .then((data: { taken?: string[] }) => {
+      .then(r => r.ok ? r.json() : { taken: [], slots: [] })
+      .then((data: { taken?: string[]; slots?: string[] }) => {
         const takenArr = Array.isArray(data.taken) ? data.taken : []
+        const slotsArr = Array.isArray(data.slots) ? data.slots : []
         setTaken(takenArr)
+        setDaySlots(slotsArr)
         setLoadingSlots(false)
-        // Sync time to first available slot after loading
-        const available = ALL_SLOTS.filter(s => !takenArr.includes(s))
-        if (available.length > 0) setTime(available[0])
+        const available = slotsArr.filter(s => !takenArr.includes(s))
+        setTime(available[0] ?? '')
       })
-      .catch(() => { setTaken([]); setLoadingSlots(false) })
+      .catch(() => { setTaken([]); setDaySlots([]); setLoadingSlots(false) })
   }, [open, date])
 
-  const availableSlots = ALL_SLOTS.filter(s => !taken.includes(s))
+  const availableSlots = daySlots.filter(s => !taken.includes(s))
   const noSlots = !loadingSlots && availableSlots.length === 0
 
   function openModal() {
     setClientName(''); setClientPhone(''); setService(services[0]?.name ?? '')
-    setDate(todayISO()); setTime(ALL_SLOTS[0]); setError(null)
+    setDate(todayISO()); setTime(''); setError(null)
     setOpen(true)
   }
 
@@ -163,7 +154,7 @@ export default function NewAppointmentButton({ services }: { services: Service[]
                     {loadingSlots
                       ? <option>Loading…</option>
                       : noSlots
-                        ? <option>No slots available</option>
+                        ? <option>{daySlots.length === 0 ? 'Shop closed this day' : 'No slots available'}</option>
                         : availableSlots.map(s => <option key={s} value={s}>{formatTimeLabel(s)}</option>)
                     }
                   </select>

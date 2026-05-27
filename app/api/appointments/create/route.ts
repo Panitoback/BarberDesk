@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
+import { getSlotsForDate } from '@/lib/slots'
 import { todayInToronto, isPastInToronto, formatDateTimeForSms } from '@/lib/dates'
 import { sendSms } from '@/lib/twilio'
 
@@ -63,6 +64,11 @@ export async function POST(request: Request) {
   const services  = cfgResult.ok ? (cfgResult.config.services ?? []) : []
   const matched   = services.find(s => s.name === service)
   if (!matched) return NextResponse.json({ error: 'Service not found.' }, { status: 400 })
+
+  const validSlots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
+  if (!validSlots.includes(time)) {
+    return NextResponse.json({ error: 'The shop is closed at that time.' }, { status: 400 })
+  }
 
   const phone = clientPhone ? (normalizePhone(clientPhone) ?? null) : null
 

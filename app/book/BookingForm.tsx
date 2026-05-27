@@ -14,17 +14,6 @@ function formatPrice(value: number): string {
   return Number.isInteger(value) ? `$${value}` : `$${value.toFixed(2)}`
 }
 
-const ALL_SLOTS = (() => {
-  const slots: string[] = []
-  for (let h = 8; h <= 20; h++) {
-    for (const m of [0, 30]) {
-      if (h === 20 && m === 30) continue
-      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-    }
-  }
-  return slots
-})()
-
 function todayISO(): string {
   const d = new Date()
   const y = d.getFullYear()
@@ -60,6 +49,7 @@ export default function BookingForm({ services, shopName }: Props) {
   const [date, setDate]       = useState(todayISO())
   const [time, setTime]       = useState('')
   const [taken, setTaken]     = useState<string[]>([])
+  const [daySlots, setDaySlots] = useState<string[]>([])
   const [takenForDate, setTakenForDate] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]     = useState<string | null>(null)
@@ -72,8 +62,8 @@ export default function BookingForm({ services, shopName }: Props) {
     const isToday = date === minDate
     const cutoff = isToday ? nowMinutes() : -1
     const takenSet = new Set(taken)
-    return ALL_SLOTS.filter(s => !takenSet.has(s) && slotMinutes(s) > cutoff)
-  }, [date, minDate, taken, loadingSlots])
+    return daySlots.filter(s => !takenSet.has(s) && slotMinutes(s) > cutoff)
+  }, [date, minDate, taken, daySlots, loadingSlots])
 
   // Render selected time only if it's currently available; otherwise fall
   // back to the first option without mutating `time` (avoids set-state-in-effect).
@@ -86,15 +76,17 @@ export default function BookingForm({ services, shopName }: Props) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
 
     fetch(`/api/book/slots?date=${encodeURIComponent(date)}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : { taken: [] })
-      .then((data: { taken?: string[] }) => {
+      .then(r => r.ok ? r.json() : { taken: [], slots: [] })
+      .then((data: { taken?: string[]; slots?: string[] }) => {
         if (cancelled) return
         setTaken(Array.isArray(data.taken) ? data.taken : [])
+        setDaySlots(Array.isArray(data.slots) ? data.slots : [])
         setTakenForDate(date)
       })
       .catch(() => {
         if (cancelled) return
         setTaken([])
+        setDaySlots([])
         setTakenForDate(date)
       })
 
@@ -228,7 +220,7 @@ export default function BookingForm({ services, shopName }: Props) {
         <Field
           label="Time"
           icon={Clock}
-          hint={loadingSlots ? 'Checking availability…' : noSlots ? 'No times left for this date.' : undefined}
+          hint={loadingSlots ? 'Checking availability…' : noSlots ? (daySlots.length === 0 ? 'Shop closed on this day.' : 'No times left for this date.') : undefined}
         >
           <select
             value={effectiveTime}
