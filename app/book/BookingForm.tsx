@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight } from 'lucide-react'
+import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight, StickyNote } from 'lucide-react'
 import type { Service } from '@/lib/tenant-config'
 
 type Props = {
@@ -48,6 +48,7 @@ export default function BookingForm({ services, shopName }: Props) {
   const [service, setService] = useState(services[0]?.name ?? '')
   const [date, setDate]       = useState(todayISO())
   const [time, setTime]       = useState('')
+  const [clientNote, setClientNote] = useState('')
   const [taken, setTaken]     = useState<string[]>([])
   const [daySlots, setDaySlots] = useState<string[]>([])
   const [takenForDate, setTakenForDate] = useState<string>('')
@@ -136,6 +137,7 @@ export default function BookingForm({ services, shopName }: Props) {
           service,
           date,
           time: effectiveTime,
+          client_note: clientNote.trim() || undefined,
         }),
       })
 
@@ -251,6 +253,20 @@ export default function BookingForm({ services, shopName }: Props) {
           </select>
         </Field>
       </div>
+
+      <Field
+        label="Notes for the barber"
+        icon={StickyNote}
+        hint="Optional — allergies, preferences, anything they should know."
+      >
+        <textarea
+          value={clientNote}
+          onChange={e => setClientNote(e.target.value.slice(0, 500))}
+          placeholder="optional"
+          rows={2}
+          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-y"
+        />
+      </Field>
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">

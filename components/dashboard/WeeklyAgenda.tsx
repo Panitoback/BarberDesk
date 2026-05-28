@@ -1,13 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
 
 type Appointment = {
   id: string
   time: string
   service: string
   status: string
+  client_note: string | null
   clients: { name: string } | null
 }
 
@@ -163,7 +164,15 @@ export default function WeeklyAgenda({
                     {appts.map(appt => (
                       <div key={appt.id}
                         className={`text-[11px] font-medium rounded px-1.5 py-1 border mb-0.5 leading-tight ${statusColors[appt.status] ?? statusColors.pending}`}>
-                        <div className="font-semibold truncate">{appt.clients?.name ?? 'Walk-in'}</div>
+                        <div
+                          className="flex items-center gap-1 font-semibold"
+                          title={appt.client_note ?? undefined}
+                        >
+                          <span className="truncate">{appt.clients?.name ?? 'Walk-in'}</span>
+                          {appt.client_note && (
+                            <Info className="w-3 h-3 shrink-0 text-amber-600" aria-label="Client note" />
+                          )}
+                        </div>
                         <div className="opacity-75 truncate">{appt.service}</div>
                       </div>
                     ))}

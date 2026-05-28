@@ -48,12 +48,13 @@ export async function POST(request: Request) {
   }
 
   let body: {
-    name?: string
-    phone?: string
-    email?: string
-    service?: string
-    date?: string
-    time?: string
+    name?:        string
+    phone?:       string
+    email?:       string
+    service?:     string
+    date?:        string
+    time?:        string
+    client_note?: string
   }
   try {
     body = await request.json()
@@ -67,6 +68,11 @@ export async function POST(request: Request) {
   const time    = (body.time ?? '').trim()
   const phone   = normalizePhone(body.phone ?? '')
   const email   = (body.email ?? '').trim().toLowerCase() || null
+  const clientNote = (() => {
+    const raw = (body.client_note ?? '').trim()
+    if (raw.length === 0) return null
+    return raw.slice(0, 500)
+  })()
 
   if (name.length < NAME_MIN || name.length > NAME_MAX) {
     return NextResponse.json({ error: 'Please enter your full name.' }, { status: 400 })
@@ -246,6 +252,7 @@ export async function POST(request: Request) {
       service,
       price: servicePrice,
       duration_min: serviceDuration,
+      client_note: clientNote,
       status: 'pending',
     })
 

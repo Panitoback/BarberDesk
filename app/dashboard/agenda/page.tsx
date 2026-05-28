@@ -38,7 +38,7 @@ export default async function AgendaPage({
   const [{ data: appointments }, { data: weekBlocks }, { data: upcomingBlocks }] = await Promise.all([
     supabase
       .from('appointments')
-      .select('id, date, time, service, status, clients(name)')
+      .select('id, date, time, service, status, client_note, clients(name)')
       .eq('tenant_id', tenant.id)
       .gte('date', monday)
       .lte('date', sunday)
@@ -68,11 +68,12 @@ export default async function AgendaPage({
       appointments: (appointments ?? [])
         .filter(a => a.date === dateISO)
         .map(a => ({
-          id:      a.id,
-          time:    a.time,
-          service: a.service,
-          status:  a.status,
-          clients: Array.isArray(a.clients) ? (a.clients[0] ?? null) : a.clients,
+          id:          a.id,
+          time:        a.time,
+          service:     a.service,
+          status:      a.status,
+          client_note: a.client_note,
+          clients:     Array.isArray(a.clients) ? (a.clients[0] ?? null) : a.clients,
         })),
       blocks: (weekBlocks ?? [])
         .filter(b => b.date === dateISO)

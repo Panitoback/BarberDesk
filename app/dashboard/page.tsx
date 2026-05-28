@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('is_anonymous', false),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('date', today),
-    supabase.from('appointments').select('id, time, service, price, status, clients(name, phone), visits(price, extras)').eq('tenant_id', tenant.id).eq('date', today).order('time'),
+    supabase.from('appointments').select('id, time, service, price, status, client_note, clients(name, phone), visits(price, extras)').eq('tenant_id', tenant.id).eq('date', today).order('time'),
     supabase.from('appointments').select('id, date, time, service, clients(name, phone)').eq('tenant_id', tenant.id).eq('status', 'pending').gt('date', today).lte('date', weekOutISO).order('date').order('time').limit(10),
     supabase.from('visits').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).gte('date', firstOfMonth),
     supabase.from('visits').select('price').eq('tenant_id', tenant.id).gte('date', firstOfMonth),

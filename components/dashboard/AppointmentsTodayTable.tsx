@@ -8,6 +8,16 @@ import type { VisitExtra } from '@/lib/extras'
 import { parseExtras } from '@/lib/extras'
 import CompleteModal from '@/components/dashboard/CompleteModal'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
+import { Info } from 'lucide-react'
+
+function ClientNoteIcon({ note }: { note: string | null }) {
+  if (!note) return null
+  return (
+    <span title={note} className="inline-flex items-center">
+      <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-label="Client note" />
+    </span>
+  )
+}
 
 type AppointmentWithClient = Tables<'appointments'> & {
   clients: { name: string; phone: string | null } | null
@@ -199,7 +209,10 @@ export default function AppointmentsTodayTable({
               </span>
             </div>
             <div className="mt-2">
-              <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
+              <p className="font-medium text-slate-900 flex items-center gap-1.5">
+                {appointment.clients?.name ?? '—'}
+                <ClientNoteIcon note={appointment.client_note} />
+              </p>
               <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
             </div>
             <div className="flex items-center gap-1.5 mt-1">
@@ -246,7 +259,10 @@ export default function AppointmentsTodayTable({
                   {appointment.time.slice(0, 5)}
                 </td>
                 <td className="px-6 py-4">
-                  <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
+                  <p className="font-medium text-slate-900 flex items-center gap-1.5">
+                    {appointment.clients?.name ?? '—'}
+                    <ClientNoteIcon note={appointment.client_note} />
+                  </p>
                   <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
                 </td>
                 <td className="px-6 py-4 text-slate-600">
