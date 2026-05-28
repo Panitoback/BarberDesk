@@ -19,7 +19,9 @@ export function extractSubdomainFromHost(host: string): string | null {
 
 export async function getSubdomain(): Promise<string | null> {
   const h = await headers()
-  return h.get('x-subdomain')
+  // proxy.ts sets x-subdomain; fall back to Host header for nodejs proxy runtime
+  // where NextResponse.next({ request: { headers } }) forwarding may not propagate
+  return h.get('x-subdomain') ?? extractSubdomainFromHost(h.get('host') ?? '')
 }
 
 export const COOKIE_DOMAIN =
