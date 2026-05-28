@@ -10,12 +10,13 @@ import CompleteModal from '@/components/dashboard/CompleteModal'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
 import { Info } from 'lucide-react'
 
-function ClientNoteIcon({ note }: { note: string | null }) {
+function ClientNoteRow({ note }: { note: string | null }) {
   if (!note) return null
   return (
-    <span title={note} className="inline-flex items-center">
-      <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-label="Client note" />
-    </span>
+    <div className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+      <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" aria-hidden />
+      <span className="break-words">{note}</span>
+    </div>
   )
 }
 
@@ -209,11 +210,9 @@ export default function AppointmentsTodayTable({
               </span>
             </div>
             <div className="mt-2">
-              <p className="font-medium text-slate-900 flex items-center gap-1.5">
-                {appointment.clients?.name ?? '—'}
-                <ClientNoteIcon note={appointment.client_note} />
-              </p>
+              <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
               <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
+              <ClientNoteRow note={appointment.client_note} />
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <p className="text-sm text-slate-600">{appointment.service}</p>
@@ -259,11 +258,9 @@ export default function AppointmentsTodayTable({
                   {appointment.time.slice(0, 5)}
                 </td>
                 <td className="px-6 py-4">
-                  <p className="font-medium text-slate-900 flex items-center gap-1.5">
-                    {appointment.clients?.name ?? '—'}
-                    <ClientNoteIcon note={appointment.client_note} />
-                  </p>
+                  <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
                   <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
+                  <ClientNoteRow note={appointment.client_note} />
                 </td>
                 <td className="px-6 py-4 text-slate-600">
                   <div className="flex items-center gap-1.5">

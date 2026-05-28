@@ -1,7 +1,40 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+
+function NoteButton({ note }: { note: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
+  return (
+    <span ref={ref} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        aria-label="Show client note"
+        className="inline-flex items-center"
+      >
+        <Info className="w-3 h-3 shrink-0 text-amber-600" />
+      </button>
+      {open && (
+        <span className="absolute z-20 top-full left-0 mt-1 w-48 text-[11px] font-normal text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 shadow-lg whitespace-normal break-words">
+          {note}
+        </span>
+      )}
+    </span>
+  )
+}
 
 type Appointment = {
   id: string
@@ -164,14 +197,9 @@ export default function WeeklyAgenda({
                     {appts.map(appt => (
                       <div key={appt.id}
                         className={`text-[11px] font-medium rounded px-1.5 py-1 border mb-0.5 leading-tight ${statusColors[appt.status] ?? statusColors.pending}`}>
-                        <div
-                          className="flex items-center gap-1 font-semibold"
-                          title={appt.client_note ?? undefined}
-                        >
+                        <div className="flex items-center gap-1 font-semibold">
                           <span className="truncate">{appt.clients?.name ?? 'Walk-in'}</span>
-                          {appt.client_note && (
-                            <Info className="w-3 h-3 shrink-0 text-amber-600" aria-label="Client note" />
-                          )}
+                          {appt.client_note && <NoteButton note={appt.client_note} />}
                         </div>
                         <div className="opacity-75 truncate">{appt.service}</div>
                       </div>
