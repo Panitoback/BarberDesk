@@ -11,11 +11,35 @@ type Appointment = {
   clients: { name: string } | null
 }
 
+type Block = {
+  start_time: string
+  end_time:   string
+  all_day:    boolean
+  reason:     string | null
+}
+
 type DayData = {
   dateISO: string
   label: string
   isToday: boolean
   appointments: Appointment[]
+  blocks: Block[]
+}
+
+function timeToMin(t: string): number {
+  const [h, m] = t.slice(0, 5).split(':').map(Number)
+  return h * 60 + m
+}
+
+function isSlotBlocked(slot: string, blocks: Block[]): Block | null {
+  const slotMin = timeToMin(slot)
+  for (const b of blocks) {
+    if (b.all_day) return b
+    const start = timeToMin(b.start_time)
+    const end   = timeToMin(b.end_time)
+    if (slotMin + 30 > start && slotMin < end) return b
+  }
+  return null
 }
 
 const SLOTS = (() => {
@@ -127,9 +151,15 @@ export default function WeeklyAgenda({
               </div>
               {days.map(day => {
                 const appts = day.appointments.filter(a => appointmentSlot(a.time) === slot)
+                const block = isSlotBlocked(slot, day.blocks)
                 return (
                   <div key={day.dateISO}
-                    className={`border-l border-slate-100 min-h-[36px] p-0.5 ${day.isToday ? 'bg-indigo-50/30' : ''}`}>
+                    title={block?.reason ?? (block ? 'Blocked' : undefined)}
+                    className={`border-l border-slate-100 min-h-[36px] p-0.5 relative ${
+                      block
+                        ? 'bg-[repeating-linear-gradient(45deg,#f1f5f9_0_6px,#e2e8f0_6px_12px)]'
+                        : day.isToday ? 'bg-indigo-50/30' : ''
+                    }`}>
                     {appts.map(appt => (
                       <div key={appt.id}
                         className={`text-[11px] font-medium rounded px-1.5 py-1 border mb-0.5 leading-tight ${statusColors[appt.status] ?? statusColors.pending}`}>

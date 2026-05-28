@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { validateTenantConfig } from '@/lib/tenant-config'
-import { getSlotsForDate } from '@/lib/slots'
+import { validateTenantConfig, SERVICE_DURATIONS } from '@/lib/tenant-config'
+import {
+  getSlotsForDate,
+  getStartableSlots,
+  expandTakenSlots,
+  expandBlockedSlots,
+} from '@/lib/slots'
 
 export async function GET(request: Request) {
   const subdomain = await getSubdomain()
@@ -15,6 +20,11 @@ export async function GET(request: Request) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
   }
+
+  const durationRaw = Number(url.searchParams.get('duration') ?? '30')
+  const duration = (SERVICE_DURATIONS as readonly number[]).includes(durationRaw)
+    ? durationRaw
+    : 30
 
   const supabase = createAdminClient()
 
@@ -29,16 +39,45 @@ export async function GET(request: Request) {
   }
 
   const cfgResult = validateTenantConfig(tenant.config ?? {})
-  const slots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
+  const config = cfgResult.ok ? cfgResult.config : null
 
-  const { data: appts } = await supabase
-    .from('appointments')
-    .select('time')
-    .eq('tenant_id', tenant.id)
-    .eq('date', date)
-    .in('status', ['pending', 'completed'])
+  const [{ data: appts }, { data: blocks }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select('time, duration_min')
+      .eq('tenant_id', tenant.id)
+      .eq('date', date)
+      .in('status', ['pending', 'completed']),
+    supabase
+      .from('time_blocks')
+      .select('start_time, end_time, all_day')
+      .eq('tenant_id', tenant.id)
+      .eq('date', date),
+  ])
 
-  const taken = (appts ?? []).map(a => a.time.slice(0, 5))
+  const daySlots = getSlotsForDate(config, date)
 
-  return NextResponse.json({ taken, slots })
+  // Expand each booking to ALL the 30-min slots it occupies, so a 60-min
+  // booking at 10:00 prevents another booking from starting at 10:30.
+  const takenFromAppts = expandTakenSlots(
+    (appts ?? []).map(a => ({
+      time: a.time.slice(0, 5),
+      duration_min: a.duration_min ?? 30,
+    })),
+  )
+  const takenFromBlocks = expandBlockedSlots(blocks ?? [], daySlots)
+  const taken = Array.from(new Set([...takenFromAppts, ...takenFromBlocks]))
+
+  // Slots where a new booking of `duration` minutes can START. A slot is
+  // returned only if it AND the following slots needed for the duration are
+  // all free and inside opening hours.
+  const slots = getStartableSlots(config, date, taken, duration)
+
+  // Backward compatibility: legacy callers that don't pass `duration` get the
+  // pre-feature behaviour — slots = all opening-hour slots, regardless of fit.
+  const responseSlots = url.searchParams.get('duration') === null
+    ? daySlots
+    : slots
+
+  return NextResponse.json({ taken, slots: responseSlots })
 }

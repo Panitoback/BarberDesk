@@ -6,6 +6,7 @@ import { ArrowLeft, Phone, Mail } from 'lucide-react'
 import type { LoyaltyLevel } from '@/lib/loyalty'
 import MarkMessagesRead from '@/components/dashboard/MarkMessagesRead'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
+import ClientNotes from '@/components/dashboard/ClientNotes'
 import { parseExtras } from '@/lib/extras'
 
 const levelStyles: Record<LoyaltyLevel, string> = {
@@ -42,7 +43,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { data: visits },
     { data: messages },
   ] = await Promise.all([
-    supabase.from('clients').select('id, name, phone, email, no_show_count, is_anonymous').eq('id', id).eq('tenant_id', tenant.id).single(),
+    supabase.from('clients').select('id, name, phone, email, no_show_count, is_anonymous, notes').eq('id', id).eq('tenant_id', tenant.id).single(),
     supabase.from('loyalty_points').select('points, level').eq('client_id', id).eq('tenant_id', tenant.id).single(),
     supabase.from('visits').select('id, date, service, price, points_earned, extras').eq('client_id', id).eq('tenant_id', tenant.id).order('date', { ascending: false }),
     supabase.from('messages').select('id, direction, body, status, created_at').eq('client_id', id).eq('tenant_id', tenant.id).order('created_at', { ascending: false }).limit(20),
@@ -106,6 +107,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
         ))}
       </div>
+
+      {/* Private notes */}
+      <ClientNotes clientId={client.id} initialNotes={client.notes ?? null} />
 
       {/* Visit history */}
       <div>

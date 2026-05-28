@@ -55,15 +55,22 @@ export default function BookingForm({ services, shopName }: Props) {
   const [error, setError]     = useState<string | null>(null)
 
   const minDate = useMemo(() => todayISO(), [])
-  const loadingSlots = takenForDate !== date
+  const selectedDuration = useMemo(
+    () => services.find(s => s.name === service)?.duration_min ?? 30,
+    [services, service],
+  )
+  const fetchKey = `${date}|${selectedDuration}`
+  const loadingSlots = takenForDate !== fetchKey
 
+  // `slots` from the API already excludes occupied slots and slots without
+  // enough consecutive room for the chosen service duration. We only need to
+  // additionally filter out times in the past on the current day.
   const availableSlots = useMemo(() => {
     if (loadingSlots) return [] satisfies string[]
     const isToday = date === minDate
     const cutoff = isToday ? nowMinutes() : -1
-    const takenSet = new Set(taken)
-    return daySlots.filter(s => !takenSet.has(s) && slotMinutes(s) > cutoff)
-  }, [date, minDate, taken, daySlots, loadingSlots])
+    return daySlots.filter(s => slotMinutes(s) > cutoff)
+  }, [date, minDate, daySlots, loadingSlots])
 
   // Render selected time only if it's currently available; otherwise fall
   // back to the first option without mutating `time` (avoids set-state-in-effect).
@@ -75,23 +82,26 @@ export default function BookingForm({ services, shopName }: Props) {
     let cancelled = false
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
 
-    fetch(`/api/book/slots?date=${encodeURIComponent(date)}`, { cache: 'no-store' })
+    fetch(
+      `/api/book/slots?date=${encodeURIComponent(date)}&duration=${selectedDuration}`,
+      { cache: 'no-store' },
+    )
       .then(r => r.ok ? r.json() : { taken: [], slots: [] })
       .then((data: { taken?: string[]; slots?: string[] }) => {
         if (cancelled) return
         setTaken(Array.isArray(data.taken) ? data.taken : [])
         setDaySlots(Array.isArray(data.slots) ? data.slots : [])
-        setTakenForDate(date)
+        setTakenForDate(fetchKey)
       })
       .catch(() => {
         if (cancelled) return
         setTaken([])
         setDaySlots([])
-        setTakenForDate(date)
+        setTakenForDate(fetchKey)
       })
 
     return () => { cancelled = true }
-  }, [date])
+  }, [date, selectedDuration, fetchKey])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()

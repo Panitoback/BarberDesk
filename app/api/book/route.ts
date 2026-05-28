@@ -8,7 +8,7 @@ import {
   formatDateTimeForSms,
 } from '@/lib/dates'
 import { validateTenantConfig } from '@/lib/tenant-config'
-import { getSlotsForDate } from '@/lib/slots'
+import { getStartableSlots, getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
 import { logError } from '@/lib/error-logger'
 
 const NAME_MIN = 2
@@ -123,14 +123,46 @@ export async function POST(request: Request) {
   if (!matchedService) {
     return NextResponse.json({ error: 'Please pick a service.' }, { status: 400 })
   }
-  const servicePrice = matchedService.price_cad
+  const servicePrice    = matchedService.price_cad
+  const serviceDuration = matchedService.duration_min
 
-  // Reject times outside the shop's opening hours for that weekday.
-  const validSlots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
-  if (!validSlots.includes(time)) {
+  // Defence-in-depth against races: re-query active appointments for the day,
+  // expand each to the slots it occupies, and ensure the chosen start has
+  // enough consecutive free slots to fit the requested duration.
+  const [{ data: dayAppts }, { data: dayBlocks }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select('time, duration_min')
+      .eq('tenant_id', tenant.id)
+      .eq('date', date)
+      .in('status', ['pending', 'completed']),
+    supabase
+      .from('time_blocks')
+      .select('start_time, end_time, all_day')
+      .eq('tenant_id', tenant.id)
+      .eq('date', date),
+  ])
+
+  const daySlots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
+  const takenSlots = Array.from(new Set([
+    ...expandTakenSlots(
+      (dayAppts ?? []).map(a => ({
+        time: a.time.slice(0, 5),
+        duration_min: a.duration_min ?? 30,
+      })),
+    ),
+    ...expandBlockedSlots(dayBlocks ?? [], daySlots),
+  ]))
+  const startableSlots = getStartableSlots(
+    cfgResult.ok ? cfgResult.config : null,
+    date,
+    takenSlots,
+    serviceDuration,
+  )
+  if (!startableSlots.includes(time)) {
     return NextResponse.json(
-      { error: 'The shop is closed at that time. Please pick another slot.' },
-      { status: 400 }
+      { error: 'That time is not available for the chosen service.' },
+      { status: 409 }
     )
   }
 
@@ -213,6 +245,7 @@ export async function POST(request: Request) {
       time,
       service,
       price: servicePrice,
+      duration_min: serviceDuration,
       status: 'pending',
     })
 

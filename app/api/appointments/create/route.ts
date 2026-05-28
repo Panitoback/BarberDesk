@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { validateTenantConfig } from '@/lib/tenant-config'
-import { getSlotsForDate } from '@/lib/slots'
+import { getStartableSlots, getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
 import { todayInToronto, isPastInToronto, formatDateTimeForSms } from '@/lib/dates'
 import { sendSms } from '@/lib/twilio'
 
@@ -65,9 +65,38 @@ export async function POST(request: Request) {
   const matched   = services.find(s => s.name === service)
   if (!matched) return NextResponse.json({ error: 'Service not found.' }, { status: 400 })
 
-  const validSlots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
-  if (!validSlots.includes(time)) {
-    return NextResponse.json({ error: 'The shop is closed at that time.' }, { status: 400 })
+  const [{ data: dayAppts }, { data: dayBlocks }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select('time, duration_min')
+      .eq('tenant_id', tenant.id)
+      .eq('date', date)
+      .in('status', ['pending', 'completed']),
+    supabase
+      .from('time_blocks')
+      .select('start_time, end_time, all_day')
+      .eq('tenant_id', tenant.id)
+      .eq('date', date),
+  ])
+
+  const daySlots = getSlotsForDate(cfgResult.ok ? cfgResult.config : null, date)
+  const takenSlots = Array.from(new Set([
+    ...expandTakenSlots(
+      (dayAppts ?? []).map(a => ({
+        time: a.time.slice(0, 5),
+        duration_min: a.duration_min ?? 30,
+      })),
+    ),
+    ...expandBlockedSlots(dayBlocks ?? [], daySlots),
+  ]))
+  const startableSlots = getStartableSlots(
+    cfgResult.ok ? cfgResult.config : null,
+    date,
+    takenSlots,
+    matched.duration_min,
+  )
+  if (!startableSlots.includes(time)) {
+    return NextResponse.json({ error: 'That time is not available for the chosen service.' }, { status: 409 })
   }
 
   const phone = clientPhone ? (normalizePhone(clientPhone) ?? null) : null
@@ -115,6 +144,7 @@ export async function POST(request: Request) {
       time,
       service,
       price:  matched.price_cad,
+      duration_min: matched.duration_min,
       status: 'pending',
     })
 

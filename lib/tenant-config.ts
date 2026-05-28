@@ -15,7 +15,9 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
 }
 
 export type DayHours = { open: string; close: string } | null
-export type Service  = { name: string; price_cad: number }
+export const SERVICE_DURATIONS = [30, 45, 60, 90] as const
+export type ServiceDuration = typeof SERVICE_DURATIONS[number]
+export type Service  = { name: string; price_cad: number; duration_min: ServiceDuration }
 
 export type TenantConfig = {
   hours?:              Partial<Record<Weekday, DayHours>>
@@ -69,7 +71,15 @@ export function validateTenantConfig(input: unknown): ValidationResult {
       if (typeof sv.price_cad !== 'number' || !isFinite(sv.price_cad) || sv.price_cad < 0 || sv.price_cad > 10000) {
         return { ok: false, error: `services[${i}].price_cad must be 0-10000` }
       }
-      services.push({ name, price_cad: Math.round(sv.price_cad * 100) / 100 })
+      // Backward compatible: legacy services without duration default to 30 min.
+      let duration: ServiceDuration = 30
+      if (sv.duration_min !== undefined) {
+        if (typeof sv.duration_min !== 'number' || !SERVICE_DURATIONS.includes(sv.duration_min as ServiceDuration)) {
+          return { ok: false, error: `services[${i}].duration_min must be one of ${SERVICE_DURATIONS.join(', ')}` }
+        }
+        duration = sv.duration_min as ServiceDuration
+      }
+      services.push({ name, price_cad: Math.round(sv.price_cad * 100) / 100, duration_min: duration })
     }
     config.services = services
   }

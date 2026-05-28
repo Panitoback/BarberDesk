@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarPlus, X } from 'lucide-react'
 
-type Service = { name: string; price_cad: number }
+type Service = { name: string; price_cad: number; duration_min: number }
 
 function formatTimeLabel(t: string): string {
   const [hStr, m] = t.split(':')
@@ -26,7 +26,6 @@ export default function NewAppointmentButton({ services }: { services: Service[]
   const [service,    setService]    = useState(services[0]?.name ?? '')
   const [date,       setDate]       = useState(todayISO())
   const [time,       setTime]       = useState('')
-  const [taken,      setTaken]      = useState<string[]>([])
   const [daySlots,   setDaySlots]   = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving,     setSaving]     = useState(false)
@@ -34,24 +33,28 @@ export default function NewAppointmentButton({ services }: { services: Service[]
   const [, startTransition] = useTransition()
   const router = useRouter()
 
+  const selectedDuration = services.find(s => s.name === service)?.duration_min ?? 30
+
   useEffect(() => {
     if (!open || !date) return
     setLoadingSlots(true)
-    fetch(`/api/book/slots?date=${encodeURIComponent(date)}`, { cache: 'no-store' })
+    fetch(
+      `/api/book/slots?date=${encodeURIComponent(date)}&duration=${selectedDuration}`,
+      { cache: 'no-store' },
+    )
       .then(r => r.ok ? r.json() : { taken: [], slots: [] })
       .then((data: { taken?: string[]; slots?: string[] }) => {
-        const takenArr = Array.isArray(data.taken) ? data.taken : []
         const slotsArr = Array.isArray(data.slots) ? data.slots : []
-        setTaken(takenArr)
         setDaySlots(slotsArr)
         setLoadingSlots(false)
-        const available = slotsArr.filter(s => !takenArr.includes(s))
-        setTime(available[0] ?? '')
+        // `slotsArr` from the API already filters out occupied and ineligible
+        // starts for the chosen duration, so first item is the first bookable.
+        setTime(slotsArr[0] ?? '')
       })
-      .catch(() => { setTaken([]); setDaySlots([]); setLoadingSlots(false) })
-  }, [open, date])
+      .catch(() => { setDaySlots([]); setLoadingSlots(false) })
+  }, [open, date, selectedDuration])
 
-  const availableSlots = daySlots.filter(s => !taken.includes(s))
+  const availableSlots = daySlots
   const noSlots = !loadingSlots && availableSlots.length === 0
 
   function openModal() {

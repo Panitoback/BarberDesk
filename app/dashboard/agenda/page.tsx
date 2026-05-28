@@ -3,6 +3,7 @@ import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import { todayInToronto } from '@/lib/dates'
 import WeeklyAgenda from '@/components/dashboard/WeeklyAgenda'
+import BlockTimeButton from '@/components/dashboard/BlockTimeButton'
 
 function getMondayOfWeek(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
@@ -31,24 +32,39 @@ export default async function AgendaPage({
   const anchor = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : todayInToronto()
   const monday = getMondayOfWeek(anchor)
   const sunday = addDays(monday, 6)
+  const today  = todayInToronto()
 
   const supabase = await createClient()
-  const { data: appointments } = await supabase
-    .from('appointments')
-    .select('id, date, time, service, status, clients(name)')
-    .eq('tenant_id', tenant.id)
-    .gte('date', monday)
-    .lte('date', sunday)
-    .order('time')
-
-  const today = todayInToronto()
+  const [{ data: appointments }, { data: weekBlocks }, { data: upcomingBlocks }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select('id, date, time, service, status, clients(name)')
+      .eq('tenant_id', tenant.id)
+      .gte('date', monday)
+      .lte('date', sunday)
+      .order('time'),
+    supabase
+      .from('time_blocks')
+      .select('date, start_time, end_time, all_day, reason')
+      .eq('tenant_id', tenant.id)
+      .gte('date', monday)
+      .lte('date', sunday),
+    supabase
+      .from('time_blocks')
+      .select('id, date, start_time, end_time, all_day, reason')
+      .eq('tenant_id', tenant.id)
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true })
+      .limit(10),
+  ])
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const dateISO = addDays(monday, i)
     return {
       dateISO,
-      label:    dateISO,
-      isToday:  dateISO === today,
+      label:   dateISO,
+      isToday: dateISO === today,
       appointments: (appointments ?? [])
         .filter(a => a.date === dateISO)
         .map(a => ({
@@ -58,11 +74,22 @@ export default async function AgendaPage({
           status:  a.status,
           clients: Array.isArray(a.clients) ? (a.clients[0] ?? null) : a.clients,
         })),
+      blocks: (weekBlocks ?? [])
+        .filter(b => b.date === dateISO)
+        .map(b => ({
+          start_time: b.start_time,
+          end_time:   b.end_time,
+          all_day:    b.all_day,
+          reason:     b.reason,
+        })),
     }
   })
 
   return (
     <div className="max-w-6xl mx-auto">
+      <div className="flex justify-end mb-3">
+        <BlockTimeButton upcomingBlocks={upcomingBlocks ?? []} />
+      </div>
       <WeeklyAgenda days={days} monday={monday} />
     </div>
   )

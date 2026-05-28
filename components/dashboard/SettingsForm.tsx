@@ -6,10 +6,12 @@ import { Plus, Trash2 } from 'lucide-react'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
+  SERVICE_DURATIONS,
   type TenantConfig,
   type Weekday,
   type DayHours,
   type Service,
+  type ServiceDuration,
 } from '@/lib/tenant-config'
 
 type HoursMap = Partial<Record<Weekday, DayHours>>
@@ -58,13 +60,14 @@ export default function SettingsForm({
   }
 
   function addService() {
-    setServices(s => [...s, { name: '', price_cad: 0 }])
+    setServices(s => [...s, { name: '', price_cad: 0, duration_min: 30 }])
   }
 
-  function updateService(i: number, field: 'name' | 'price_cad', value: string) {
+  function updateService(i: number, field: 'name' | 'price_cad' | 'duration_min', value: string) {
     setServices(s => s.map((svc, idx) => {
       if (idx !== i) return svc
-      if (field === 'price_cad') return { ...svc, price_cad: Number(value) || 0 }
+      if (field === 'price_cad')    return { ...svc, price_cad: Number(value) || 0 }
+      if (field === 'duration_min') return { ...svc, duration_min: (Number(value) || 30) as ServiceDuration }
       return { ...svc, name: value }
     }))
   }
@@ -81,7 +84,7 @@ export default function SettingsForm({
       if (Object.keys(hours).length > 0) config.hours = hours
 
       const cleanServices = services
-        .map(s => ({ name: s.name.trim(), price_cad: s.price_cad }))
+        .map(s => ({ name: s.name.trim(), price_cad: s.price_cad, duration_min: s.duration_min }))
         .filter(s => s.name.length > 0)
       if (cleanServices.length > 0) config.services = cleanServices
 
@@ -209,7 +212,7 @@ export default function SettingsForm({
                   aria-label={`Service ${i + 1} name`}
                   className="flex-1 min-w-0 text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center gap-1 flex-1 sm:flex-none">
                     <span className="text-slate-500 text-sm">$</span>
                     <input
@@ -225,6 +228,16 @@ export default function SettingsForm({
                     />
                     <span className="text-slate-500 text-sm">CAD</span>
                   </div>
+                  <select
+                    value={svc.duration_min}
+                    onChange={(e) => updateService(i, 'duration_min', e.target.value)}
+                    aria-label={`Service ${i + 1} duration`}
+                    className="text-sm border border-slate-300 rounded-lg px-2 py-2 bg-white min-h-[40px]"
+                  >
+                    {SERVICE_DURATIONS.map(d => (
+                      <option key={d} value={d}>{d} min</option>
+                    ))}
+                  </select>
                   <button
                     onClick={() => removeService(i)}
                     type="button"

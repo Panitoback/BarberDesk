@@ -61,6 +61,7 @@ export type Database = {
           client_id: string
           created_at: string
           date: string
+          duration_min: number
           id: string
           price: number | null
           reminder_sent_at: string | null
@@ -74,6 +75,7 @@ export type Database = {
           client_id: string
           created_at?: string
           date: string
+          duration_min?: number
           id?: string
           price?: number | null
           reminder_sent_at?: string | null
@@ -87,6 +89,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           date?: string
+          duration_min?: number
           id?: string
           price?: number | null
           reminder_sent_at?: string | null
@@ -181,6 +184,7 @@ export type Database = {
           last_visit: string | null
           name: string
           no_show_count: number
+          notes: string | null
           phone: string | null
           tenant_id: string
         }
@@ -192,6 +196,7 @@ export type Database = {
           last_visit?: string | null
           name: string
           no_show_count?: number
+          notes?: string | null
           phone?: string | null
           tenant_id: string
         }
@@ -203,6 +208,7 @@ export type Database = {
           last_visit?: string | null
           name?: string
           no_show_count?: number
+          notes?: string | null
           phone?: string | null
           tenant_id?: string
         }
@@ -358,6 +364,47 @@ export type Database = {
           },
           {
             foreignKeyName: "messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_blocks: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          date: string
+          end_time: string
+          id: string
+          reason: string | null
+          start_time: string
+          tenant_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          date: string
+          end_time: string
+          id?: string
+          reason?: string | null
+          start_time: string
+          tenant_id: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          date?: string
+          end_time?: string
+          id?: string
+          reason?: string | null
+          start_time?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_blocks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

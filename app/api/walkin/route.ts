@@ -150,9 +150,10 @@ export async function POST(request: Request) {
       date:      todayInToronto(),
       time:      nowTimeInToronto(),
       service,
-      price:     matched.price_cad,
-      walkin:    true,
-      status:    'pending',
+      price:        matched.price_cad,
+      duration_min: matched.duration_min,
+      walkin:       true,
+      status:       'pending',
     })
     .select('id')
     .single()
