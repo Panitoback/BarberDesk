@@ -23,14 +23,21 @@ export function barberPhotoUrl(photoPath: string | null): string | null {
   return `${SUPABASE_URL}/storage/v1/object/public/barber-photos/${photoPath}`
 }
 
+/**
+ * Returns the barber's custom hours if set, otherwise the shop's hours.
+ * Returns undefined when neither is configured — callers must use the
+ * original TenantConfig directly so getSlotsForDate can apply its own
+ * 09:00-20:00 fallback (passing an empty {} object breaks that fallback
+ * because !{} === false in JS).
+ */
 export function effectiveHoursForBarber(
   barber: Pick<Barber, 'hours'>,
   shopConfig: TenantConfig,
-): BarberHours {
+): BarberHours | undefined {
   if (barber.hours && Object.keys(barber.hours).length > 0) {
     return barber.hours
   }
-  return (shopConfig.hours as BarberHours | undefined) ?? {}
+  return shopConfig.hours as BarberHours | undefined
 }
 
 export function applyPriceModifier(basePrice: number, modifier: number): number {

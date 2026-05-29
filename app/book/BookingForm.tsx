@@ -95,6 +95,15 @@ export default function BookingForm({ services, shopName }: Props) {
     ? time
     : (availableSlots[0] ?? '')
 
+  // Price info for selected barber + service
+  const selectedBarber    = barbers.find(b => b.id === barberId)
+  const selectedService   = services.find(s => s.name === service)
+  const activeModifier    = selectedBarber?.price_modifier ?? 1
+  const basePrice         = selectedService?.price_cad ?? 0
+  const finalPrice        = activeModifier !== 1
+    ? Math.round(basePrice * activeModifier * 100) / 100
+    : null // null = no adjustment, don't show
+
   // Load barbers on mount
   useEffect(() => {
     fetch('/api/book/barbers', { cache: 'no-store' })
@@ -297,10 +306,17 @@ export default function BookingForm({ services, shopName }: Props) {
         >
           {services.map(s => (
             <option key={s.name} value={s.name}>
-              {s.name} · {formatPrice(s.price_cad)}
+              {s.name} · {formatPrice(s.price_cad)} + Tax
             </option>
           ))}
         </select>
+        {finalPrice !== null && selectedBarber && (
+          <p className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+            Price with <strong>{selectedBarber.name}</strong>:{' '}
+            <strong>{formatPrice(finalPrice)} + Tax</strong>{' '}
+            <span className="text-amber-500">(base {formatPrice(basePrice)}, {formatPriceModifier(activeModifier)})</span>
+          </p>
+        )}
       </Field>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -425,7 +441,7 @@ function BarberCard({
           <span className={`inline-block mt-1 text-xs font-medium px-1.5 py-0.5 rounded-full ${
             priceHint.startsWith('+') ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
           }`}>
-            {priceHint}
+            Prices {priceHint}
           </span>
         )}
       </div>

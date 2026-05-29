@@ -117,7 +117,7 @@ export async function POST(request: Request) {
 
       for (const b of sorted) {
         const barberHours = effectiveHoursForBarber({ hours: b.hours as BarberHours | null }, config ?? {})
-        const fakeConfig = { ...config, hours: barberHours }
+        const fakeConfig = barberHours ? { ...config, hours: barberHours } : config
         const { data: bAppts } = await supabase
           .from('appointments')
           .select('time, duration_min')

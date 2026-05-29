@@ -100,7 +100,7 @@ export async function GET(request: Request) {
 
     for (const b of activeBarbers) {
       const barberHours = effectiveHoursForBarber({ hours: b.hours as BarberHours | null }, config ?? {})
-      const fakeConfig = { ...config, hours: barberHours }
+      const effectiveConfig = barberHours ? { ...config, hours: barberHours } : config
 
       const barberAppts = (appts ?? []).filter(
         a => a.barber_id === b.id || a.barber_id === null,
@@ -110,13 +110,13 @@ export async function GET(request: Request) {
         ...(blocks ?? []).filter(bl => bl.barber_id === b.id),
       ]
 
-      const daySlots = getSlotsForDate(fakeConfig, date)
+      const daySlots = getSlotsForDate(effectiveConfig, date)
       const taken = Array.from(new Set([
         ...expandTakenSlots(barberAppts.map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 }))),
         ...expandBlockedSlots(barberBlocks, daySlots),
       ]))
 
-      const startable = getStartableSlots(fakeConfig, date, taken, duration)
+      const startable = getStartableSlots(effectiveConfig, date, taken, duration)
       for (const s of startable) availableSlots.add(s)
       for (const s of taken) takenByAny.add(s)
     }
@@ -155,16 +155,16 @@ export async function GET(request: Request) {
   }
 
   const barberHours = effectiveHoursForBarber({ hours: barber.hours as BarberHours | null }, config ?? {})
-  const fakeConfig = { ...config, hours: barberHours }
+  const effectiveConfig = barberHours ? { ...config, hours: barberHours } : config
 
-  const daySlots = getSlotsForDate(fakeConfig, date)
+  const daySlots = getSlotsForDate(effectiveConfig, date)
   const taken = Array.from(new Set([
     ...expandTakenSlots(
       (appts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 })),
     ),
     ...expandBlockedSlots(blocks ?? [], daySlots),
   ]))
-  const slots = getStartableSlots(fakeConfig, date, taken, duration)
+  const slots = getStartableSlots(effectiveConfig, date, taken, duration)
 
   return NextResponse.json({ taken, slots })
 }

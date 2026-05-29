@@ -90,7 +90,7 @@ async function autoAssignBarber(
       { hours: barber.hours as BarberHours | null },
       config,
     )
-    const fakeConfig = { ...config, hours: barberHours }
+    const fakeConfig = barberHours ? { ...config, hours: barberHours } : config
 
     const { data: barberAppts } = await supabase
       .from('appointments')
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
       { hours: specificBarber.hours as BarberHours | null },
       config,
     )
-    const fakeConfig = { ...config, hours: barberHours }
+    const fakeConfig = barberHours ? { ...config, hours: barberHours } : config
     const daySlots = getSlotsForDate(fakeConfig, date)
     const taken = Array.from(new Set([
       ...expandTakenSlots(
