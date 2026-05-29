@@ -8,6 +8,7 @@ import {
   expandTakenSlots,
   expandBlockedSlots,
 } from '@/lib/slots'
+import { effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
 
 export async function GET(request: Request) {
   const subdomain = await getSubdomain()
@@ -26,6 +27,8 @@ export async function GET(request: Request) {
     ? durationRaw
     : 30
 
+  const barberIdParam = url.searchParams.get('barber_id') // 'any' | uuid | null
+
   const supabase = createAdminClient()
 
   const { data: tenant } = await supabase
@@ -41,43 +44,127 @@ export async function GET(request: Request) {
   const cfgResult = validateTenantConfig(tenant.config ?? {})
   const config = cfgResult.ok ? cfgResult.config : null
 
-  const [{ data: appts }, { data: blocks }] = await Promise.all([
+  // No barber_id param → legacy single-barber mode (shop-wide query)
+  if (!barberIdParam || barberIdParam === 'any') {
+    const [{ data: appts }, { data: blocks }] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('time, duration_min, barber_id')
+        .eq('tenant_id', tenant.id)
+        .eq('date', date)
+        .in('status', ['pending', 'completed']),
+      supabase
+        .from('time_blocks')
+        .select('start_time, end_time, all_day, barber_id')
+        .eq('tenant_id', tenant.id)
+        .eq('date', date),
+    ])
+
+    if (barberIdParam !== 'any') {
+      // Legacy: shop-wide taken + all slots
+      const daySlots = getSlotsForDate(config, date)
+      const takenFromAppts = expandTakenSlots(
+        (appts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 })),
+      )
+      const takenFromBlocks = expandBlockedSlots(blocks ?? [], daySlots)
+      const taken = Array.from(new Set([...takenFromAppts, ...takenFromBlocks]))
+      const slots = getStartableSlots(config, date, taken, duration)
+      const responseSlots = url.searchParams.get('duration') === null ? daySlots : slots
+      return NextResponse.json({ taken, slots: responseSlots })
+    }
+
+    // barber_id=any: a slot is available if AT LEAST ONE active barber has it free
+    const { data: activeBarbers } = await supabase
+      .from('barbers')
+      .select('id, hours')
+      .eq('tenant_id', tenant.id)
+      .eq('active', true)
+
+    if (!activeBarbers || activeBarbers.length === 0) {
+      // No barbers configured — fall back to shop-wide slots
+      const daySlots = getSlotsForDate(config, date)
+      const takenFromAppts = expandTakenSlots(
+        (appts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 })),
+      )
+      const takenFromBlocks = expandBlockedSlots(blocks ?? [], daySlots)
+      const taken = Array.from(new Set([...takenFromAppts, ...takenFromBlocks]))
+      const slots = getStartableSlots(config, date, taken, duration)
+      return NextResponse.json({ taken, slots })
+    }
+
+    // Shop-wide blocks (barber_id IS NULL) apply to all barbers
+    const shopWideBlocks = (blocks ?? []).filter(b => b.barber_id === null)
+
+    const availableSlots = new Set<string>()
+    const takenByAny = new Set<string>()
+
+    for (const b of activeBarbers) {
+      const barberHours = effectiveHoursForBarber({ hours: b.hours as BarberHours | null }, config ?? {})
+      const fakeConfig = { ...config, hours: barberHours }
+
+      const barberAppts = (appts ?? []).filter(
+        a => a.barber_id === b.id || a.barber_id === null,
+      )
+      const barberBlocks = [
+        ...shopWideBlocks,
+        ...(blocks ?? []).filter(bl => bl.barber_id === b.id),
+      ]
+
+      const daySlots = getSlotsForDate(fakeConfig, date)
+      const taken = Array.from(new Set([
+        ...expandTakenSlots(barberAppts.map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 }))),
+        ...expandBlockedSlots(barberBlocks, daySlots),
+      ]))
+
+      const startable = getStartableSlots(fakeConfig, date, taken, duration)
+      for (const s of startable) availableSlots.add(s)
+      for (const s of taken) takenByAny.add(s)
+    }
+
+    return NextResponse.json({
+      taken: Array.from(takenByAny).sort(),
+      slots: Array.from(availableSlots).sort(),
+    })
+  }
+
+  // Specific barber_id
+  const [{ data: barber }, { data: appts }, { data: blocks }] = await Promise.all([
+    supabase
+      .from('barbers')
+      .select('id, hours, active')
+      .eq('id', barberIdParam)
+      .eq('tenant_id', tenant.id)
+      .single(),
     supabase
       .from('appointments')
       .select('time, duration_min')
       .eq('tenant_id', tenant.id)
       .eq('date', date)
-      .in('status', ['pending', 'completed']),
+      .in('status', ['pending', 'completed'])
+      .or(`barber_id.eq.${barberIdParam},barber_id.is.null`),
     supabase
       .from('time_blocks')
       .select('start_time, end_time, all_day')
       .eq('tenant_id', tenant.id)
-      .eq('date', date),
+      .eq('date', date)
+      .or(`barber_id.eq.${barberIdParam},barber_id.is.null`),
   ])
 
-  const daySlots = getSlotsForDate(config, date)
+  if (!barber || !barber.active) {
+    return NextResponse.json({ taken: [] satisfies string[], slots: [] satisfies string[] })
+  }
 
-  // Expand each booking to ALL the 30-min slots it occupies, so a 60-min
-  // booking at 10:00 prevents another booking from starting at 10:30.
-  const takenFromAppts = expandTakenSlots(
-    (appts ?? []).map(a => ({
-      time: a.time.slice(0, 5),
-      duration_min: a.duration_min ?? 30,
-    })),
-  )
-  const takenFromBlocks = expandBlockedSlots(blocks ?? [], daySlots)
-  const taken = Array.from(new Set([...takenFromAppts, ...takenFromBlocks]))
+  const barberHours = effectiveHoursForBarber({ hours: barber.hours as BarberHours | null }, config ?? {})
+  const fakeConfig = { ...config, hours: barberHours }
 
-  // Slots where a new booking of `duration` minutes can START. A slot is
-  // returned only if it AND the following slots needed for the duration are
-  // all free and inside opening hours.
-  const slots = getStartableSlots(config, date, taken, duration)
+  const daySlots = getSlotsForDate(fakeConfig, date)
+  const taken = Array.from(new Set([
+    ...expandTakenSlots(
+      (appts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 })),
+    ),
+    ...expandBlockedSlots(blocks ?? [], daySlots),
+  ]))
+  const slots = getStartableSlots(fakeConfig, date, taken, duration)
 
-  // Backward compatibility: legacy callers that don't pass `duration` get the
-  // pre-feature behaviour — slots = all opening-hour slots, regardless of fit.
-  const responseSlots = url.searchParams.get('duration') === null
-    ? daySlots
-    : slots
-
-  return NextResponse.json({ taken, slots: responseSlots })
+  return NextResponse.json({ taken, slots })
 }

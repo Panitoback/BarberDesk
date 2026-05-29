@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import SettingsForm from '@/components/dashboard/SettingsForm'
@@ -13,17 +14,18 @@ export default async function SettingsPage() {
   const [
     { data: tenantRow },
     { data: automationsRow },
+    { data: barbers },
   ] = await Promise.all([
     supabase.from('tenants').select('config').eq('id', tenant.id).single(),
     supabase.from('automations_config').select('review_link, reminder_active, reminder_hours, flash_discount_pct').eq('tenant_id', tenant.id).single(),
+    supabase.from('barbers').select('*').eq('tenant_id', tenant.id).order('display_order').order('created_at'),
   ])
 
-  // Coerce unknown JSON to a safe TenantConfig — old/malformed values become `{}`.
   const result = validateTenantConfig(tenantRow?.config ?? {})
   const initialConfig: TenantConfig = result.ok ? result.config : {}
-  const initialReviewLink      = automationsRow?.review_link      ?? ''
-  const initialReminderActive  = automationsRow?.reminder_active  ?? true
-  const initialReminderHours   = automationsRow?.reminder_hours   ?? 24
+  const initialReviewLink       = automationsRow?.review_link       ?? ''
+  const initialReminderActive   = automationsRow?.reminder_active   ?? true
+  const initialReminderHours    = automationsRow?.reminder_hours    ?? 24
   const initialFlashDiscountPct = automationsRow?.flash_discount_pct ?? 20
 
   return (
@@ -35,13 +37,16 @@ export default async function SettingsPage() {
           if you&apos;d rather the assistant say &quot;I can&apos;t confirm — please call us.&quot;
         </p>
       </div>
-      <SettingsForm
-        initialConfig={initialConfig}
-        initialReviewLink={initialReviewLink}
-        initialReminderActive={initialReminderActive}
-        initialReminderHours={initialReminderHours}
-        initialFlashDiscountPct={initialFlashDiscountPct}
-      />
+      <Suspense fallback={<div className="h-32 rounded-2xl bg-slate-100 animate-pulse" />}>
+        <SettingsForm
+          initialConfig={initialConfig}
+          initialReviewLink={initialReviewLink}
+          initialReminderActive={initialReminderActive}
+          initialReminderHours={initialReminderHours}
+          initialFlashDiscountPct={initialFlashDiscountPct}
+          initialBarbers={barbers ?? []}
+        />
+      </Suspense>
       <BookingQRCode subdomain={tenant.subdomain} />
     </div>
   )

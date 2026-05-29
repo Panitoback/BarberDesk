@@ -5,6 +5,8 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 import { todayInToronto, nowTimeInToronto } from '@/lib/dates'
 import { logError } from '@/lib/error-logger'
 import { parseExtras } from '@/lib/extras'
+import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
+import { getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
 
 function normalizePhone(input: string): string | null {
   const digits = (input ?? '').replace(/\D/g, '')
@@ -23,15 +25,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { service: rawService, name: rawName, phone: rawPhone, final_price: rawFinalPrice, extras: rawExtras } = body as {
-    service?: unknown; name?: unknown; phone?: unknown; final_price?: unknown; extras?: unknown
-  }
+  const {
+    service: rawService,
+    name: rawName,
+    phone: rawPhone,
+    final_price: rawFinalPrice,
+    extras: rawExtras,
+    barber_id: rawBarberId,
+  } = body as Record<string, unknown>
 
   const service    = typeof rawService    === 'string' ? rawService.trim() : ''
   const name       = typeof rawName       === 'string' ? rawName.trim()    : ''
   const phone      = typeof rawPhone      === 'string' ? rawPhone.trim()   : ''
   const finalPrice = typeof rawFinalPrice === 'number' && rawFinalPrice >= 0 ? rawFinalPrice : null
   const extras     = parseExtras(rawExtras)
+  const barberIdRaw = typeof rawBarberId === 'string' ? rawBarberId.trim() : null
 
   if (!service) return NextResponse.json({ error: 'service is required' }, { status: 400 })
 
@@ -47,21 +55,112 @@ export async function POST(request: Request) {
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
-  // Resolve price from config
   const cfgResult = validateTenantConfig(tenant.config ?? {})
   const services  = cfgResult.ok ? (cfgResult.config.services ?? []) : []
   const matched   = services.find(s => s.name === service)
   if (!matched) return NextResponse.json({ error: 'Service not found' }, { status: 400 })
 
+  const config = cfgResult.ok ? cfgResult.config : null
+  const today  = todayInToronto()
+  const now    = nowTimeInToronto()
+
+  // Resolve barber
+  let assignedBarberId: string | null = null
+  let priceModifier = 1.0
+
+  if (barberIdRaw && barberIdRaw !== 'any') {
+    const { data: b } = await supabase
+      .from('barbers')
+      .select('id, price_modifier, active')
+      .eq('id', barberIdRaw)
+      .eq('tenant_id', tenant.id)
+      .single()
+
+    if (b?.active) {
+      assignedBarberId = b.id
+      priceModifier = b.price_modifier
+    }
+  } else {
+    // Auto-assign least-loaded active barber
+    const { data: activeBarbers } = await supabase
+      .from('barbers')
+      .select('id, hours, price_modifier')
+      .eq('tenant_id', tenant.id)
+      .eq('active', true)
+      .order('display_order', { ascending: true })
+
+    if (activeBarbers && activeBarbers.length > 0) {
+      const { data: todayAppts } = await supabase
+        .from('appointments')
+        .select('barber_id')
+        .eq('tenant_id', tenant.id)
+        .eq('date', today)
+        .in('status', ['pending', 'completed'])
+        .not('barber_id', 'is', null)
+
+      const countByBarber = new Map<string, number>()
+      for (const a of todayAppts ?? []) {
+        if (a.barber_id) countByBarber.set(a.barber_id, (countByBarber.get(a.barber_id) ?? 0) + 1)
+      }
+
+      const { data: todayBlocks } = await supabase
+        .from('time_blocks')
+        .select('start_time, end_time, all_day, barber_id')
+        .eq('tenant_id', tenant.id)
+        .eq('date', today)
+
+      const shopWideBlocks = (todayBlocks ?? []).filter(b => b.barber_id === null)
+
+      const sorted = [...activeBarbers].sort(
+        (a, b) => (countByBarber.get(a.id) ?? 0) - (countByBarber.get(b.id) ?? 0),
+      )
+
+      for (const b of sorted) {
+        const barberHours = effectiveHoursForBarber({ hours: b.hours as BarberHours | null }, config ?? {})
+        const fakeConfig = { ...config, hours: barberHours }
+        const { data: bAppts } = await supabase
+          .from('appointments')
+          .select('time, duration_min')
+          .eq('tenant_id', tenant.id)
+          .eq('date', today)
+          .eq('barber_id', b.id)
+          .in('status', ['pending', 'completed'])
+
+        const bBlocks = [...shopWideBlocks, ...(todayBlocks ?? []).filter(bl => bl.barber_id === b.id)]
+        const daySlots = getSlotsForDate(fakeConfig, today)
+        const taken = Array.from(new Set([
+          ...expandTakenSlots((bAppts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 }))),
+          ...expandBlockedSlots(bBlocks, daySlots),
+        ]))
+
+        // Walk-in: pick first least-loaded barber whose hours are open now
+        // (slots are on a 30-min grid; round current minute down to nearest 30)
+        const [nowH, nowM] = now.split(':').map(Number)
+        const nowRounded = `${String(nowH).padStart(2, '0')}:${nowM < 30 ? '00' : '30'}`
+        const takenSet = new Set(taken)
+        if (daySlots.length > 0 && !takenSet.has(nowRounded)) {
+          assignedBarberId = b.id
+          priceModifier = b.price_modifier
+          break
+        }
+      }
+
+      // If none free right now, fall back to least-loaded — owner is present and can decide
+      if (!assignedBarberId && sorted.length > 0) {
+        assignedBarberId = sorted[0].id
+        priceModifier = sorted[0].price_modifier
+      }
+    }
+  }
+
+  const finalPriceWithModifier = finalPrice !== null
+    ? finalPrice // manual override takes precedence
+    : applyPriceModifier(matched.price_cad, priceModifier)
+
   const hasName     = name.length >= 2
   const clientName  = hasName ? name : 'Walk-in'
   const clientPhone = phone ? (normalizePhone(phone) ?? null) : null
 
-  // Routing:
-  // - phone provided    → find-or-create by phone (existing behaviour)
-  // - phone + name only → still creates a tracked client (caller cares about the name)
-  // - no phone, no name → channel into the per-tenant anonymous bucket
-  //   (single is_anonymous=true row) to stop polluting the clients list.
   let clientId: string
 
   if (clientPhone) {
@@ -145,24 +244,21 @@ export async function POST(request: Request) {
   const { data: appt, error: apptErr } = await supabase
     .from('appointments')
     .insert({
-      tenant_id: tenant.id,
-      client_id: clientId,
-      date:      todayInToronto(),
-      time:      nowTimeInToronto(),
+      tenant_id:    tenant.id,
+      client_id:    clientId,
+      date:         today,
+      time:         now,
       service,
-      price:        matched.price_cad,
+      price:        finalPriceWithModifier,
       duration_min: matched.duration_min,
       walkin:       true,
+      barber_id:    assignedBarberId,
       status:       'pending',
     })
     .select('id')
     .single()
 
   if (apptErr || !appt) {
-    // 23505 = unique_violation. After migration 20260526010000 the partial
-    // unique index excludes walk-ins, so this should no longer fire — but if
-    // the migration hasn't been applied yet, surface a clear message instead
-    // of a generic 500 so the owner knows to just retry.
     if (apptErr?.code === '23505') {
       return NextResponse.json(
         { error: 'A walk-in was just recorded at the same time — try again.' },
@@ -179,12 +275,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not create appointment' }, { status: 500 })
   }
 
-  // Complete immediately — walk-in = client is already in the chair.
-  // If extra services were added in the UI, final_price overrides the base price.
+  const needsPriceOverride = finalPrice !== null || priceModifier !== 1.0
+
   const { error: rpcErr } = await supabase.rpc('complete_appointment', {
     p_appointment_id: appt.id,
     p_tenant_id:      tenant.id,
-    ...(finalPrice !== null ? { p_price_override: finalPrice } : {}),
+    ...(needsPriceOverride ? { p_price_override: finalPriceWithModifier } : {}),
     ...(extras.length > 0 ? { p_extras: extras } : {}),
   })
 
@@ -193,7 +289,7 @@ export async function POST(request: Request) {
       route: '/api/walkin', method: 'POST', status: 500, tenantId: tenant.id, userId: user.id,
       message: rpcErr.message ?? 'rpc_complete_appointment_failed',
       errorCode: rpcErr.code ?? null,
-      metadata: { stage: 'complete_appointment_rpc', appointment_id: appt.id, final_price: finalPrice },
+      metadata: { stage: 'complete_appointment_rpc', appointment_id: appt.id },
     })
     return NextResponse.json({ error: 'Could not complete walk-in' }, { status: 500 })
   }

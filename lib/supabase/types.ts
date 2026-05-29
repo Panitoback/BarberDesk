@@ -58,6 +58,7 @@ export type Database = {
       }
       appointments: {
         Row: {
+          barber_id: string | null
           client_id: string
           created_at: string
           client_note: string | null
@@ -73,6 +74,7 @@ export type Database = {
           walkin: boolean
         }
         Insert: {
+          barber_id?: string | null
           client_id: string
           client_note?: string | null
           created_at?: string
@@ -88,6 +90,7 @@ export type Database = {
           walkin?: boolean
         }
         Update: {
+          barber_id?: string | null
           client_id?: string
           client_note?: string | null
           created_at?: string
@@ -104,6 +107,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "appointments_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "citas_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -112,6 +122,56 @@ export type Database = {
           },
           {
             foreignKeyName: "citas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      barbers: {
+        Row: {
+          active: boolean
+          bio: string | null
+          created_at: string
+          display_order: number
+          email: string | null
+          hours: Json | null
+          id: string
+          name: string
+          photo_path: string | null
+          price_modifier: number
+          tenant_id: string
+        }
+        Insert: {
+          active?: boolean
+          bio?: string | null
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          hours?: Json | null
+          id?: string
+          name: string
+          photo_path?: string | null
+          price_modifier?: number
+          tenant_id: string
+        }
+        Update: {
+          active?: boolean
+          bio?: string | null
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          hours?: Json | null
+          id?: string
+          name?: string
+          photo_path?: string | null
+          price_modifier?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barbers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -189,6 +249,7 @@ export type Database = {
           no_show_count: number
           notes: string | null
           phone: string | null
+          preferred_barber_id: string | null
           tenant_id: string
         }
         Insert: {
@@ -201,6 +262,7 @@ export type Database = {
           no_show_count?: number
           notes?: string | null
           phone?: string | null
+          preferred_barber_id?: string | null
           tenant_id: string
         }
         Update: {
@@ -213,9 +275,17 @@ export type Database = {
           no_show_count?: number
           notes?: string | null
           phone?: string | null
+          preferred_barber_id?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_preferred_barber_id_fkey"
+            columns: ["preferred_barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -377,6 +447,7 @@ export type Database = {
       time_blocks: {
         Row: {
           all_day: boolean
+          barber_id: string | null
           created_at: string
           date: string
           end_time: string
@@ -387,6 +458,7 @@ export type Database = {
         }
         Insert: {
           all_day?: boolean
+          barber_id?: string | null
           created_at?: string
           date: string
           end_time: string
@@ -397,6 +469,7 @@ export type Database = {
         }
         Update: {
           all_day?: boolean
+          barber_id?: string | null
           created_at?: string
           date?: string
           end_time?: string
@@ -406,6 +479,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "time_blocks_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "time_blocks_tenant_id_fkey"
             columns: ["tenant_id"]
