@@ -500,6 +500,7 @@ export type Database = {
           config: Json
           created_at: string
           id: string
+          multi_barber: boolean
           name: string
           owner_id: string
           plan: Database["public"]["Enums"]["plan_type"]
@@ -510,6 +511,7 @@ export type Database = {
           config?: Json
           created_at?: string
           id?: string
+          multi_barber?: boolean
           name: string
           owner_id: string
           plan?: Database["public"]["Enums"]["plan_type"]
@@ -520,6 +522,7 @@ export type Database = {
           config?: Json
           created_at?: string
           id?: string
+          multi_barber?: boolean
           name?: string
           owner_id?: string
           plan?: Database["public"]["Enums"]["plan_type"]

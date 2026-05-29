@@ -1,7 +1,7 @@
 # Multi-Barber Support — Implementation Plan
 
-> Status: planning · updated 2026-05-28
-> Execution split: **Phase 1+2 in one session**, then **Phase 3+4 in a second session**.
+> Status: Phase 1+2 ✅ shipped to production (2026-05-29) · Phase 3+4 pending
+> Execution split: **Phase 1+2 done**, **Phase 3+4 next session**.
 
 ## Goal
 
@@ -319,31 +319,31 @@ Add `barberName` to confirmation/reminder/cancel SMS where relevant. Where barbe
 
 ## Execution checklist
 
-### Phase 1+2 session (target: 6h)
-- [ ] Apply 4 migrations via MCP (barbers, appts barber_id, time_blocks barber_id, clients preferred_barber_id)
-- [ ] Create Storage bucket + policies
-- [ ] Update `lib/supabase/types.ts`
-- [ ] Write `lib/barbers.ts` (barberPhotoUrl, effectiveHoursForBarber, applyPriceModifier)
-- [ ] Refactor SettingsForm → tabbed; add BarbersTab with CRUD + photo upload + email + price_modifier
-- [ ] Write `/api/barbers/*` routes (5 endpoints)
-- [ ] Write `/api/book/barbers` public endpoint
-- [ ] Write `/api/book/client-preference` public endpoint
-- [ ] Extend `/api/book/slots` with `barber_id` param + "any" logic
-- [ ] Extend `/api/book` with auto-assign, price_modifier, preferred_barber update, barber email notification
-- [ ] Extend `/api/appointments/create` and `/api/walkin` with barber_id + price_modifier + preferred_barber update + email
-- [ ] Add barber picker step to `BookingForm` (with preferred_barber pre-selection + price hint)
-- [ ] Update SMS strings with barber name
-- [ ] tsc + build pass
-- [ ] Manual smoke test: create 2 barbers, book "any" (check least-loaded), book specific, verify email notification, verify price_modifier applied
+### Phase 1+2 session — ✅ DONE (2026-05-29)
+- [x] Apply 4 migrations via MCP (barbers, appts barber_id, time_blocks barber_id, clients preferred_barber_id)
+- [x] Apply tenants_multi_barber migration + feature gate + admin toggle
+- [x] Create Storage bucket `barber-photos` + policies
+- [x] Update `lib/supabase/types.ts`
+- [x] Write `lib/barbers.ts` (barberPhotoUrl, effectiveHoursForBarber, applyPriceModifier, formatPriceModifier)
+- [x] Refactor SettingsForm → tabbed (General/Services/Barbers/Reminders); BarbersTab with CRUD + photo + email + price_modifier
+- [x] Write `/api/barbers/*` routes (GET, POST, PATCH, DELETE, photo upload)
+- [x] Write `/api/book/barbers` public endpoint
+- [x] Write `/api/book/client-preference` public endpoint
+- [x] Extend `/api/book/slots` with `barber_id=any|uuid`; per-barber hours; any-barber union logic
+- [x] Extend `/api/book` with least-loaded auto-assign, price_modifier, preferred_barber update, barber email via Resend, barber name in SMS
+- [x] Extend `/api/appointments/create` and `/api/walkin` with barber_id + price_modifier + preferred_barber update + email
+- [x] Add barber picker to `BookingForm` (card grid, preferred_barber pre-selection by phone, final price note + Tax)
+- [x] Fix `effectiveHoursForBarber` → returns `undefined` not `{}` to preserve getSlotsForDate fallback
+- [x] Add Supabase Storage domain to `next.config.ts` (next/image remotePatterns)
+- [x] tsc + build pass · verified in production
 
 ### Phase 3+4 session (target: 3.5h)
-- [ ] `AppointmentsTodayTable` barber column + reassign
-- [ ] `WeeklyAgenda` filter + color borders
+- [ ] `AppointmentsTodayTable` barber column + reassign dropdown
+- [ ] `WeeklyAgenda` filter by barber (pills) + color borders per barber
 - [ ] `NewAppointmentButton` + `WalkInButton` barber dropdown
 - [ ] Dashboard "Revenue by barber" card (revenue + visit count)
-- [ ] Per-barber hours override in slot helper
-- [ ] BlockTimeButton barber dropdown
-- [ ] CLAUDE.md update (migrations, tables, routes, decisions)
+- [ ] BlockTimeButton barber dropdown (entire shop vs specific barber)
+- [ ] CLAUDE.md update (already done for Phase 1+2)
 - [ ] tsc + build pass
 - [ ] Final regression sweep
 

@@ -12,6 +12,7 @@ type Tenant = {
   subdomain: string
   twilio_number: string | null
   plan: Plan
+  multi_barber: boolean
   created_at: string
   owner_id: string
   owner_email: string
@@ -49,13 +50,16 @@ export default function TenantsTable({ tenants }: { tenants: Tenant[] }) {
 function TenantCard({ tenant }: { tenant: Tenant }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const [twilio, setTwilio]   = useState(tenant.twilio_number ?? '')
-  const [plan, setPlan]       = useState<Plan>(tenant.plan)
-  const [twilioSaving, setTwilioSaving] = useState(false)
-  const [planSaving, setPlanSaving]     = useState(false)
-  const [twilioStatus, setTwilioStatus] = useState<'idle' | 'saved' | 'error'>('idle')
-  const [planStatus, setPlanStatus]     = useState<'idle' | 'saved' | 'error'>('idle')
-  const [twilioError, setTwilioError]   = useState<string | null>(null)
+  const [twilio, setTwilio]         = useState(tenant.twilio_number ?? '')
+  const [plan, setPlan]             = useState<Plan>(tenant.plan)
+  const [multiBarber, setMultiBarber] = useState(tenant.multi_barber)
+  const [twilioSaving, setTwilioSaving]     = useState(false)
+  const [planSaving, setPlanSaving]         = useState(false)
+  const [mbSaving, setMbSaving]             = useState(false)
+  const [twilioStatus, setTwilioStatus]     = useState<'idle' | 'saved' | 'error'>('idle')
+  const [planStatus, setPlanStatus]         = useState<'idle' | 'saved' | 'error'>('idle')
+  const [mbStatus, setMbStatus]             = useState<'idle' | 'saved' | 'error'>('idle')
+  const [twilioError, setTwilioError]       = useState<string | null>(null)
 
   const dirty = twilio !== (tenant.twilio_number ?? '')
 
@@ -82,6 +86,28 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
       setTwilioError(data.error ?? 'Could not save.')
     }
     setTwilioSaving(false)
+  }
+
+  async function toggleMultiBarber() {
+    const next = !multiBarber
+    setMultiBarber(next)
+    setMbSaving(true)
+    setMbStatus('idle')
+
+    const res = await fetch(`/api/admin/tenants/${tenant.id}/multi-barber`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: next }),
+    })
+
+    if (res.ok) {
+      setMbStatus('saved')
+      startTransition(() => router.refresh())
+    } else {
+      setMultiBarber(!next)
+      setMbStatus('error')
+    }
+    setMbSaving(false)
   }
 
   async function changePlan(next: Plan) {
@@ -139,7 +165,7 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
         {/* Twilio number */}
         <div>
           <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">
@@ -200,6 +226,40 @@ function TenantCard({ tenant }: { tenant: Tenant }) {
             </p>
           )}
           {planStatus === 'error' && (
+            <p className="text-xs text-red-600 flex items-center gap-1 mt-1.5">
+              <AlertCircle className="w-3 h-3" /> Save failed.
+            </p>
+          )}
+        </div>
+
+        {/* Multi-barber */}
+        <div>
+          <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">
+            Multi-barber
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={multiBarber}
+              onClick={toggleMultiBarber}
+              disabled={mbSaving}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                multiBarber ? 'bg-indigo-600' : 'bg-slate-200'
+              }`}
+            >
+              <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${multiBarber ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+            <span className={`text-sm font-medium ${multiBarber ? 'text-indigo-700' : 'text-slate-400'}`}>
+              {multiBarber ? 'Enabled' : 'Disabled'}
+            </span>
+          </div>
+          {mbStatus === 'saved' && (
+            <p className="text-xs text-green-600 flex items-center gap-1 mt-1.5">
+              <Check className="w-3 h-3" /> Saved
+            </p>
+          )}
+          {mbStatus === 'error' && (
             <p className="text-xs text-red-600 flex items-center gap-1 mt-1.5">
               <AlertCircle className="w-3 h-3" /> Save failed.
             </p>

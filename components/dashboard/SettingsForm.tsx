@@ -19,13 +19,13 @@ import type { Barber } from '@/lib/barbers'
 type HoursMap = Partial<Record<Weekday, DayHours>>
 type BarberRow = Omit<Barber, 'hours'> & { hours: unknown }
 
-const TABS = [
+const ALL_TABS = [
   { id: 'general',   label: 'General' },
   { id: 'services',  label: 'Services' },
-  { id: 'barbers',   label: 'Barbers' },
+  { id: 'barbers',   label: 'Barbers', requiresMultiBarber: true },
   { id: 'reminders', label: 'Reminders' },
 ] as const
-type TabId = typeof TABS[number]['id']
+type TabId = typeof ALL_TABS[number]['id']
 
 export default function SettingsForm({
   initialConfig,
@@ -34,6 +34,7 @@ export default function SettingsForm({
   initialReminderHours,
   initialFlashDiscountPct,
   initialBarbers,
+  multiBarber,
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -41,10 +42,12 @@ export default function SettingsForm({
   initialReminderHours:    number
   initialFlashDiscountPct: number
   initialBarbers:          BarberRow[]
+  multiBarber:             boolean
 }) {
   const router   = useRouter()
   const pathname = usePathname()
   const params   = useSearchParams()
+  const tabs = ALL_TABS.filter(t => !('requiresMultiBarber' in t) || multiBarber)
   const activeTab = (params.get('tab') ?? 'general') as TabId
 
   const [hours,             setHours]             = useState<HoursMap>(initialConfig.hours ?? {})
@@ -155,7 +158,7 @@ export default function SettingsForm({
     <div className="space-y-6">
       {/* Tab bar */}
       <div className="flex gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1 overflow-x-auto">
-        {TABS.map(t => (
+        {tabs.map(t => (
           <button
             key={t.id}
             type="button"

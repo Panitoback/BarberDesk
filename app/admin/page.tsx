@@ -9,6 +9,7 @@ type TenantRow = {
   subdomain: string
   twilio_number: string | null
   plan: 'trial' | 'active' | 'suspended'
+  multi_barber: boolean
   created_at: string
   owner_id: string
   owner_email: string
@@ -20,7 +21,7 @@ async function getTenants(): Promise<TenantRow[]> {
 
   const { data: tenants } = await supabase
     .from('tenants')
-    .select('id, name, subdomain, twilio_number, plan, created_at, owner_id')
+    .select('id, name, subdomain, twilio_number, plan, multi_barber, created_at, owner_id')
     .order('created_at', { ascending: false })
 
   if (!tenants?.length) return []

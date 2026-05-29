@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, config')
+    .select('id, config, multi_barber')
     .eq('subdomain', subdomain)
     .single()
 
@@ -44,8 +44,11 @@ export async function GET(request: Request) {
   const cfgResult = validateTenantConfig(tenant.config ?? {})
   const config = cfgResult.ok ? cfgResult.config : null
 
+  // Ignore barber_id param for shops without multi-barber enabled
+  const effectiveBarberParam = tenant.multi_barber ? barberIdParam : null
+
   // No barber_id param → legacy single-barber mode (shop-wide query)
-  if (!barberIdParam || barberIdParam === 'any') {
+  if (!effectiveBarberParam || effectiveBarberParam === 'any') {
     const [{ data: appts }, { data: blocks }] = await Promise.all([
       supabase
         .from('appointments')
@@ -60,7 +63,7 @@ export async function GET(request: Request) {
         .eq('date', date),
     ])
 
-    if (barberIdParam !== 'any') {
+    if (effectiveBarberParam !== 'any') {
       // Legacy: shop-wide taken + all slots
       const daySlots = getSlotsForDate(config, date)
       const takenFromAppts = expandTakenSlots(
@@ -132,7 +135,7 @@ export async function GET(request: Request) {
     supabase
       .from('barbers')
       .select('id, hours, active')
-      .eq('id', barberIdParam)
+      .eq('id', effectiveBarberParam!)
       .eq('tenant_id', tenant.id)
       .single(),
     supabase
@@ -141,13 +144,13 @@ export async function GET(request: Request) {
       .eq('tenant_id', tenant.id)
       .eq('date', date)
       .in('status', ['pending', 'completed'])
-      .or(`barber_id.eq.${barberIdParam},barber_id.is.null`),
+      .or(`barber_id.eq.${effectiveBarberParam},barber_id.is.null`),
     supabase
       .from('time_blocks')
       .select('start_time, end_time, all_day')
       .eq('tenant_id', tenant.id)
       .eq('date', date)
-      .or(`barber_id.eq.${barberIdParam},barber_id.is.null`),
+      .or(`barber_id.eq.${effectiveBarberParam},barber_id.is.null`),
   ])
 
   if (!barber || !barber.active) {

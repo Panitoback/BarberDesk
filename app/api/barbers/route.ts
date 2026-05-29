@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id')
+    .select('id, multi_barber')
     .eq('subdomain', subdomain)
     .single()
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
@@ -67,10 +67,13 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id')
+    .select('id, multi_barber')
     .eq('subdomain', subdomain)
     .single()
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+  if (!tenant.multi_barber) {
+    return NextResponse.json({ error: 'Multi-barber is not enabled for this shop.' }, { status: 403 })
+  }
 
   const { data: barber, error } = await supabase
     .from('barbers')

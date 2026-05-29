@@ -178,7 +178,7 @@ export async function POST(request: Request) {
 
   const { data: tenant, error: tenantErr } = await supabase
     .from('tenants')
-    .select('id, name, plan, config')
+    .select('id, name, plan, config, multi_barber')
     .eq('subdomain', subdomain)
     .single()
 
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
     id: string; name: string; email: string | null; price_modifier: number
   } | null = null
 
-  if (barberIdRaw && barberIdRaw !== 'any') {
+  if (tenant.multi_barber && barberIdRaw && barberIdRaw !== 'any') {
     // Specific barber requested — validate they exist and are available
     const { data: specificBarber } = await supabase
       .from('barbers')
@@ -269,7 +269,7 @@ export async function POST(request: Request) {
       email: specificBarber.email,
       price_modifier: specificBarber.price_modifier,
     }
-  } else {
+  } else if (tenant.multi_barber) {
     // 'any' or no barber_id: check if shop has barbers configured
     const { count: barberCount } = await supabase
       .from('barbers')

@@ -16,7 +16,7 @@ export default async function SettingsPage() {
     { data: automationsRow },
     { data: barbers },
   ] = await Promise.all([
-    supabase.from('tenants').select('config').eq('id', tenant.id).single(),
+    supabase.from('tenants').select('config, multi_barber').eq('id', tenant.id).single(),
     supabase.from('automations_config').select('review_link, reminder_active, reminder_hours, flash_discount_pct').eq('tenant_id', tenant.id).single(),
     supabase.from('barbers').select('*').eq('tenant_id', tenant.id).order('display_order').order('created_at'),
   ])
@@ -45,6 +45,7 @@ export default async function SettingsPage() {
           initialReminderHours={initialReminderHours}
           initialFlashDiscountPct={initialFlashDiscountPct}
           initialBarbers={barbers ?? []}
+          multiBarber={tenantRow?.multi_barber ?? false}
         />
       </Suspense>
       <BookingQRCode subdomain={tenant.subdomain} />

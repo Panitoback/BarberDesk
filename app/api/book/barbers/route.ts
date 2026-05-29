@@ -11,11 +11,11 @@ export async function GET() {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id')
+    .select('id, multi_barber')
     .eq('subdomain', subdomain)
     .single()
 
-  if (!tenant) return NextResponse.json({ barbers: [] })
+  if (!tenant || !tenant.multi_barber) return NextResponse.json({ barbers: [] })
 
   const { data: barbers } = await supabase
     .from('barbers')
