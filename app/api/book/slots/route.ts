@@ -48,7 +48,34 @@ export async function GET(request: Request) {
   const effectiveBarberParam = tenant.multi_barber ? barberIdParam : null
 
   // No barber_id param → legacy single-barber mode (shop-wide query)
-  if (!effectiveBarberParam || effectiveBarberParam === 'any') {
+  if (!effectiveBarberParam) {
+    const [{ data: appts }, { data: blocks }] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('time, duration_min')
+        .eq('tenant_id', tenant.id)
+        .eq('date', date)
+        .in('status', ['pending', 'completed']),
+      supabase
+        .from('time_blocks')
+        .select('start_time, end_time, all_day')
+        .eq('tenant_id', tenant.id)
+        .eq('date', date),
+    ])
+
+    // Legacy: shop-wide taken + all slots
+    const daySlots = getSlotsForDate(config, date)
+    const takenFromAppts = expandTakenSlots(
+      (appts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 })),
+    )
+    const takenFromBlocks = expandBlockedSlots(blocks ?? [], daySlots)
+    const taken = Array.from(new Set([...takenFromAppts, ...takenFromBlocks]))
+    const slots = getStartableSlots(config, date, taken, duration)
+    const responseSlots = url.searchParams.get('duration') === null ? daySlots : slots
+    return NextResponse.json({ taken, slots: responseSlots })
+  }
+
+  if (effectiveBarberParam === 'any') {
     const [{ data: appts }, { data: blocks }] = await Promise.all([
       supabase
         .from('appointments')
@@ -62,19 +89,6 @@ export async function GET(request: Request) {
         .eq('tenant_id', tenant.id)
         .eq('date', date),
     ])
-
-    if (effectiveBarberParam !== 'any') {
-      // Legacy: shop-wide taken + all slots
-      const daySlots = getSlotsForDate(config, date)
-      const takenFromAppts = expandTakenSlots(
-        (appts ?? []).map(a => ({ time: a.time.slice(0, 5), duration_min: a.duration_min ?? 30 })),
-      )
-      const takenFromBlocks = expandBlockedSlots(blocks ?? [], daySlots)
-      const taken = Array.from(new Set([...takenFromAppts, ...takenFromBlocks]))
-      const slots = getStartableSlots(config, date, taken, duration)
-      const responseSlots = url.searchParams.get('duration') === null ? daySlots : slots
-      return NextResponse.json({ taken, slots: responseSlots })
-    }
 
     // barber_id=any: a slot is available if AT LEAST ONE active barber has it free
     const { data: activeBarbers } = await supabase
