@@ -66,6 +66,7 @@ export async function POST(
     .from('barbers')
     .update({ photo_path: storagePath })
     .eq('id', id)
+    .eq('tenant_id', tenant.id)
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
 

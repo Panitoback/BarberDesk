@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { barberColor } from '@/lib/barbers'
 
 function NoteButton({ note }: { note: string }) {
   const [open, setOpen] = useState(false)
@@ -19,12 +20,7 @@ function NoteButton({ note }: { note: string }) {
 
   return (
     <span ref={ref} className="relative inline-flex">
-      <button
-        type="button"
-        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
-        aria-label="Show client note"
-        className="inline-flex items-center"
-      >
+      <button type="button" onClick={e => { e.stopPropagation(); setOpen(o => !o) }} aria-label="Show client note" className="inline-flex items-center">
         <Info className="w-3 h-3 shrink-0 text-amber-600" />
       </button>
       {open && (
@@ -36,13 +32,16 @@ function NoteButton({ note }: { note: string }) {
   )
 }
 
+type BarberOption = { id: string; name: string; display_order: number }
+
 type Appointment = {
-  id: string
-  time: string
-  service: string
-  status: string
+  id:          string
+  time:        string
+  service:     string
+  status:      string
   client_note: string | null
-  clients: { name: string } | null
+  barber_id:   string | null
+  clients:     { name: string } | null
 }
 
 type Block = {
@@ -53,11 +52,11 @@ type Block = {
 }
 
 type DayData = {
-  dateISO: string
-  label: string
-  isToday: boolean
+  dateISO:      string
+  label:        string
+  isToday:      boolean
   appointments: Appointment[]
-  blocks: Block[]
+  blocks:       Block[]
 }
 
 function timeToMin(t: string): number {
@@ -117,11 +116,17 @@ function shiftWeek(monday: string, delta: number): string {
 export default function WeeklyAgenda({
   days,
   monday,
+  barbers = [],
 }: {
-  days: DayData[]
-  monday: string
+  days:     DayData[]
+  monday:   string
+  barbers?: BarberOption[]
 }) {
   const router = useRouter()
+  const [filterBarberId, setFilterBarberId] = useState<string>('all')
+
+  const showBarbers    = barbers.length > 0
+  const barberIndexMap = new Map(barbers.map((b, i) => [b.id, i]))
 
   function navigate(delta: number) {
     router.push(`/agenda?week=${shiftWeek(monday, delta)}`)
@@ -133,6 +138,12 @@ export default function WeeklyAgenda({
     const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
     return `${start.toLocaleDateString('en-CA', opts)} – ${end.toLocaleDateString('en-CA', { ...opts, year: 'numeric' })}`
   })()
+
+  function filterAppts(appts: Appointment[]): Appointment[] {
+    if (!showBarbers || filterBarberId === 'all') return appts
+    if (filterBarberId === 'unassigned') return appts.filter(a => !a.barber_id)
+    return appts.filter(a => a.barber_id === filterBarberId)
+  }
 
   return (
     <div className="space-y-4">
@@ -152,7 +163,28 @@ export default function WeeklyAgenda({
         </div>
       </div>
 
-      {/* Grid — horizontal scroll on mobile */}
+      {/* Barber filter pills */}
+      {showBarbers && (
+        <div className="flex flex-wrap gap-2">
+          <FilterPill label="All" active={filterBarberId === 'all'} onClick={() => setFilterBarberId('all')} />
+          {barbers.map((b, i) => (
+            <FilterPill
+              key={b.id}
+              label={b.name}
+              active={filterBarberId === b.id}
+              color={barberColor(i).dot}
+              onClick={() => setFilterBarberId(b.id)}
+            />
+          ))}
+          <FilterPill
+            label="Unassigned"
+            active={filterBarberId === 'unassigned'}
+            onClick={() => setFilterBarberId('unassigned')}
+          />
+        </div>
+      )}
+
+      {/* Grid */}
       <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm bg-white">
         <div className="min-w-[640px]">
           {/* Day headers */}
@@ -175,7 +207,6 @@ export default function WeeklyAgenda({
           {SLOTS.map(slot => (
             <div key={slot} className="grid border-b border-slate-50 last:border-0"
               style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
-              {/* Time label — only on full hours */}
               <div className="px-2 py-1 flex items-start justify-end">
                 {slot.endsWith(':00') && (
                   <span className="text-[10px] text-slate-400 font-medium -mt-2">
@@ -184,7 +215,7 @@ export default function WeeklyAgenda({
                 )}
               </div>
               {days.map(day => {
-                const appts = day.appointments.filter(a => appointmentSlot(a.time) === slot)
+                const appts = filterAppts(day.appointments).filter(a => appointmentSlot(a.time) === slot)
                 const block = isSlotBlocked(slot, day.blocks)
                 return (
                   <div key={day.dateISO}
@@ -194,16 +225,22 @@ export default function WeeklyAgenda({
                         ? 'bg-[repeating-linear-gradient(45deg,#f1f5f9_0_6px,#e2e8f0_6px_12px)]'
                         : day.isToday ? 'bg-indigo-50/30' : ''
                     }`}>
-                    {appts.map(appt => (
-                      <div key={appt.id}
-                        className={`text-[11px] font-medium rounded px-1.5 py-1 border mb-0.5 leading-tight ${statusColors[appt.status] ?? statusColors.pending}`}>
-                        <div className="flex items-center gap-1 font-semibold">
-                          <span className="truncate">{appt.clients?.name ?? 'Walk-in'}</span>
-                          {appt.client_note && <NoteButton note={appt.client_note} />}
+                    {appts.map(appt => {
+                      const bIdx   = appt.barber_id ? barberIndexMap.get(appt.barber_id) : undefined
+                      const bColor = bIdx !== undefined ? barberColor(bIdx) : null
+                      return (
+                        <div key={appt.id}
+                          className={`text-[11px] font-medium rounded px-1.5 py-1 border mb-0.5 leading-tight border-l-4 ${
+                            statusColors[appt.status] ?? statusColors.pending
+                          } ${bColor ? bColor.border : 'border-l-slate-300'}`}>
+                          <div className="flex items-center gap-1 font-semibold">
+                            <span className="truncate">{appt.clients?.name ?? 'Walk-in'}</span>
+                            {appt.client_note && <NoteButton note={appt.client_note} />}
+                          </div>
+                          <div className="opacity-75 truncate">{appt.service}</div>
                         </div>
-                        <div className="opacity-75 truncate">{appt.service}</div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )
               })}
@@ -212,5 +249,32 @@ export default function WeeklyAgenda({
         </div>
       </div>
     </div>
+  )
+}
+
+function FilterPill({
+  label,
+  active,
+  color,
+  onClick,
+}: {
+  label:   string
+  active:  boolean
+  color?:  string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
+        active
+          ? 'bg-slate-900 text-white'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+      }`}
+    >
+      {color && <span className={`w-2 h-2 rounded-full ${color}`} />}
+      {label}
+    </button>
   )
 }

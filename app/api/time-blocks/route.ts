@@ -20,11 +20,13 @@ export async function POST(request: Request) {
     end_time:   rawEnd,
     reason:     rawReason,
     all_day:    rawAllDay,
+    barber_id:  rawBarberId,
   } = body as Record<string, unknown>
 
-  const date    = typeof rawDate   === 'string' ? rawDate.trim()   : ''
-  const allDay  = rawAllDay === true
-  const reason  = typeof rawReason === 'string' ? rawReason.trim().slice(0, 200) : null
+  const date     = typeof rawDate     === 'string' ? rawDate.trim()   : ''
+  const allDay   = rawAllDay === true
+  const reason   = typeof rawReason   === 'string' ? rawReason.trim().slice(0, 200) : null
+  const barberId = typeof rawBarberId === 'string' && rawBarberId.length > 0 ? rawBarberId : null
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'Invalid date.' }, { status: 400 })
@@ -62,12 +64,16 @@ export async function POST(request: Request) {
   // [apptStart, apptStart+duration) range intersects — we can't express that
   // purely in SQL with TIME columns, so we fetch the day's appointments and
   // filter in JS.
-  const { data: dayAppts } = await supabase
+  let apptQuery = supabase
     .from('appointments')
     .select('time, duration_min')
     .eq('tenant_id', tenant.id)
     .eq('date', date)
     .in('status', ['pending', 'completed'])
+
+  if (barberId) apptQuery = apptQuery.eq('barber_id', barberId)
+
+  const { data: dayAppts } = await apptQuery
 
   const toMin = (t: string) => {
     const [h, m] = t.slice(0, 5).split(':').map(Number)
@@ -95,6 +101,7 @@ export async function POST(request: Request) {
     end_time:   endTime,
     reason:     reason && reason.length > 0 ? reason : null,
     all_day:    allDay,
+    barber_id:  barberId,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

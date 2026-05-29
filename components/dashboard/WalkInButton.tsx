@@ -5,19 +5,28 @@ import { useRouter } from 'next/navigation'
 import { UserPlus, X, Plus, Trash2 } from 'lucide-react'
 import type { Service } from '@/lib/tenant-config'
 
-type Extra = { id: number; name: string; price: number }
+type BarberOption = { id: string; name: string; display_order: number }
+type Extra        = { id: number; name: string; price: number }
 
 let nextId = 1
 
-export default function WalkInButton({ services }: { services: Service[] }) {
+export default function WalkInButton({
+  services,
+  barbers = [],
+}: {
+  services: Service[]
+  barbers?: BarberOption[]
+}) {
   const [open,        setOpen]        = useState(false)
   const [primary,     setPrimary]     = useState(services[0]?.name ?? '')
   const [extras,      setExtras]      = useState<Extra[]>([])
   const [extraPick,   setExtraPick]   = useState('')
+  const [barberId,    setBarberId]    = useState<string>('any')
   const [name,        setName]        = useState('')
   const [phone,       setPhone]       = useState('')
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState<string | null>(null)
+  const showBarbers = barbers.length > 0
   const [, startTransition] = useTransition()
   const router = useRouter()
 
@@ -25,6 +34,7 @@ export default function WalkInButton({ services }: { services: Service[] }) {
     setPrimary(services[0]?.name ?? '')
     setExtras([])
     setExtraPick('')
+    setBarberId('any')
     setName('')
     setPhone('')
     setError(null)
@@ -62,6 +72,7 @@ export default function WalkInButton({ services }: { services: Service[] }) {
         service: primary,
         name:    name.trim(),
         phone:   phone.trim(),
+        ...(showBarbers ? { barber_id: barberId } : {}),
       }
       if (extras.length > 0) {
         body.final_price = total
@@ -193,6 +204,22 @@ export default function WalkInButton({ services }: { services: Service[] }) {
                   </span>
                 </div>
               </div>
+
+              {/* Barber */}
+              {showBarbers && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="wi-barber">Barber</label>
+                  <select
+                    id="wi-barber"
+                    value={barberId}
+                    onChange={e => setBarberId(e.target.value)}
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px] bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="any">Any available</option>
+                    {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Name */}
               <div>

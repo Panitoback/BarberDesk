@@ -4,7 +4,8 @@ import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarPlus, X } from 'lucide-react'
 
-type Service = { name: string; price_cad: number; duration_min: number }
+type Service    = { name: string; price_cad: number; duration_min: number }
+type BarberOption = { id: string; name: string; display_order: number }
 
 function formatTimeLabel(t: string): string {
   const [hStr, m] = t.split(':')
@@ -19,27 +20,36 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export default function NewAppointmentButton({ services }: { services: Service[] }) {
-  const [open,       setOpen]       = useState(false)
-  const [clientName, setClientName] = useState('')
+export default function NewAppointmentButton({
+  services,
+  barbers = [],
+}: {
+  services: Service[]
+  barbers?: BarberOption[]
+}) {
+  const [open,        setOpen]        = useState(false)
+  const [clientName,  setClientName]  = useState('')
   const [clientPhone, setClientPhone] = useState('')
-  const [service,    setService]    = useState(services[0]?.name ?? '')
-  const [date,       setDate]       = useState(todayISO())
-  const [time,       setTime]       = useState('')
-  const [daySlots,   setDaySlots]   = useState<string[]>([])
+  const [service,     setService]     = useState(services[0]?.name ?? '')
+  const [barberId,    setBarberId]    = useState<string>('any')
+  const [date,        setDate]        = useState(todayISO())
+  const [time,        setTime]        = useState('')
+  const [daySlots,    setDaySlots]    = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState<string | null>(null)
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
 
+  const showBarbers      = barbers.length > 0
   const selectedDuration = services.find(s => s.name === service)?.duration_min ?? 30
 
   useEffect(() => {
     if (!open || !date) return
     setLoadingSlots(true)
+    const barberParam = showBarbers ? `&barber_id=${encodeURIComponent(barberId)}` : ''
     fetch(
-      `/api/book/slots?date=${encodeURIComponent(date)}&duration=${selectedDuration}`,
+      `/api/book/slots?date=${encodeURIComponent(date)}&duration=${selectedDuration}${barberParam}`,
       { cache: 'no-store' },
     )
       .then(r => r.ok ? r.json() : { taken: [], slots: [] })
@@ -52,14 +62,14 @@ export default function NewAppointmentButton({ services }: { services: Service[]
         setTime(slotsArr[0] ?? '')
       })
       .catch(() => { setDaySlots([]); setLoadingSlots(false) })
-  }, [open, date, selectedDuration])
+  }, [open, date, selectedDuration, barberId, showBarbers])
 
   const availableSlots = daySlots
   const noSlots = !loadingSlots && availableSlots.length === 0
 
   function openModal() {
     setClientName(''); setClientPhone(''); setService(services[0]?.name ?? '')
-    setDate(todayISO()); setTime(''); setError(null)
+    setBarberId('any'); setDate(todayISO()); setTime(''); setError(null)
     setOpen(true)
   }
 
@@ -74,7 +84,14 @@ export default function NewAppointmentButton({ services }: { services: Service[]
       const res = await fetch('/api/appointments/create', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ client_name: clientName.trim(), client_phone: clientPhone.trim(), service, date, time }),
+        body:    JSON.stringify({
+          client_name:  clientName.trim(),
+          client_phone: clientPhone.trim(),
+          service,
+          date,
+          time,
+          ...(showBarbers ? { barber_id: barberId } : {}),
+        }),
       })
       const json = await res.json() as { ok?: boolean; error?: string }
       if (!res.ok) { setError(json.error ?? 'Something went wrong.'); return }
@@ -130,6 +147,17 @@ export default function NewAppointmentButton({ services }: { services: Service[]
                   placeholder="416-555-0100"
                   className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px]" />
               </div>
+
+              {showBarbers && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Barber</label>
+                  <select value={barberId} onChange={e => setBarberId(e.target.value)}
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px] bg-white">
+                    <option value="any">Any available</option>
+                    {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">

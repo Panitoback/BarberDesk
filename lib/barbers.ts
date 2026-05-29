@@ -50,3 +50,15 @@ export function formatPriceModifier(modifier: number): string {
   const pct = Math.round((modifier - 1) * 100)
   return pct > 0 ? `+${pct}%` : `${pct}%`
 }
+
+/** Stable color per barber based on display_order (cycles through 4 colors). */
+export const BARBER_COLORS = [
+  { border: 'border-l-indigo-400', badge: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-400' },
+  { border: 'border-l-emerald-400', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-400' },
+  { border: 'border-l-amber-400', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+  { border: 'border-l-rose-400', badge: 'bg-rose-100 text-rose-700', dot: 'bg-rose-400' },
+] as const
+
+export function barberColor(index: number) {
+  return BARBER_COLORS[index % BARBER_COLORS.length]
+}

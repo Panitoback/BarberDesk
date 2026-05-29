@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Tables } from '@/lib/supabase/types'
 import type { Service } from '@/lib/tenant-config'
@@ -8,7 +8,8 @@ import type { VisitExtra } from '@/lib/extras'
 import { parseExtras } from '@/lib/extras'
 import CompleteModal from '@/components/dashboard/CompleteModal'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
-import { Info } from 'lucide-react'
+import { Info, ChevronDown } from 'lucide-react'
+import { barberColor } from '@/lib/barbers'
 
 function ClientNoteRow({ note }: { note: string | null }) {
   if (!note) return null
@@ -20,14 +21,14 @@ function ClientNoteRow({ note }: { note: string | null }) {
   )
 }
 
+type BarberOption = { id: string; name: string; display_order: number }
+
 type AppointmentWithClient = Tables<'appointments'> & {
   clients: { name: string; phone: string | null } | null
-  visits: { price: number | null; extras: unknown }[] | null
+  visits:  { price: number | null; extras: unknown }[] | null
 }
 
 function displayPrice(a: AppointmentWithClient): number | null {
-  // Once completed, visits.price reflects extras the owner added at checkout.
-  // Pending rows fall back to the booking snapshot on appointments.price.
   const visitPrice = a.visits?.[0]?.price
   return visitPrice ?? a.price ?? null
 }
@@ -52,12 +53,80 @@ const statusLabel: Record<string, string> = {
 
 type ModalState = { appointmentId: string; service: string; basePrice: number | null }
 
+function BarberBadge({
+  barberId,
+  barbers,
+  appointmentId,
+  onReassign,
+}: {
+  barberId:      string | null
+  barbers:       BarberOption[]
+  appointmentId: string
+  onReassign:    (apptId: string, barberId: string | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  const barberIndex = barbers.findIndex(b => b.id === barberId)
+  const barber      = barberIndex >= 0 ? barbers[barberIndex] : null
+  const color       = barber ? barberColor(barberIndex) : null
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => barbers.length > 0 && setOpen(o => !o)}
+        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
+          color
+            ? `${color.badge} hover:opacity-80`
+            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+        }`}
+      >
+        {barber ? barber.name : 'Unassigned'}
+        {barbers.length > 0 && <ChevronDown className="w-3 h-3" />}
+      </button>
+
+      {open && (
+        <div className="absolute z-30 top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1 text-sm">
+          <button
+            className="w-full text-left px-3 py-1.5 text-slate-400 hover:bg-slate-50 text-xs"
+            onClick={() => { onReassign(appointmentId, null); setOpen(false) }}
+          >
+            Unassigned
+          </button>
+          {barbers.map((b, i) => (
+            <button
+              key={b.id}
+              className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-xs"
+              onClick={() => { onReassign(appointmentId, b.id); setOpen(false) }}
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${barberColor(i).dot}`} />
+              {b.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AppointmentsTodayTable({
   appointments: initialAppointments,
   services,
+  barbers = [],
 }: {
   appointments: AppointmentWithClient[]
-  services: Service[]
+  services:     Service[]
+  barbers?:     BarberOption[]
 }) {
   const [appointments, setAppointments] = useState(initialAppointments)
   const [modal, setModal]               = useState<ModalState | null>(null)
@@ -67,109 +136,84 @@ export default function AppointmentsTodayTable({
   const [, startTransition] = useTransition()
   const router = useRouter()
 
+  const showBarbers = barbers.length > 0
+
   function openModal(appt: AppointmentWithClient) {
-    setModal({
-      appointmentId: appt.id,
-      service:       appt.service,
-      basePrice:     appt.price ?? null,
-    })
+    setModal({ appointmentId: appt.id, service: appt.service, basePrice: appt.price ?? null })
   }
 
   async function handleComplete(finalPrice: number | null, extras: VisitExtra[]) {
     if (!modal) return
     setCompleting(true)
-
     const body: Record<string, unknown> = { appointment_id: modal.appointmentId }
     if (finalPrice !== null) body.final_price = finalPrice
     if (extras.length > 0)   body.extras      = extras
 
     const res = await fetch('/api/appointments/complete', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
-
     if (res.ok) {
       const id = modal.appointmentId
-      setAppointments(prev =>
-        prev.map(a => a.id === id
-          ? {
-              ...a,
-              status: 'completed' as const,
-              visits: [{ price: finalPrice ?? a.price, extras }],
-            }
-          : a)
-      )
+      setAppointments(prev => prev.map(a => a.id === id
+        ? { ...a, status: 'completed' as const, visits: [{ price: finalPrice ?? a.price, extras }] }
+        : a))
       setModal(null)
       startTransition(() => router.refresh())
     }
-
     setCompleting(false)
   }
 
   async function markNoShow(appointmentId: string) {
     setMarking(appointmentId)
-
     const res = await fetch('/api/noshow', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ appointment_id: appointmentId }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointment_id: appointmentId }),
     })
-
     if (res.ok || res.status === 502) {
-      setAppointments(prev =>
-        prev.map(a => a.id === appointmentId ? { ...a, status: 'no_show' as const } : a)
-      )
+      setAppointments(prev => prev.map(a => a.id === appointmentId ? { ...a, status: 'no_show' as const } : a))
       startTransition(() => router.refresh())
     }
-
     setMarking(null)
   }
 
   async function cancelAppointment(appointmentId: string) {
     if (!window.confirm('Cancel this appointment? The client will get an SMS notification.')) return
-
     setCancelling(appointmentId)
-
     const res = await fetch('/api/appointments/cancel', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ appointment_id: appointmentId }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointment_id: appointmentId }),
     })
-
     if (res.ok) {
-      setAppointments(prev =>
-        prev.map(a => a.id === appointmentId ? { ...a, status: 'cancelled' as const } : a)
-      )
+      setAppointments(prev => prev.map(a => a.id === appointmentId ? { ...a, status: 'cancelled' as const } : a))
       startTransition(() => router.refresh())
     }
-
     setCancelling(null)
+  }
+
+  async function handleReassign(appointmentId: string, newBarberId: string | null) {
+    const res = await fetch(`/api/appointments/${appointmentId}/reassign`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ barber_id: newBarberId }),
+    })
+    if (res.ok) {
+      setAppointments(prev => prev.map(a => a.id === appointmentId ? { ...a, barber_id: newBarberId } : a))
+    }
   }
 
   function ActionButtons({ appt, full }: { appt: AppointmentWithClient; full?: boolean }) {
     const busy = completing || marking === appt.id || cancelling === appt.id
     return (
       <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => openModal(appt)}
-          disabled={busy}
-          className={`text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}
-        >
+        <button onClick={() => openModal(appt)} disabled={busy}
+          className={`text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}>
           Complete
         </button>
-        <button
-          onClick={() => markNoShow(appt.id)}
-          disabled={busy}
-          className={`text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}
-        >
+        <button onClick={() => markNoShow(appt.id)} disabled={busy}
+          className={`text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}>
           {marking === appt.id ? 'Saving...' : 'No show'}
         </button>
-        <button
-          onClick={() => cancelAppointment(appt.id)}
-          disabled={busy}
-          className={`text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}
-        >
+        <button onClick={() => cancelAppointment(appt.id)} disabled={busy}
+          className={`text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-colors ${full ? 'flex-1' : 'py-1.5'}`}>
           {cancelling === appt.id ? 'Cancelling...' : 'Cancel'}
         </button>
       </div>
@@ -202,9 +246,7 @@ export default function AppointmentsTodayTable({
         {appointments.map((appointment) => (
           <div key={appointment.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-mono font-semibold text-slate-900">
-                {appointment.time.slice(0, 5)}
-              </span>
+              <span className="font-mono font-semibold text-slate-900">{appointment.time.slice(0, 5)}</span>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[appointment.status]}`}>
                 {statusLabel[appointment.status]}
               </span>
@@ -212,27 +254,28 @@ export default function AppointmentsTodayTable({
             <div className="mt-2">
               <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
               <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
+              {showBarbers && (
+                <div className="mt-1.5">
+                  <BarberBadge
+                    barberId={appointment.barber_id}
+                    barbers={barbers}
+                    appointmentId={appointment.id}
+                    onReassign={handleReassign}
+                  />
+                </div>
+              )}
               <ClientNoteRow note={appointment.client_note} />
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <p className="text-sm text-slate-600">{appointment.service}</p>
-              <ServiceBreakdown
-                service={appointment.service}
-                basePrice={appointment.price}
-                extras={visitExtras(appointment)}
-                total={displayPrice(appointment)}
-              />
+              <ServiceBreakdown service={appointment.service} basePrice={appointment.price} extras={visitExtras(appointment)} total={displayPrice(appointment)} />
             </div>
             {(() => {
               const price = displayPrice(appointment)
-              return price !== null
-                ? <p className="text-xs text-slate-400 mt-0.5">${price.toFixed(2)} CAD</p>
-                : null
+              return price !== null ? <p className="text-xs text-slate-400 mt-0.5">${price.toFixed(2)} CAD</p> : null
             })()}
             {appointment.status === 'pending' && (
-              <div className="mt-3">
-                <ActionButtons appt={appointment} full />
-              </div>
+              <div className="mt-3"><ActionButtons appt={appointment} full /></div>
             )}
           </div>
         ))}
@@ -245,6 +288,7 @@ export default function AppointmentsTodayTable({
             <tr className="border-b border-slate-100 text-left">
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Time</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Client</th>
+              {showBarbers && <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Barber</th>}
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Service</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Price</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
@@ -262,23 +306,26 @@ export default function AppointmentsTodayTable({
                   <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
                   <ClientNoteRow note={appointment.client_note} />
                 </td>
+                {showBarbers && (
+                  <td className="px-6 py-4">
+                    <BarberBadge
+                      barberId={appointment.barber_id}
+                      barbers={barbers}
+                      appointmentId={appointment.id}
+                      onReassign={handleReassign}
+                    />
+                  </td>
+                )}
                 <td className="px-6 py-4 text-slate-600">
                   <div className="flex items-center gap-1.5">
                     <span>{appointment.service}</span>
-                    <ServiceBreakdown
-                      service={appointment.service}
-                      basePrice={appointment.price}
-                      extras={visitExtras(appointment)}
-                      total={displayPrice(appointment)}
-                    />
+                    <ServiceBreakdown service={appointment.service} basePrice={appointment.price} extras={visitExtras(appointment)} total={displayPrice(appointment)} />
                   </div>
                 </td>
                 <td className="px-6 py-4 text-slate-600 font-mono whitespace-nowrap">
                   {(() => {
                     const price = displayPrice(appointment)
-                    return price !== null
-                      ? `$${price.toFixed(2)}`
-                      : <span className="text-slate-300">—</span>
+                    return price !== null ? `$${price.toFixed(2)}` : <span className="text-slate-300">—</span>
                   })()}
                 </td>
                 <td className="px-6 py-4">

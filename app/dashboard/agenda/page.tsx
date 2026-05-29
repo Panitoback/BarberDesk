@@ -19,7 +19,6 @@ function addDays(dateISO: string, n: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-
 export default async function AgendaPage({
   searchParams,
 }: {
@@ -35,10 +34,16 @@ export default async function AgendaPage({
   const today  = todayInToronto()
 
   const supabase = await createClient()
-  const [{ data: appointments }, { data: weekBlocks }, { data: upcomingBlocks }] = await Promise.all([
+  const [
+    { data: appointments },
+    { data: weekBlocks },
+    { data: upcomingBlocks },
+    { data: tenantRow },
+    { data: barbers },
+  ] = await Promise.all([
     supabase
       .from('appointments')
-      .select('id, date, time, service, status, client_note, clients(name)')
+      .select('id, date, time, service, status, client_note, barber_id, clients(name)')
       .eq('tenant_id', tenant.id)
       .gte('date', monday)
       .lte('date', sunday)
@@ -51,13 +56,18 @@ export default async function AgendaPage({
       .lte('date', sunday),
     supabase
       .from('time_blocks')
-      .select('id, date, start_time, end_time, all_day, reason')
+      .select('id, date, start_time, end_time, all_day, reason, barber_id')
       .eq('tenant_id', tenant.id)
       .gte('date', today)
       .order('date', { ascending: true })
       .order('start_time', { ascending: true })
       .limit(10),
+    supabase.from('tenants').select('multi_barber').eq('id', tenant.id).single(),
+    supabase.from('barbers').select('id, name, display_order').eq('tenant_id', tenant.id).eq('active', true).order('display_order'),
   ])
+
+  const multiBarber = tenantRow?.multi_barber ?? false
+  const barberList  = multiBarber ? (barbers ?? []) : []
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const dateISO = addDays(monday, i)
@@ -73,6 +83,7 @@ export default async function AgendaPage({
           service:     a.service,
           status:      a.status,
           client_note: a.client_note,
+          barber_id:   a.barber_id,
           clients:     Array.isArray(a.clients) ? (a.clients[0] ?? null) : a.clients,
         })),
       blocks: (weekBlocks ?? [])
@@ -89,9 +100,9 @@ export default async function AgendaPage({
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex justify-end mb-3">
-        <BlockTimeButton upcomingBlocks={upcomingBlocks ?? []} />
+        <BlockTimeButton upcomingBlocks={upcomingBlocks ?? []} barbers={barberList} />
       </div>
-      <WeeklyAgenda days={days} monday={monday} />
+      <WeeklyAgenda days={days} monday={monday} barbers={barberList} />
     </div>
   )
 }

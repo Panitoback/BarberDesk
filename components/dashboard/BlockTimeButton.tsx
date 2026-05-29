@@ -11,7 +11,10 @@ export type TimeBlockRow = {
   end_time:   string
   reason:     string | null
   all_day:    boolean
+  barber_id:  string | null
 }
+
+type BarberOption = { id: string; name: string; display_order: number }
 
 function todayISO(): string {
   const d = new Date()
@@ -27,8 +30,10 @@ function formatDate(iso: string): string {
 
 export default function BlockTimeButton({
   upcomingBlocks,
+  barbers = [],
 }: {
   upcomingBlocks: TimeBlockRow[]
+  barbers?:       BarberOption[]
 }) {
   const router = useRouter()
   const [open,      setOpen]      = useState(false)
@@ -37,14 +42,17 @@ export default function BlockTimeButton({
   const [startTime, setStartTime] = useState('12:00')
   const [endTime,   setEndTime]   = useState('13:00')
   const [reason,    setReason]    = useState('')
+  const [barberId,  setBarberId]  = useState<string>('shop')
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
+  const showBarbers = barbers.length > 0
+
   function openModal() {
     setDate(todayISO()); setAllDay(false)
     setStartTime('12:00'); setEndTime('13:00'); setReason('')
-    setError(null); setOpen(true)
+    setBarberId('shop'); setError(null); setOpen(true)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,6 +68,7 @@ export default function BlockTimeButton({
           start_time: allDay ? undefined : startTime,
           end_time:   allDay ? undefined : endTime,
           reason:     reason.trim() || undefined,
+          barber_id:  showBarbers && barberId !== 'shop' ? barberId : undefined,
         }),
       })
       const json = await res.json() as { ok?: boolean; error?: string }
@@ -103,6 +112,11 @@ export default function BlockTimeButton({
                       ? 'All day'
                       : `${b.start_time.slice(0, 5)}–${b.end_time.slice(0, 5)}`}
                   </span>
+                  {b.barber_id && barbers.length > 0 && (
+                    <span className="text-indigo-500 ml-2 text-xs shrink-0">
+                      {barbers.find(bar => bar.id === b.barber_id)?.name ?? 'Barber'} only
+                    </span>
+                  )}
                   {b.reason && <span className="text-slate-400 ml-2 truncate">· {b.reason}</span>}
                 </div>
                 <button
@@ -160,6 +174,17 @@ export default function BlockTimeButton({
                       onChange={e => setEndTime(e.target.value)}
                       className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px]" />
                   </div>
+                </div>
+              )}
+
+              {showBarbers && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Applies to</label>
+                  <select value={barberId} onChange={e => setBarberId(e.target.value)}
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[44px] bg-white">
+                    <option value="shop">Entire shop</option>
+                    {barbers.map(b => <option key={b.id} value={b.id}>{b.name} only</option>)}
+                  </select>
                 </div>
               )}
 
