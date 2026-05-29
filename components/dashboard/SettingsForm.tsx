@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Copy, RefreshCw } from 'lucide-react'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
@@ -35,6 +35,8 @@ export default function SettingsForm({
   initialFlashDiscountPct,
   initialBarbers,
   multiBarber,
+  staffToken,
+  subdomain,
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -43,6 +45,8 @@ export default function SettingsForm({
   initialFlashDiscountPct: number
   initialBarbers:          BarberRow[]
   multiBarber:             boolean
+  staffToken:              string | null
+  subdomain:               string
 }) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -58,8 +62,39 @@ export default function SettingsForm({
   const [reminderActive,    setReminderActive]    = useState(initialReminderActive)
   const [reminderHours,     setReminderHours]     = useState(initialReminderHours)
   const [flashDiscountPct,  setFlashDiscountPct]  = useState(initialFlashDiscountPct)
-  const [saving,    setSaving]    = useState(false)
-  const [feedback,  setFeedback]  = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [saving,         setSaving]         = useState(false)
+  const [feedback,       setFeedback]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [currentToken,   setCurrentToken]   = useState(staffToken)
+  const [regenerating,   setRegenerating]   = useState(false)
+  const [copied,         setCopied]         = useState(false)
+
+  const isProduction = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
+  const protocol     = isProduction ? 'https' : 'http'
+  const staffUrl     = currentToken
+    ? `${protocol}://${subdomain}.${isProduction ? 'barberqueue.pro' : 'localhost:3000'}/staff/${currentToken}`
+    : null
+
+  async function handleCopy() {
+    if (!staffUrl) return
+    await navigator.clipboard.writeText(staffUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleRegenerate() {
+    if (!confirm('Regenerate the staff link? The old link will stop working immediately.')) return
+    setRegenerating(true)
+    try {
+      const res  = await fetch('/api/settings/staff-token', { method: 'POST' })
+      const json = await res.json() as { staff_token?: string; error?: string }
+      if (!res.ok) throw new Error(json.error ?? 'Failed')
+      setCurrentToken(json.staff_token ?? null)
+    } catch {
+      setFeedback({ type: 'error', text: 'Could not regenerate staff link.' })
+    } finally {
+      setRegenerating(false)
+    }
+  }
 
   function setTab(id: TabId) {
     const next = new URLSearchParams(params.toString())
@@ -274,6 +309,45 @@ export default function SettingsForm({
               aria-label="Google review link"
               className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
             />
+          </section>
+
+          {/* Staff view link */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Staff view link</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">
+              Share this link with your team. Anyone with it can see the schedule — read only, no login required.
+            </p>
+            {staffUrl ? (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  readOnly
+                  value={staffUrl}
+                  className="flex-1 min-w-0 text-sm border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 text-slate-600 font-mono truncate min-h-[40px]"
+                  onFocus={e => e.target.select()}
+                />
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 min-h-[40px]"
+                  >
+                    <Copy className="w-4 h-4" />
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 min-h-[40px]"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+                    Regenerate
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic">Token not available — try refreshing the page.</p>
+            )}
           </section>
 
           <SaveBar feedback={feedback} saving={saving} onSave={handleSave} />

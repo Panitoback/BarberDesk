@@ -56,6 +56,7 @@ export async function proxy(request: NextRequest) {
       pathname.startsWith('/book/') ||
       pathname === '/api/book' ||
       pathname.startsWith('/api/book/') ||
+      pathname.startsWith('/staff/') ||
       // /api/errors must accept unauthenticated POSTs so client-side errors
       // from public/login/register pages reach error_logs. The route itself
       // is fail-silent and size-capped, no auth needed.

@@ -1,7 +1,6 @@
 # Multi-Barber Support — Implementation Plan
 
-> Status: Phase 1+2 ✅ shipped to production (2026-05-29) · Phase 3+4 pending
-> Execution split: **Phase 1+2 done**, **Phase 3+4 next session**.
+> Status: All 4 phases ✅ shipped to production (2026-05-29) · Staff view ✅ shipped (2026-05-29)
 
 ## Goal
 
@@ -337,24 +336,34 @@ Add `barberName` to confirmation/reminder/cancel SMS where relevant. Where barbe
 - [x] Add Supabase Storage domain to `next.config.ts` (next/image remotePatterns)
 - [x] tsc + build pass · verified in production
 
-### Phase 3+4 session (target: 3.5h)
-- [ ] `AppointmentsTodayTable` barber column + reassign dropdown
-- [ ] `WeeklyAgenda` filter by barber (pills) + color borders per barber
-- [ ] `NewAppointmentButton` + `WalkInButton` barber dropdown
-- [ ] Dashboard "Revenue by barber" card (revenue + visit count)
-- [ ] BlockTimeButton barber dropdown (entire shop vs specific barber)
-- [ ] CLAUDE.md update (already done for Phase 1+2)
-- [ ] tsc + build pass
-- [ ] Final regression sweep
+### Phase 3+4 session — ✅ DONE (2026-05-29)
+- [x] `AppointmentsTodayTable` barber column + reassign dropdown
+- [x] `WeeklyAgenda` filter by barber (pills) + color borders per barber
+- [x] `NewAppointmentButton` + `WalkInButton` barber dropdown
+- [x] Dashboard "Revenue by barber" card (revenue + visit count)
+- [x] BlockTimeButton barber dropdown (entire shop vs specific barber)
+- [x] `POST /api/appointments/[id]/reassign` — validates availability, catches 23505 double-book
+- [x] tsc + build pass · verified in production
+- [x] Full regression audit — no bugs found
+
+### Staff view — ✅ DONE (2026-05-29)
+- [x] Migration `tenants_staff_token` — `tenants.staff_token uuid NOT NULL DEFAULT gen_random_uuid()`
+- [x] `proxy.ts` — `/staff/` added to `isPublicPath` (no auth, no rewrite)
+- [x] `app/staff/[token]/page.tsx` — read-only schedule (today + next 7 days), barber badges, client notes
+- [x] `POST /api/settings/staff-token` — owner regenerates token (old link invalidated immediately)
+- [x] `SettingsForm` General tab — "Staff view link" section with Copy + Regenerate buttons
+- [x] `lib/supabase/types.ts` — `staff_token` added to tenants Row/Insert/Update
 
 ---
 
 ## Useful references inside the repo
 
-- Slot logic to extend: `lib/slots.ts`
+- Slot logic: `lib/slots.ts`
+- Barber helpers: `lib/barbers.ts` (barberPhotoUrl, effectiveHoursForBarber, applyPriceModifier, barberColor)
 - Booking validation patterns: `app/api/book/route.ts`
-- Settings tabs pattern (none exists yet): `components/dashboard/SettingsForm.tsx`
-- Existing CRUD + RLS pattern: `app/api/time-blocks/` (just shipped, good reference)
-- Tenant config validator (model for barber field validation): `lib/tenant-config.ts`
+- Settings tabs: `components/dashboard/SettingsForm.tsx`
+- Barbers CRUD: `app/api/barbers/` + `components/dashboard/BarbersTab.tsx`
+- Staff view page: `app/staff/[token]/page.tsx`
+- Tenant config validator: `lib/tenant-config.ts`
 - Resend email pattern: `app/api/cron/reminders/route.ts`
 - fire-and-forget pattern: `app/api/book/route.ts` (owner notification email)

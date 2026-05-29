@@ -504,6 +504,7 @@ export type Database = {
           name: string
           owner_id: string
           plan: Database["public"]["Enums"]["plan_type"]
+          staff_token: string
           subdomain: string
           twilio_number: string | null
         }
@@ -515,6 +516,7 @@ export type Database = {
           name: string
           owner_id: string
           plan?: Database["public"]["Enums"]["plan_type"]
+          staff_token?: string
           subdomain: string
           twilio_number?: string | null
         }
@@ -526,6 +528,7 @@ export type Database = {
           name?: string
           owner_id?: string
           plan?: Database["public"]["Enums"]["plan_type"]
+          staff_token?: string
           subdomain?: string
           twilio_number?: string | null
         }

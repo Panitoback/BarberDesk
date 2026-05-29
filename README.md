@@ -24,10 +24,11 @@ Multi-tenant SaaS for independent barbershops. Each shop gets a subdomain, priva
 ## Subdomain routing
 
 ```
-barberqueue.pro           → landing + registration
-barberqueue.pro/admin     → platform admin (allowlisted via ADMIN_USER_IDS)
-[slug].barberqueue.pro    → barber's private dashboard
-[slug].barberqueue.pro/book → public client booking
+barberqueue.pro                            → landing + registration
+barberqueue.pro/admin                      → platform admin (allowlisted via ADMIN_USER_IDS)
+[slug].barberqueue.pro                     → owner's private dashboard
+[slug].barberqueue.pro/book                → public client booking
+[slug].barberqueue.pro/staff/[token]       → read-only staff schedule view (no login required)
 ```
 
 `proxy.ts` detects subdomain, guards auth, injects `x-subdomain` header into all requests.
@@ -44,6 +45,17 @@ npm run dev
 Open the dashboard at `http://test.localhost:3000` (Chrome/Edge resolve `*.localhost` automatically).
 
 All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOOK_SECRET.
+
+---
+
+## Features
+
+- **Multi-barber support** — manage 2–4 barbers per shop, gated by `tenants.multi_barber` (admin toggle). Includes per-barber booking picker, least-loaded auto-assign, price modifiers, photo uploads, barber notification emails, and revenue-by-barber dashboard card.
+- **Public booking** — client-facing booking page with barber picker, preferred-barber pre-selection by phone, slot availability per barber, and SMS + email confirmation.
+- **Automations** — no-show recovery SMS, loyalty points, reactivation SMS, Google review requests, appointment reminders, AI auto-reply via n8n + OpenRouter.
+- **Staff view** — token-gated read-only schedule page (`/staff/[token]`) shared with staff. No login required. Owner regenerates token from Settings to revoke access.
+- **Walk-ins** — instant walk-in entry with anonymous client bucket per shop.
+- **Messaging** — inbound/outbound SMS via Twilio with Realtime notification bell in dashboard.
 
 ---
 
