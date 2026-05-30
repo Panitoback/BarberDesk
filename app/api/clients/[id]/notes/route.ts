@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getSubdomain } from '@/lib/subdomain'
 
 const MAX_LEN = 2000
 
@@ -8,6 +9,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
+
+  const subdomain = await getSubdomain()
+  if (!subdomain) return NextResponse.json({ error: 'No subdomain' }, { status: 400 })
 
   let body: { notes?: unknown }
   try {
@@ -29,11 +33,18 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // RLS filters by tenant ownership; no extra tenant_id check needed.
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id')
+    .eq('subdomain', subdomain)
+    .single()
+  if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+
   const { error } = await supabase
     .from('clients')
     .update({ notes })
     .eq('id', id)
+    .eq('tenant_id', tenant.id)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

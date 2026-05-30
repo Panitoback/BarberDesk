@@ -488,12 +488,19 @@ export async function POST(request: Request) {
       checkoutUrl = session.url
     } catch (stripeErr) {
       // Roll back the appointment so the slot is freed
-      await supabase.from('appointments').delete().eq('id', appointmentId)
+      const { error: deleteErr } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId)
       await logError({
         route: '/api/book', method: 'POST', status: 500, tenantId: tenant.id,
         message: stripeErr instanceof Error ? stripeErr.message : 'stripe_session_failed',
         errorCode: null,
-        metadata: { stage: 'stripe_checkout_create', appointment_id: appointmentId },
+        metadata: {
+          stage: 'stripe_checkout_create',
+          appointment_id: appointmentId,
+          rollback_failed: !!deleteErr,
+        },
         requestBody: { service, date, time },
       })
       return NextResponse.json(

@@ -124,7 +124,7 @@ export default function CompleteModal({
             )}
 
             {extras.length > 0 && (
-              <ul className="space-y-1.5 max-h-36 overflow-y-auto">
+              <ul className="space-y-1.5 max-h-[30vh] sm:max-h-36 overflow-y-auto">
                 {extras.map(e => (
                   <li key={e.id} className="flex items-center justify-between gap-2 bg-slate-50 rounded-lg px-3 py-2">
                     <span className="text-sm text-slate-800">{e.name}</span>

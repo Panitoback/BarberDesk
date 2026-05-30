@@ -65,6 +65,11 @@ export async function POST(request: Request) {
     return new NextResponse('Missing metadata', { status: 400 })
   }
 
+  // Cross-check: metadata tenant must match the tenant resolved from subdomain
+  if (tenantId !== tenant.id) {
+    return new NextResponse('Tenant mismatch', { status: 400 })
+  }
+
   // Idempotency check — Stripe can deliver the same event more than once.
   const { data: existing } = await supabase
     .from('appointments')

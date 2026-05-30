@@ -272,9 +272,9 @@ export default function AppointmentsTodayTable({
                 {statusLabel[appointment.status]}
               </span>
             </div>
-            <div className="mt-2">
-              <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
-              <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
+            <div className="mt-2 min-w-0">
+              <p className="font-medium text-slate-900 truncate">{appointment.clients?.name ?? '—'}</p>
+              <p className="text-xs text-slate-400 truncate">{appointment.clients?.phone}</p>
               {showBarbers && (
                 <div className="mt-1.5">
                   <BarberBadge

@@ -185,7 +185,7 @@ export default function WeeklyAgenda({
       )}
 
       {/* Grid */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm bg-white">
+      <div className="overflow-x-auto -mx-4 sm:mx-0 sm:rounded-2xl border border-slate-100 shadow-sm bg-white">
         <div className="min-w-[640px]">
           {/* Day headers */}
           <div className="grid border-b border-slate-100" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>

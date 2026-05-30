@@ -146,7 +146,7 @@ export default function NotificationBell({ align = 'right' }: { align?: 'left' |
       </button>
 
       {open && (
-        <div className={`absolute top-full mt-2 w-80 max-w-[calc(100vw-16px)] bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden ${align === 'left' ? 'left-0' : 'right-0'}`}>
+        <div className={`absolute top-full mt-2 w-80 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden ${align === 'left' ? 'left-0' : 'right-0'}`}>
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <span className="text-sm font-semibold text-slate-900">
               {count > 0 ? `${count} unread message${count > 1 ? 's' : ''}` : 'No unread messages'}

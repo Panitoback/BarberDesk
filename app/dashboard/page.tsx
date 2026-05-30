@@ -100,7 +100,7 @@ export default async function DashboardPage() {
 
       <BookingLinkCard url={bookingUrl} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard label="Registered clients"  value={totalClients ?? 0}               icon={Users} />
         <StatsCard label="Appointments today"  value={todayCount ?? 0}                  icon={Calendar} description="Pending + completed" />
         <StatsCard label="Visits this month"   value={monthlyVisits ?? 0}               icon={Scissors} />
