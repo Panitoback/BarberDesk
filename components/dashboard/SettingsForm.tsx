@@ -37,6 +37,8 @@ export default function SettingsForm({
   multiBarber,
   staffToken,
   subdomain,
+  hasStripeKey            = false,
+  hasStripeWebhookSecret  = false,
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -47,6 +49,8 @@ export default function SettingsForm({
   multiBarber:             boolean
   staffToken:              string | null
   subdomain:               string
+  hasStripeKey?:           boolean
+  hasStripeWebhookSecret?: boolean
 }) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -60,6 +64,8 @@ export default function SettingsForm({
   const [notificationEmail, setNotificationEmail] = useState(initialConfig.notification_email ?? '')
   const [depositActive,     setDepositActive]     = useState(initialConfig.deposit_active ?? false)
   const [depositAmount,     setDepositAmount]     = useState(String(initialConfig.deposit_amount_cad ?? 20))
+  const [stripeKey,         setStripeKey]         = useState('')
+  const [stripeWebhook,     setStripeWebhook]     = useState('')
   const [reviewLink,        setReviewLink]        = useState(initialReviewLink)
   const [reminderActive,    setReminderActive]    = useState(initialReminderActive)
   const [reminderHours,     setReminderHours]     = useState(initialReminderHours)
@@ -165,16 +171,20 @@ export default function SettingsForm({
       const hours_val = Math.min(72, Math.max(1, Math.round(reminderHours) || 24))
       const pct       = Math.min(100, Math.max(1, Math.round(flashDiscountPct) || 20))
 
+      const body: Record<string, unknown> = {
+        config,
+        review_link:        reviewLink.trim(),
+        reminder_active:    reminderActive,
+        reminder_hours:     hours_val,
+        flash_discount_pct: pct,
+      }
+      if (stripeKey.trim())     body.stripe_secret_key     = stripeKey.trim()
+      if (stripeWebhook.trim()) body.stripe_webhook_secret = stripeWebhook.trim()
+
       const res = await fetch('/api/settings', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          config,
-          review_link:        reviewLink.trim(),
-          reminder_active:    reminderActive,
-          reminder_hours:     hours_val,
-          flash_discount_pct: pct,
-        }),
+        body:    JSON.stringify(body),
       })
       const json = await res.json() as { ok?: boolean; error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Failed to save')
@@ -357,9 +367,46 @@ export default function SettingsForm({
             )}
 
             {depositActive && (
-              <p className="text-xs text-slate-500 mt-3">
-                Requires <strong>STRIPE_SECRET_KEY</strong> and <strong>STRIPE_WEBHOOK_SECRET</strong> in your environment variables.
-              </p>
+              <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Stripe credentials</p>
+
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-600 flex items-center gap-2">
+                    Secret key
+                    {hasStripeKey && !stripeKey && (
+                      <span className="text-emerald-600 font-medium">✓ Configured</span>
+                    )}
+                  </label>
+                  <input
+                    type="password"
+                    value={stripeKey}
+                    onChange={e => setStripeKey(e.target.value)}
+                    placeholder={hasStripeKey ? 'Leave blank to keep existing' : 'sk_live_…'}
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px] font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-600 flex items-center gap-2">
+                    Webhook secret
+                    {hasStripeWebhookSecret && !stripeWebhook && (
+                      <span className="text-emerald-600 font-medium">✓ Configured</span>
+                    )}
+                  </label>
+                  <input
+                    type="password"
+                    value={stripeWebhook}
+                    onChange={e => setStripeWebhook(e.target.value)}
+                    placeholder={hasStripeWebhookSecret ? 'Leave blank to keep existing' : 'whsec_…'}
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px] font-mono"
+                  />
+                  <p className="text-xs text-slate-400">
+                    Create a webhook in Stripe Dashboard → Developers → Webhooks pointing to{' '}
+                    <span className="font-mono">{`https://${subdomain}.barberqueue.pro/api/webhooks/stripe`}</span>{' '}
+                    listening for <span className="font-mono">checkout.session.completed</span>.
+                  </p>
+                </div>
+              </div>
             )}
           </section>
 

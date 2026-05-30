@@ -11,7 +11,7 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 import { getStartableSlots, getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
 import { logError } from '@/lib/error-logger'
 import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
-import { getStripe } from '@/lib/stripe'
+import { getStripeForKey } from '@/lib/stripe'
 import { normalizePhone } from '@/lib/phone'
 
 const NAME_MIN = 2
@@ -450,13 +450,14 @@ export async function POST(request: Request) {
   // ── Deposit flow ──────────────────────────────────────────────────────────
   const depositActive    = cfgResult.ok && cfgResult.config.deposit_active
   const depositAmountCad = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 20) : 20
+  const tenantStripeKey  = cfgResult.ok ? cfgResult.config.stripe_secret_key : undefined
 
-  if (depositActive && process.env.STRIPE_SECRET_KEY) {
+  if (depositActive && tenantStripeKey) {
     const origin = request.headers.get('origin') ?? `https://${subdomain}.barberqueue.pro`
 
     let checkoutUrl: string
     try {
-      const session = await getStripe().checkout.sessions.create({
+      const session = await getStripeForKey(tenantStripeKey).checkout.sessions.create({
         payment_method_types: ['card'],
         mode:                 'payment',
         line_items: [{

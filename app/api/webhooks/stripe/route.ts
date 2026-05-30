@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getStripe } from '@/lib/stripe'
+import { getStripeForKey } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { formatDateTimeForSms } from '@/lib/dates'
+import { getSubdomain } from '@/lib/subdomain'
+import { validateTenantConfig } from '@/lib/tenant-config'
 
 export const runtime = 'nodejs'
 
@@ -11,13 +13,32 @@ export async function POST(request: Request) {
   const sig = request.headers.get('stripe-signature')
   if (!sig) return new NextResponse('Missing signature', { status: 400 })
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-  if (!webhookSecret) return new NextResponse('Webhook secret not configured', { status: 500 })
+  const subdomain = await getSubdomain()
+  if (!subdomain) return new NextResponse('Missing subdomain', { status: 400 })
+
+  const supabase = createAdminClient()
+
+  // Look up tenant and their Stripe credentials
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id, config')
+    .eq('subdomain', subdomain)
+    .single()
+
+  if (!tenant) return new NextResponse('Tenant not found', { status: 404 })
+
+  const cfgResult = validateTenantConfig(tenant.config ?? {})
+  const stripeKey     = cfgResult.ok ? cfgResult.config.stripe_secret_key     : undefined
+  const webhookSecret = cfgResult.ok ? cfgResult.config.stripe_webhook_secret : undefined
+
+  if (!stripeKey || !webhookSecret) {
+    return new NextResponse('Stripe not configured for this tenant', { status: 400 })
+  }
 
   let event: import('stripe').Stripe.Event
   try {
     const body = await request.text()
-    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret)
+    event = getStripeForKey(stripeKey).webhooks.constructEvent(body, sig, webhookSecret)
   } catch {
     return new NextResponse('Webhook signature invalid', { status: 400 })
   }
@@ -44,10 +65,7 @@ export async function POST(request: Request) {
     return new NextResponse('Missing metadata', { status: 400 })
   }
 
-  const supabase = createAdminClient()
-
   // Idempotency check — Stripe can deliver the same event more than once.
-  // If stripe_session_id is already set, the SMS was already sent; skip.
   const { data: existing } = await supabase
     .from('appointments')
     .select('stripe_session_id')

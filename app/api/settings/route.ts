@@ -21,21 +21,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
   const {
-    config:              rawConfig,
-    review_link:         rawReviewLink,
-    reminder_active:     rawReminderActive,
-    reminder_hours:      rawReminderHours,
-    flash_discount_pct:  rawFlashDiscountPct,
+    config:                  rawConfig,
+    review_link:             rawReviewLink,
+    reminder_active:         rawReminderActive,
+    reminder_hours:          rawReminderHours,
+    flash_discount_pct:      rawFlashDiscountPct,
+    stripe_secret_key:       rawStripeKey,
+    stripe_webhook_secret:   rawStripeWebhook,
   } = body as {
-    config?:             unknown
-    review_link?:        unknown
-    reminder_active?:    unknown
-    reminder_hours?:     unknown
-    flash_discount_pct?: unknown
+    config?:                 unknown
+    review_link?:            unknown
+    reminder_active?:        unknown
+    reminder_hours?:         unknown
+    flash_discount_pct?:     unknown
+    stripe_secret_key?:      unknown
+    stripe_webhook_secret?:  unknown
   }
 
   const result = validateTenantConfig(rawConfig ?? {})
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
+
+  // Validate stripe keys if provided
+  if (rawStripeKey !== undefined && rawStripeKey !== '') {
+    if (typeof rawStripeKey !== 'string' || !rawStripeKey.startsWith('sk_')) {
+      return NextResponse.json({ error: 'stripe_secret_key must start with sk_' }, { status: 400 })
+    }
+  }
+  if (rawStripeWebhook !== undefined && rawStripeWebhook !== '') {
+    if (typeof rawStripeWebhook !== 'string' || !rawStripeWebhook.startsWith('whsec_')) {
+      return NextResponse.json({ error: 'stripe_webhook_secret must start with whsec_' }, { status: 400 })
+    }
+  }
 
   let reviewLink: string | null = null
   if (rawReviewLink !== undefined) {
@@ -64,9 +80,30 @@ export async function POST(request: Request) {
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
+  // Read existing config to preserve stripe keys if not being updated
+  const { data: existingTenant } = await supabase
+    .from('tenants')
+    .select('config')
+    .eq('id', tenant.id)
+    .single()
+
+  const existingResult = validateTenantConfig(existingTenant?.config ?? {})
+  const existingConfig = existingResult.ok ? existingResult.config : {}
+
+  const mergedConfig = {
+    ...existingConfig,
+    ...result.config,
+    // Preserve existing stripe keys unless new ones are explicitly provided
+    ...(existingConfig.stripe_secret_key     && { stripe_secret_key:     existingConfig.stripe_secret_key }),
+    ...(existingConfig.stripe_webhook_secret && { stripe_webhook_secret: existingConfig.stripe_webhook_secret }),
+    // Override with new values if provided
+    ...(rawStripeKey    && typeof rawStripeKey    === 'string' && rawStripeKey.trim()    && { stripe_secret_key:     rawStripeKey.trim() }),
+    ...(rawStripeWebhook && typeof rawStripeWebhook === 'string' && rawStripeWebhook.trim() && { stripe_webhook_secret: rawStripeWebhook.trim() }),
+  }
+
   const { error: configErr } = await supabase
     .from('tenants')
-    .update({ config: result.config })
+    .update({ config: mergedConfig })
     .eq('id', tenant.id)
 
   if (configErr) return NextResponse.json({ error: 'Could not save settings' }, { status: 500 })

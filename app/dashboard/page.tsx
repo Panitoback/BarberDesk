@@ -37,7 +37,7 @@ export default async function DashboardPage() {
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('is_anonymous', false),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('date', today),
     supabase.from('appointments')
-      .select('id, time, service, price, status, client_note, barber_id, clients(name, phone), visits(price, extras)')
+      .select('id, time, service, price, status, client_note, barber_id, deposit_paid, clients(name, phone), visits(price, extras)')
       .eq('tenant_id', tenant.id).eq('date', today).order('time'),
     supabase.from('appointments')
       .select('id, date, time, service, clients(name, phone)')
@@ -54,9 +54,11 @@ export default async function DashboardPage() {
       .not('appointment_id', 'is', null),
   ])
 
-  const cfgResult    = validateTenantConfig(tenantRow?.config ?? {})
-  const services     = cfgResult.ok ? (cfgResult.config.services ?? []) : []
-  const multiBarber  = tenantRow?.multi_barber ?? false
+  const cfgResult       = validateTenantConfig(tenantRow?.config ?? {})
+  const services        = cfgResult.ok ? (cfgResult.config.services ?? []) : []
+  const multiBarber     = tenantRow?.multi_barber ?? false
+  const depositActive   = cfgResult.ok ? (cfgResult.config.deposit_active ?? false) : false
+  const depositAmountCad = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 0) : 0
   const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
 
   // Revenue per barber — aggregate visits by barber_id
@@ -138,6 +140,7 @@ export default async function DashboardPage() {
           appointments={(todayAppointments ?? []) as Parameters<typeof AppointmentsTodayTable>[0]['appointments']}
           services={services}
           barbers={multiBarber ? (barbers ?? []) : []}
+          depositAmountCad={depositActive ? depositAmountCad : 0}
         />
       </div>
 

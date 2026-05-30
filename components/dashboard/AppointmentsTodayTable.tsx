@@ -8,8 +8,18 @@ import type { VisitExtra } from '@/lib/extras'
 import { parseExtras } from '@/lib/extras'
 import CompleteModal from '@/components/dashboard/CompleteModal'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
-import { Info, ChevronDown } from 'lucide-react'
+import { Info, ChevronDown, BadgeCheck } from 'lucide-react'
 import { barberColor } from '@/lib/barbers'
+
+function DepositBadge({ paid, amount }: { paid: boolean | null; amount: number }) {
+  if (!paid || !amount) return null
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 rounded-full px-2 py-0.5">
+      <BadgeCheck className="w-3 h-3" />
+      Deposit ${amount.toFixed(2)}
+    </span>
+  )
+}
 
 function ClientNoteRow({ note }: { note: string | null }) {
   if (!note) return null
@@ -24,8 +34,9 @@ function ClientNoteRow({ note }: { note: string | null }) {
 type BarberOption = { id: string; name: string; display_order: number }
 
 type AppointmentWithClient = Tables<'appointments'> & {
-  clients: { name: string; phone: string | null } | null
-  visits:  { price: number | null; extras: unknown }[] | null
+  clients:      { name: string; phone: string | null } | null
+  visits:       { price: number | null; extras: unknown }[] | null
+  deposit_paid: boolean | null
 }
 
 function displayPrice(a: AppointmentWithClient): number | null {
@@ -51,7 +62,7 @@ const statusLabel: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
-type ModalState = { appointmentId: string; service: string; basePrice: number | null }
+type ModalState = { appointmentId: string; service: string; basePrice: number | null; depositPaid: boolean; depositAmount: number }
 
 function BarberBadge({
   barberId,
@@ -123,10 +134,12 @@ export default function AppointmentsTodayTable({
   appointments: initialAppointments,
   services,
   barbers = [],
+  depositAmountCad = 0,
 }: {
-  appointments: AppointmentWithClient[]
-  services:     Service[]
-  barbers?:     BarberOption[]
+  appointments:    AppointmentWithClient[]
+  services:        Service[]
+  barbers?:        BarberOption[]
+  depositAmountCad?: number
 }) {
   const [appointments, setAppointments] = useState(initialAppointments)
   const [modal, setModal]               = useState<ModalState | null>(null)
@@ -139,7 +152,13 @@ export default function AppointmentsTodayTable({
   const showBarbers = barbers.length > 0
 
   function openModal(appt: AppointmentWithClient) {
-    setModal({ appointmentId: appt.id, service: appt.service, basePrice: appt.price ?? null })
+    setModal({
+      appointmentId: appt.id,
+      service:       appt.service,
+      basePrice:     appt.price ?? null,
+      depositPaid:   appt.deposit_paid ?? false,
+      depositAmount: depositAmountCad,
+    })
   }
 
   async function handleComplete(finalPrice: number | null, extras: VisitExtra[]) {
@@ -238,6 +257,8 @@ export default function AppointmentsTodayTable({
           onClose={() => setModal(null)}
           onConfirm={handleComplete}
           loading={completing}
+          depositPaid={modal.depositPaid}
+          depositAmount={modal.depositAmount}
         />
       )}
 
@@ -272,7 +293,17 @@ export default function AppointmentsTodayTable({
             </div>
             {(() => {
               const price = displayPrice(appointment)
-              return price !== null ? <p className="text-xs text-slate-400 mt-0.5">${price.toFixed(2)} CAD</p> : null
+              const depositPaid = appointment.deposit_paid && depositAmountCad > 0
+              const remaining = price !== null && depositPaid ? Math.max(0, price - depositAmountCad) : null
+              return (
+                <div className="mt-1 space-y-1">
+                  {price !== null && <p className="text-xs text-slate-400">${price.toFixed(2)} CAD</p>}
+                  <DepositBadge paid={appointment.deposit_paid} amount={depositAmountCad} />
+                  {remaining !== null && (
+                    <p className="text-xs font-semibold text-amber-700">Owes: ${remaining.toFixed(2)} CAD</p>
+                  )}
+                </div>
+              )
             })()}
             {appointment.status === 'pending' && (
               <div className="mt-3"><ActionButtons appt={appointment} full /></div>
@@ -322,10 +353,22 @@ export default function AppointmentsTodayTable({
                     <ServiceBreakdown service={appointment.service} basePrice={appointment.price} extras={visitExtras(appointment)} total={displayPrice(appointment)} />
                   </div>
                 </td>
-                <td className="px-6 py-4 text-slate-600 font-mono whitespace-nowrap">
+                <td className="px-6 py-4">
                   {(() => {
                     const price = displayPrice(appointment)
-                    return price !== null ? `$${price.toFixed(2)}` : <span className="text-slate-300">—</span>
+                    const depositPaid = appointment.deposit_paid && depositAmountCad > 0
+                    const remaining = price !== null && depositPaid ? Math.max(0, price - depositAmountCad) : null
+                    return (
+                      <div className="space-y-1">
+                        <p className="font-mono text-slate-600 whitespace-nowrap">
+                          {price !== null ? `$${price.toFixed(2)}` : <span className="text-slate-300">—</span>}
+                        </p>
+                        <DepositBadge paid={appointment.deposit_paid} amount={depositAmountCad} />
+                        {remaining !== null && (
+                          <p className="text-xs font-semibold text-amber-700 whitespace-nowrap">Owes: ${remaining.toFixed(2)}</p>
+                        )}
+                      </div>
+                    )
                   })()}
                 </td>
                 <td className="px-6 py-4">

@@ -22,7 +22,14 @@ export default async function SettingsPage() {
   ])
 
   const result = validateTenantConfig(tenantRow?.config ?? {})
-  const initialConfig: TenantConfig = result.ok ? result.config : {}
+  const fullConfig: TenantConfig = result.ok ? result.config : {}
+
+  // Strip secret keys before sending to the client component
+  const { stripe_secret_key, stripe_webhook_secret, ...safeConfig } = fullConfig
+  const initialConfig: TenantConfig = safeConfig
+  const hasStripeKey            = !!stripe_secret_key
+  const hasStripeWebhookSecret  = !!stripe_webhook_secret
+
   const initialReviewLink       = automationsRow?.review_link       ?? ''
   const initialReminderActive   = automationsRow?.reminder_active   ?? true
   const initialReminderHours    = automationsRow?.reminder_hours    ?? 24
@@ -48,6 +55,8 @@ export default async function SettingsPage() {
           multiBarber={tenantRow?.multi_barber ?? false}
           staffToken={tenantRow?.staff_token ?? null}
           subdomain={tenant.subdomain}
+          hasStripeKey={hasStripeKey}
+          hasStripeWebhookSecret={hasStripeWebhookSecret}
         />
       </Suspense>
       <BookingQRCode subdomain={tenant.subdomain} />

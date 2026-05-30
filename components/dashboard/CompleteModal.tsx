@@ -8,12 +8,14 @@ import type { VisitExtra } from '@/lib/extras'
 type Extra = { id: number; name: string; price: number }
 
 interface Props {
-  service: string
-  basePrice: number | null
-  services: Service[]
-  onClose: () => void
-  onConfirm: (finalPrice: number | null, extras: VisitExtra[]) => void
-  loading: boolean
+  service:       string
+  basePrice:     number | null
+  services:      Service[]
+  onClose:       () => void
+  onConfirm:     (finalPrice: number | null, extras: VisitExtra[]) => void
+  loading:       boolean
+  depositPaid?:  boolean
+  depositAmount?: number
 }
 
 let nextId = 1
@@ -25,6 +27,8 @@ export default function CompleteModal({
   onClose,
   onConfirm,
   loading,
+  depositPaid  = false,
+  depositAmount = 0,
 }: Props) {
   const [extras, setExtras]     = useState<Extra[]>([])
   const [selected, setSelected] = useState('')
@@ -48,10 +52,12 @@ export default function CompleteModal({
     setExtras(prev => prev.filter(e => e.id !== id))
   }
 
-  const extrasTotal = extras.reduce((sum, e) => sum + e.price, 0)
-  const total       = (basePrice ?? 0) + extrasTotal
-  const hasPrice    = basePrice !== null || extrasTotal > 0
-  const finalPrice  = hasPrice ? total : null
+  const extrasTotal     = extras.reduce((sum, e) => sum + e.price, 0)
+  const total           = (basePrice ?? 0) + extrasTotal
+  const hasPrice        = basePrice !== null || extrasTotal > 0
+  const finalPrice      = hasPrice ? total : null
+  const showDeposit     = depositPaid && depositAmount > 0 && hasPrice
+  const remaining       = showDeposit ? Math.max(0, total - depositAmount) : null
 
   return (
     <div
@@ -137,14 +143,28 @@ export default function CompleteModal({
             )}
           </div>
 
-          {/* Total */}
-          <div className="border-t border-slate-100 pt-4 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-700">Total</span>
-            <span className="text-lg font-bold text-slate-900 font-mono">
-              {hasPrice
-                ? `$${total.toFixed(2)} CAD`
-                : <span className="text-slate-400 text-sm font-normal">No price set</span>}
-            </span>
+          {/* Total + deposit breakdown */}
+          <div className="border-t border-slate-100 pt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-slate-700">Total</span>
+              <span className="text-lg font-bold text-slate-900 font-mono">
+                {hasPrice
+                  ? `$${total.toFixed(2)} CAD`
+                  : <span className="text-slate-400 text-sm font-normal">No price set</span>}
+              </span>
+            </div>
+            {showDeposit && (
+              <>
+                <div className="flex items-center justify-between text-sm text-emerald-700">
+                  <span>Deposit paid</span>
+                  <span className="font-mono">− ${depositAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-sm font-bold text-slate-900">Collect from client</span>
+                  <span className="text-lg font-bold text-amber-600 font-mono">${remaining!.toFixed(2)} CAD</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

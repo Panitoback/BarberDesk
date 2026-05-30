@@ -10,3 +10,12 @@ export function getStripe(): Stripe {
   }
   return _stripe
 }
+
+const _tenantCache = new Map<string, Stripe>()
+
+export function getStripeForKey(secretKey: string): Stripe {
+  if (!_tenantCache.has(secretKey)) {
+    _tenantCache.set(secretKey, new Stripe(secretKey, { apiVersion: '2026-05-27.dahlia' }))
+  }
+  return _tenantCache.get(secretKey)!
+}

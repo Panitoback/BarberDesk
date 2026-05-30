@@ -20,12 +20,14 @@ export type ServiceDuration = typeof SERVICE_DURATIONS[number]
 export type Service  = { name: string; price_cad: number; duration_min: ServiceDuration }
 
 export type TenantConfig = {
-  hours?:               Partial<Record<Weekday, DayHours>>
-  services?:            Service[]
-  address?:             string
-  notification_email?:  string
-  deposit_active?:      boolean
-  deposit_amount_cad?:  number
+  hours?:                  Partial<Record<Weekday, DayHours>>
+  services?:               Service[]
+  address?:                string
+  notification_email?:     string
+  deposit_active?:         boolean
+  deposit_amount_cad?:     number
+  stripe_secret_key?:      string
+  stripe_webhook_secret?:  string
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -111,6 +113,26 @@ export function validateTenantConfig(input: unknown): ValidationResult {
     const amt = Number(c.deposit_amount_cad)
     if (!isFinite(amt) || amt < 1 || amt > 500) return { ok: false, error: 'deposit_amount_cad must be between 1 and 500' }
     config.deposit_amount_cad = Math.round(amt * 100) / 100
+  }
+
+  if (c.stripe_secret_key !== undefined) {
+    if (typeof c.stripe_secret_key !== 'string') return { ok: false, error: 'stripe_secret_key must be a string' }
+    const key = c.stripe_secret_key.trim()
+    if (key.length > 0) {
+      if (!key.startsWith('sk_')) return { ok: false, error: 'stripe_secret_key must start with sk_' }
+      if (key.length > 200) return { ok: false, error: 'stripe_secret_key too long' }
+      config.stripe_secret_key = key
+    }
+  }
+
+  if (c.stripe_webhook_secret !== undefined) {
+    if (typeof c.stripe_webhook_secret !== 'string') return { ok: false, error: 'stripe_webhook_secret must be a string' }
+    const secret = c.stripe_webhook_secret.trim()
+    if (secret.length > 0) {
+      if (!secret.startsWith('whsec_')) return { ok: false, error: 'stripe_webhook_secret must start with whsec_' }
+      if (secret.length > 200) return { ok: false, error: 'stripe_webhook_secret too long' }
+      config.stripe_webhook_secret = secret
+    }
   }
 
   return { ok: true, config }
