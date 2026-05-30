@@ -11,7 +11,7 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 import { getStartableSlots, getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
 import { logError } from '@/lib/error-logger'
 import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
-import stripe from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { normalizePhone } from '@/lib/phone'
 
 const NAME_MIN = 2
@@ -456,7 +456,7 @@ export async function POST(request: Request) {
 
     let checkoutUrl: string
     try {
-      const session = await stripe.checkout.sessions.create({
+      const session = await getStripe().checkout.sessions.create({
         payment_method_types: ['card'],
         mode:                 'payment',
         line_items: [{

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import stripe from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { formatDateTimeForSms } from '@/lib/dates'
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   let event: import('stripe').Stripe.Event
   try {
     const body = await request.text()
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret)
   } catch {
     return new NextResponse('Webhook signature invalid', { status: 400 })
   }
