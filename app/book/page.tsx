@@ -30,6 +30,9 @@ export default async function BookPage() {
   const isSuspended = tenant.plan === 'suspended'
   const services = readServices(tenant.config)
   const hasServices = services.length > 0
+  const configResult = validateTenantConfig(tenant.config ?? {})
+  const depositActive    = configResult.ok ? (configResult.config.deposit_active ?? false) : false
+  const depositAmountCad = configResult.ok ? (configResult.config.deposit_amount_cad ?? 20) : 20
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -77,7 +80,12 @@ export default async function BookPage() {
         ) : (
           <>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8">
-              <BookingForm services={services} shopName={tenant.name} />
+              <BookingForm
+                services={services}
+                shopName={tenant.name}
+                depositActive={depositActive}
+                depositAmountCad={depositAmountCad}
+              />
             </div>
 
             <p className="text-slate-400 text-xs text-center mt-6">

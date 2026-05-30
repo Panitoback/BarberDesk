@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight, StickyNote } from 'lucide-react'
+import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight, StickyNote, CreditCard } from 'lucide-react'
 import Image from 'next/image'
 import type { Service } from '@/lib/tenant-config'
 import { formatPriceModifier } from '@/lib/barbers'
@@ -16,8 +16,10 @@ type BarberOption = {
 }
 
 type Props = {
-  services: Service[]
-  shopName: string
+  services:          Service[]
+  shopName:          string
+  depositActive?:    boolean
+  depositAmountCad?: number
 }
 
 function formatPrice(value: number): string {
@@ -54,7 +56,7 @@ function looksLikePhone(p: string): boolean {
   return p.replace(/\D/g, '').length >= 10
 }
 
-export default function BookingForm({ services, shopName }: Props) {
+export default function BookingForm({ services, shopName, depositActive = false, depositAmountCad = 20 }: Props) {
   const router = useRouter()
   const [name, setName]             = useState('')
   const [phone, setPhone]           = useState('')
@@ -215,6 +217,12 @@ export default function BookingForm({ services, shopName }: Props) {
         return
       }
 
+      // Deposit flow: redirect to Stripe Checkout
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url
+        return
+      }
+
       router.push(`/book/confirmed?date=${encodeURIComponent(date)}&time=${encodeURIComponent(effectiveTime)}`)
     } catch {
       setError('Network error. Please try again.')
@@ -370,6 +378,20 @@ export default function BookingForm({ services, shopName }: Props) {
         />
       </Field>
 
+      {depositActive && (
+        <div className="rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3 flex items-start gap-3">
+          <CreditCard className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-indigo-800">
+              A deposit of ${depositAmountCad} CAD is required
+            </p>
+            <p className="text-xs text-indigo-600 mt-0.5">
+              You&apos;ll be taken to a secure Stripe page to pay. The deposit is applied toward your service.
+            </p>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
@@ -381,12 +403,14 @@ export default function BookingForm({ services, shopName }: Props) {
         disabled={submitting || loadingSlots || noSlots}
         className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold px-6 py-3.5 rounded-xl transition-colors text-sm"
       >
-        {submitting ? 'Booking…' : noSlots ? 'Pick another date' : (
-          <>
-            Book with {shopName}
-            <ArrowRight className="w-4 h-4" />
-          </>
-        )}
+        {submitting
+          ? (depositActive ? 'Redirecting to payment…' : 'Booking…')
+          : noSlots
+          ? 'Pick another date'
+          : depositActive
+          ? <>Pay deposit &amp; confirm <CreditCard className="w-4 h-4" /></>
+          : <>Book with {shopName} <ArrowRight className="w-4 h-4" /></>
+        }
       </button>
     </form>
   )

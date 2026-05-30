@@ -63,12 +63,14 @@ export type Database = {
           created_at: string
           client_note: string | null
           date: string
+          deposit_paid: boolean
           duration_min: number
           id: string
           price: number | null
           reminder_sent_at: string | null
           service: string
           status: Database["public"]["Enums"]["appointment_status"]
+          stripe_session_id: string | null
           tenant_id: string
           time: string
           walkin: boolean
@@ -79,12 +81,14 @@ export type Database = {
           client_note?: string | null
           created_at?: string
           date: string
+          deposit_paid?: boolean
           duration_min?: number
           id?: string
           price?: number | null
           reminder_sent_at?: string | null
           service: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          stripe_session_id?: string | null
           tenant_id: string
           time: string
           walkin?: boolean
@@ -95,12 +99,14 @@ export type Database = {
           client_note?: string | null
           created_at?: string
           date?: string
+          deposit_paid?: boolean
           duration_min?: number
           id?: string
           price?: number | null
           reminder_sent_at?: string | null
           service?: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          stripe_session_id?: string | null
           tenant_id?: string
           time?: string
           walkin?: boolean

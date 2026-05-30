@@ -75,12 +75,20 @@ export default async function ConfirmedPage({ searchParams }: { searchParams: Se
           </div>
         )}
 
-        <Link
-          href="/book"
-          className="text-slate-500 hover:text-slate-900 text-sm mt-10 transition-colors"
-        >
-          Book another appointment
-        </Link>
+        <div className="flex flex-col items-center gap-3 mt-10">
+          <Link
+            href="/book"
+            className="text-slate-500 hover:text-slate-900 text-sm transition-colors"
+          >
+            Book another appointment
+          </Link>
+          <Link
+            href="/my-appointments"
+            className="text-slate-400 hover:text-slate-600 text-xs transition-colors"
+          >
+            View or cancel my appointments
+          </Link>
+        </div>
       </main>
     </div>
   )

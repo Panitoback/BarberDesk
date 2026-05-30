@@ -6,14 +6,7 @@ import { getStartableSlots, getSlotsForDate, expandTakenSlots, expandBlockedSlot
 import { todayInToronto, isPastInToronto, formatDateTimeForSms } from '@/lib/dates'
 import { sendSms } from '@/lib/twilio'
 import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
-
-function normalizePhone(input: string): string | null {
-  const digits = (input ?? '').replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`
-  return null
-}
+import { normalizePhone } from '@/lib/phone'
 
 function isValidDate(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false

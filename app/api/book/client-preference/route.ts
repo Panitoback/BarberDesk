@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-function normalizePhone(input: string): string | null {
-  const digits = input.replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`
-  return null
-}
+import { normalizePhone } from '@/lib/phone'
 
 export async function GET(request: Request) {
   const subdomain = await getSubdomain()

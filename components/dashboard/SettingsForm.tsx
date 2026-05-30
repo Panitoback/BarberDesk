@@ -58,6 +58,8 @@ export default function SettingsForm({
   const [services,          setServices]          = useState<Service[]>(initialConfig.services ?? [])
   const [address,           setAddress]           = useState(initialConfig.address ?? '')
   const [notificationEmail, setNotificationEmail] = useState(initialConfig.notification_email ?? '')
+  const [depositActive,     setDepositActive]     = useState(initialConfig.deposit_active ?? false)
+  const [depositAmount,     setDepositAmount]     = useState(String(initialConfig.deposit_amount_cad ?? 20))
   const [reviewLink,        setReviewLink]        = useState(initialReviewLink)
   const [reminderActive,    setReminderActive]    = useState(initialReminderActive)
   const [reminderHours,     setReminderHours]     = useState(initialReminderHours)
@@ -155,6 +157,10 @@ export default function SettingsForm({
 
       const cleanNotifEmail = notificationEmail.trim().toLowerCase()
       if (cleanNotifEmail.length > 0) config.notification_email = cleanNotifEmail
+
+      config.deposit_active     = depositActive
+      const parsedDeposit       = parseFloat(depositAmount)
+      config.deposit_amount_cad = isFinite(parsedDeposit) && parsedDeposit > 0 ? parsedDeposit : 20
 
       const hours_val = Math.min(72, Math.max(1, Math.round(reminderHours) || 24))
       const pct       = Math.min(100, Math.max(1, Math.round(flashDiscountPct) || 20))
@@ -309,6 +315,52 @@ export default function SettingsForm({
               aria-label="Google review link"
               className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
             />
+          </section>
+
+          {/* Deposit */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4 mb-1">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-slate-900">Booking deposit</h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Require clients to pay a deposit via Stripe before their booking is confirmed.
+                  The deposit is charged upfront — you apply it toward the service at checkout.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDepositActive(v => !v)}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${depositActive ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                role="switch"
+                aria-checked={depositActive}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${depositActive ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
+            {depositActive && (
+              <div className="mt-4 flex items-center gap-3 max-w-xs">
+                <label className="text-sm text-slate-700 whitespace-nowrap">Deposit amount (CAD)</label>
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    step="1"
+                    value={depositAmount}
+                    onChange={e => setDepositAmount(e.target.value)}
+                    className="w-full text-sm border border-slate-300 rounded-lg pl-7 pr-3 py-2 min-h-[40px]"
+                  />
+                </div>
+              </div>
+            )}
+
+            {depositActive && (
+              <p className="text-xs text-slate-500 mt-3">
+                Requires <strong>STRIPE_SECRET_KEY</strong> and <strong>STRIPE_WEBHOOK_SECRET</strong> in your environment variables.
+              </p>
+            )}
           </section>
 
           {/* Staff view link */}

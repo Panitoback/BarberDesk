@@ -11,6 +11,8 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 import { getStartableSlots, getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
 import { logError } from '@/lib/error-logger'
 import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
+import stripe from '@/lib/stripe'
+import { normalizePhone } from '@/lib/phone'
 
 const NAME_MIN = 2
 const NAME_MAX = 80
@@ -19,14 +21,6 @@ const TENANT_BURST_LIMIT = 10
 const TENANT_BURST_WINDOW_MS = 60_000
 const PHONE_DAILY_LIMIT = 3
 const PHONE_DAILY_WINDOW_MS = 24 * 60 * 60_000
-
-function normalizePhone(input: string): string | null {
-  const digits = (input ?? '').replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`
-  return null
-}
 
 function isValidDate(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
@@ -405,7 +399,7 @@ export async function POST(request: Request) {
     clientId = created.id
   }
 
-  const { error: apptErr } = await supabase
+  const { data: insertedAppt, error: apptErr } = await supabase
     .from('appointments')
     .insert({
       tenant_id:   tenant.id,
@@ -419,9 +413,11 @@ export async function POST(request: Request) {
       barber_id:   assignedBarber?.id ?? null,
       status:      'pending',
     })
+    .select('id')
+    .single()
 
-  if (apptErr) {
-    if (apptErr.code === '23505') {
+  if (apptErr || !insertedAppt) {
+    if (apptErr?.code === '23505') {
       return NextResponse.json(
         { error: 'That time was just taken. Please pick another.' },
         { status: 409 }
@@ -429,13 +425,15 @@ export async function POST(request: Request) {
     }
     await logError({
       route: '/api/book', method: 'POST', status: 500, tenantId: tenant.id,
-      message: apptErr.message ?? 'appointment_insert_failed',
-      errorCode: apptErr.code ?? null,
+      message: apptErr?.message ?? 'appointment_insert_failed',
+      errorCode: apptErr?.code ?? null,
       metadata: { stage: 'insert_appointment', subdomain, client_id: clientId },
       requestBody: { service, date, time, price: finalPrice },
     })
     return NextResponse.json({ error: 'Could not save the appointment. Try again.' }, { status: 500 })
   }
+
+  const appointmentId = insertedAppt.id
 
   // Update client's preferred barber (fire-and-forget)
   if (assignedBarber && clientId) {
@@ -448,6 +446,64 @@ export async function POST(request: Request) {
       } catch {}
     })
   }
+
+  // ── Deposit flow ──────────────────────────────────────────────────────────
+  const depositActive    = cfgResult.ok && cfgResult.config.deposit_active
+  const depositAmountCad = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 20) : 20
+
+  if (depositActive && process.env.STRIPE_SECRET_KEY) {
+    const origin = request.headers.get('origin') ?? `https://${subdomain}.barberqueue.pro`
+
+    let checkoutUrl: string
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode:                 'payment',
+        line_items: [{
+          price_data: {
+            currency:     'cad',
+            unit_amount:  Math.round(depositAmountCad * 100),
+            product_data: { name: `Deposit — ${service} at ${tenant.name}` },
+          },
+          quantity: 1,
+        }],
+        metadata: {
+          appointment_id: appointmentId,
+          tenant_id:      tenant.id,
+          client_id:      clientId ?? '',
+          phone:          phone ?? '',
+          client_name:    name,
+          service,
+          date,
+          time,
+          shop_name:      tenant.name,
+          barber_name:    assignedBarber?.name ?? '',
+        },
+        success_url: `${origin}/book/deposit-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url:  `${origin}/book/deposit-cancel?appointment_id=${appointmentId}`,
+      })
+
+      if (!session.url) throw new Error('Stripe returned no checkout URL')
+      checkoutUrl = session.url
+    } catch (stripeErr) {
+      // Roll back the appointment so the slot is freed
+      await supabase.from('appointments').delete().eq('id', appointmentId)
+      await logError({
+        route: '/api/book', method: 'POST', status: 500, tenantId: tenant.id,
+        message: stripeErr instanceof Error ? stripeErr.message : 'stripe_session_failed',
+        errorCode: null,
+        metadata: { stage: 'stripe_checkout_create', appointment_id: appointmentId },
+        requestBody: { service, date, time },
+      })
+      return NextResponse.json(
+        { error: 'Could not start payment. Please try again.' },
+        { status: 500 },
+      )
+    }
+
+    return NextResponse.json({ checkout_url: checkoutUrl })
+  }
+  // ── End deposit flow ──────────────────────────────────────────────────────
 
   const resendKey = process.env.RESEND_API_KEY
 
@@ -487,7 +543,7 @@ export async function POST(request: Request) {
     })
   }
 
-  // Confirmation SMS
+  // Confirmation SMS (only when no deposit — with deposit the webhook sends it)
   const barberSuffix = assignedBarber ? ` with ${assignedBarber.name}` : ''
   const smsBody =
     `Hi ${name.split(' ')[0]}, your ${service}${barberSuffix} at ${tenant.name} is confirmed for ${formatDateTimeForSms(date, time)}.`

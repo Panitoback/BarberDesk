@@ -20,10 +20,12 @@ export type ServiceDuration = typeof SERVICE_DURATIONS[number]
 export type Service  = { name: string; price_cad: number; duration_min: ServiceDuration }
 
 export type TenantConfig = {
-  hours?:              Partial<Record<Weekday, DayHours>>
-  services?:           Service[]
-  address?:            string
-  notification_email?: string
+  hours?:               Partial<Record<Weekday, DayHours>>
+  services?:            Service[]
+  address?:             string
+  notification_email?:  string
+  deposit_active?:      boolean
+  deposit_amount_cad?:  number
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -98,6 +100,17 @@ export function validateTenantConfig(input: unknown): ValidationResult {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'notification_email must be a valid email' }
       config.notification_email = email
     }
+  }
+
+  if (c.deposit_active !== undefined) {
+    if (typeof c.deposit_active !== 'boolean') return { ok: false, error: 'deposit_active must be boolean' }
+    config.deposit_active = c.deposit_active
+  }
+
+  if (c.deposit_amount_cad !== undefined) {
+    const amt = Number(c.deposit_amount_cad)
+    if (!isFinite(amt) || amt < 1 || amt > 500) return { ok: false, error: 'deposit_amount_cad must be between 1 and 500' }
+    config.deposit_amount_cad = Math.round(amt * 100) / 100
   }
 
   return { ok: true, config }

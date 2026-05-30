@@ -7,14 +7,7 @@ import { logError } from '@/lib/error-logger'
 import { parseExtras } from '@/lib/extras'
 import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
 import { getSlotsForDate, expandTakenSlots, expandBlockedSlots } from '@/lib/slots'
-
-function normalizePhone(input: string): string | null {
-  const digits = (input ?? '').replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`
-  return null
-}
+import { normalizePhone } from '@/lib/phone'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
