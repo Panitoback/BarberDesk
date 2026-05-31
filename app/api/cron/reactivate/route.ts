@@ -7,6 +7,8 @@ async function sendReactivationEmail(to: string, clientName: string, shopName: s
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY not set')
 
+  const firstName = clientName.split(' ')[0]
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
