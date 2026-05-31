@@ -13,10 +13,12 @@ import {
   type Service,
   type ServiceDuration,
 } from '@/lib/tenant-config'
+import { useRef } from 'react'
 import BarbersTab from './BarbersTab'
 import GalleryTab from './settings/GalleryTab'
 import type { Barber } from '@/lib/barbers'
 import type { GalleryPhoto } from '@/lib/gallery'
+import { THEMES, DEFAULT_THEME, type ThemeId } from '@/lib/theme'
 
 type HoursMap = Partial<Record<Weekday, DayHours>>
 type BarberRow = Omit<Barber, 'hours'> & { hours: unknown }
@@ -43,6 +45,7 @@ export default function SettingsForm({
   hasStripeKey            = false,
   hasStripeWebhookSecret  = false,
   initialGallery          = [],
+  initialLogoUrl          = null,
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -56,6 +59,7 @@ export default function SettingsForm({
   hasStripeKey?:           boolean
   hasStripeWebhookSecret?: boolean
   initialGallery?:         GalleryPhoto[]
+  initialLogoUrl?:         string | null
 }) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -75,6 +79,10 @@ export default function SettingsForm({
   const [reminderActive,    setReminderActive]    = useState(initialReminderActive)
   const [reminderHours,     setReminderHours]     = useState(initialReminderHours)
   const [flashDiscountPct,  setFlashDiscountPct]  = useState(initialFlashDiscountPct)
+  const [brandTheme,     setBrandTheme]     = useState<ThemeId>((initialConfig.brand_theme as ThemeId) ?? DEFAULT_THEME)
+  const [logoUrl,        setLogoUrl]        = useState<string | null>(initialLogoUrl)
+  const [logoUploading,  setLogoUploading]  = useState(false)
+  const logoRef = useRef<HTMLInputElement>(null)
   const [saving,         setSaving]         = useState(false)
   const [feedback,       setFeedback]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [currentToken,   setCurrentToken]   = useState(staffToken)
@@ -151,6 +159,47 @@ export default function SettingsForm({
     setServices(s => s.filter((_, idx) => idx !== i))
   }
 
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setLogoUploading(true)
+    setFeedback(null)
+    try {
+      const fd = new FormData()
+      fd.append('logo', file)
+      const res  = await fetch('/api/settings/logo', { method: 'POST', body: fd })
+      const json = await res.json() as { logo_path?: string; error?: string }
+      if (!res.ok) throw new Error(json.error ?? 'Upload failed')
+      // Build public URL from path
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+      setLogoUrl(`${base}/storage/v1/object/public/tenant-logos/${json.logo_path}`)
+      setFeedback({ type: 'success', text: 'Logo updated.' })
+      router.refresh() // sync sidebar logo
+    } catch (err) {
+      setFeedback({ type: 'error', text: err instanceof Error ? err.message : 'Upload failed' })
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  async function handleLogoRemove() {
+    if (!confirm('Remove your shop logo?')) return
+    setLogoUploading(true)
+    setFeedback(null)
+    try {
+      const res = await fetch('/api/settings/logo', { method: 'DELETE' })
+      if (!res.ok) throw new Error('Remove failed')
+      setLogoUrl(null)
+      setFeedback({ type: 'success', text: 'Logo removed.' })
+      router.refresh() // sync sidebar logo
+    } catch (err) {
+      setFeedback({ type: 'error', text: err instanceof Error ? err.message : 'Remove failed' })
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
   async function handleSave() {
     setSaving(true)
     setFeedback(null)
@@ -169,6 +218,7 @@ export default function SettingsForm({
       const cleanNotifEmail = notificationEmail.trim().toLowerCase()
       if (cleanNotifEmail.length > 0) config.notification_email = cleanNotifEmail
 
+      config.brand_theme        = brandTheme
       config.deposit_active     = depositActive
       const parsedDeposit       = parseFloat(depositAmount)
       config.deposit_amount_cad = isFinite(parsedDeposit) && parsedDeposit > 0 ? parsedDeposit : 20
@@ -413,6 +463,89 @@ export default function SettingsForm({
                 </div>
               </div>
             )}
+          </section>
+
+          {/* Shop logo */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Shop logo</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">
+              Shown in your booking page header and dashboard sidebar. JPEG, PNG or WebP, max 2 MB.
+            </p>
+            <div className="flex items-center gap-4 flex-wrap">
+              {logoUrl && (
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoUrl} alt="Shop logo" className="w-full h-full object-contain p-1" />
+                </div>
+              )}
+              <input
+                ref={logoRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => logoRef.current?.click()}
+                  disabled={logoUploading}
+                  className="text-sm font-medium px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 min-h-[40px]"
+                >
+                  {logoUploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+                </button>
+                {logoUrl && (
+                  <button
+                    type="button"
+                    onClick={handleLogoRemove}
+                    disabled={logoUploading}
+                    className="text-sm font-medium px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 min-h-[40px]"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Brand color palette */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Brand color</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">
+              Applied to your booking page and dashboard sidebar.
+            </p>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {THEMES.map(theme => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => setBrandTheme(theme.id)}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                    brandTheme === theme.id
+                      ? 'border-slate-900 scale-105 shadow-md'
+                      : 'border-transparent hover:border-slate-300'
+                  }`}
+                  title={theme.label}
+                >
+                  <div className="h-10" style={{ background: theme.preview[0] }}>
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-3"
+                      style={{ background: theme.preview[1] }}
+                    />
+                  </div>
+                  <span className="block text-xs text-center py-1 text-slate-600 font-medium bg-white">
+                    {theme.label}
+                  </span>
+                  {brandTheme === theme.id && (
+                    <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow">
+                      <svg className="w-2.5 h-2.5 text-slate-900" fill="currentColor" viewBox="0 0 12 12">
+                        <path d="M10 3L5 8.5 2 5.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           </section>
 
           {/* Staff view link */}

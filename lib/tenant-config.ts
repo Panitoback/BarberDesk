@@ -1,5 +1,6 @@
 // Shape of `tenants.config` (JSONB column). Filled by the owner via /settings,
 // read by the AI auto-reply workflow so it stops inventing hours/prices.
+import { THEME_IDS } from '@/lib/theme'
 
 export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 export type Weekday = typeof WEEKDAYS[number]
@@ -28,6 +29,8 @@ export type TenantConfig = {
   deposit_amount_cad?:     number
   stripe_secret_key?:      string
   stripe_webhook_secret?:  string
+  brand_theme?:            string
+  logo_path?:              string
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -132,6 +135,19 @@ export function validateTenantConfig(input: unknown): ValidationResult {
       if (!secret.startsWith('whsec_')) return { ok: false, error: 'stripe_webhook_secret must start with whsec_' }
       if (secret.length > 200) return { ok: false, error: 'stripe_webhook_secret too long' }
       config.stripe_webhook_secret = secret
+    }
+  }
+
+  if (c.brand_theme !== undefined) {
+    if (typeof c.brand_theme === 'string' && (THEME_IDS as readonly string[]).includes(c.brand_theme)) {
+      config.brand_theme = c.brand_theme
+    }
+    // Silently ignore unknown theme ids — fall back to default
+  }
+
+  if (c.logo_path !== undefined) {
+    if (typeof c.logo_path === 'string' && c.logo_path.trim().length > 0) {
+      config.logo_path = c.logo_path.trim()
     }
   }
 

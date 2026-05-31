@@ -5,6 +5,8 @@ import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { validateTenantConfig, type Service } from '@/lib/tenant-config'
 import { galleryPhotoUrl, GALLERY_MIN, type GalleryPhoto } from '@/lib/gallery'
+import { themeStyle } from '@/lib/theme'
+import { logoUrl as buildLogoUrl } from '@/lib/session'
 import BookingForm from './BookingForm'
 import ShopCollage from '@/components/book/ShopCollage'
 
@@ -53,13 +55,21 @@ export default async function BookPage() {
   }))
 
   const hasGallery = gallery.length >= GALLERY_MIN
+  const tenantTheme = themeStyle(configResult.ok ? configResult.config.brand_theme : undefined)
+  const tenantLogoUrl = buildLogoUrl(configResult.ok ? configResult.config.logo_path : undefined)
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-slate-900 border-b border-slate-800">
+    <div className="min-h-screen bg-slate-50" style={tenantTheme}>
+      <header className="border-b border-white/10" style={{ background: 'var(--theme-bg, #0f172a)' }}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <Scissors className="w-5 h-5 text-indigo-400 shrink-0" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            {tenantLogoUrl ? (
+              <div className="relative w-8 h-8 rounded-md overflow-hidden shrink-0">
+                <img src={tenantLogoUrl} alt={tenant.name} className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <Scissors className="w-5 h-5 shrink-0" style={{ color: 'var(--theme-accent, #818cf8)' }} />
+            )}
             <span className="text-white font-semibold tracking-tight truncate">
               {tenant.name}
             </span>

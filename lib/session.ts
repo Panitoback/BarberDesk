@@ -1,6 +1,14 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
+import { validateTenantConfig } from '@/lib/tenant-config'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+
+export function logoUrl(logoPath: string | null | undefined): string | null {
+  if (!logoPath) return null
+  return `${SUPABASE_URL}/storage/v1/object/public/tenant-logos/${logoPath}`
+}
 
 export const getTenant = cache(async () => {
   const subdomain = await getSubdomain()
@@ -12,9 +20,20 @@ export const getTenant = cache(async () => {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, subdomain')
+    .select('id, name, subdomain, config')
     .eq('subdomain', subdomain)
     .single()
 
-  return tenant ?? null
+  if (!tenant) return null
+
+  const result = validateTenantConfig(tenant.config ?? {})
+  const config = result.ok ? result.config : {}
+
+  return {
+    id:         tenant.id,
+    name:       tenant.name,
+    subdomain:  tenant.subdomain,
+    brandTheme: config.brand_theme,
+    logoUrl:    logoUrl(config.logo_path),
+  }
 })
