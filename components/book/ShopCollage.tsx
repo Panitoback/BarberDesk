@@ -8,13 +8,14 @@ type Props = {
   photos: GalleryPhoto[]
 }
 
-// Fixed layout positions — stable on hydration, no random values
+// Portrait-friendly layout — 2×2 grid with a 5th peeking behind center
+// Each card is 42% wide with 3:4 aspect ratio (portrait / phone photos)
 const CARDS = [
-  { rotate: '-6deg',  left: '5%',  top: '0%'  },
-  { rotate: '3deg',   left: '28%', top: '22%' },
-  { rotate: '-3deg',  left: '8%',  top: '46%' },
-  { rotate: '5deg',   left: '32%', top: '14%' },
-  { rotate: '-4deg',  left: '12%', top: '68%' },
+  { rotate: '-5deg', left: '2%',  top: '2%'  },  // top-left
+  { rotate:  '4deg', left: '52%', top: '4%'  },  // top-right
+  { rotate: '-3deg', left: '4%',  top: '50%' },  // bottom-left
+  { rotate:  '5deg', left: '50%', top: '52%' },  // bottom-right
+  { rotate: '-1deg', left: '24%', top: '24%' },  // center (behind)
 ]
 
 export default function ShopCollage({ photos }: Props) {
@@ -22,21 +23,23 @@ export default function ShopCollage({ photos }: Props) {
   const [hovered, setHovered] = useState<string | null>(null)
 
   return (
-    <div className="relative w-full min-h-[560px] select-none" aria-hidden="true">
+    <div className="relative w-full select-none" style={{ minHeight: '560px' }} aria-hidden="true">
       {visible.map((photo, i) => {
-        const pos      = CARDS[i]
+        const pos       = CARDS[i]
         const isHovered = hovered === photo.id
+        // Center card (index 4) renders behind, others render in order
+        const baseZ = i === 4 ? 0 : i + 1
 
         return (
           <div
             key={photo.id}
             className="absolute"
             style={{
-              left:      pos.left,
-              top:       pos.top,
-              width:     '60%',
-              zIndex:    isHovered ? 50 : i + 1,
-              transform: `rotate(${pos.rotate})${isHovered ? ' scale(1.08)' : ''}`,
+              left:       pos.left,
+              top:        pos.top,
+              width:      '43%',
+              zIndex:     isHovered ? 50 : baseZ,
+              transform:  `rotate(${pos.rotate})${isHovered ? ' scale(1.06)' : ''}`,
               transition: 'transform 200ms ease, z-index 0ms',
             }}
             onMouseEnter={() => setHovered(photo.id)}
@@ -46,29 +49,31 @@ export default function ShopCollage({ photos }: Props) {
             <div
               className="bg-white rounded-sm"
               style={{
-                padding:   '8px 8px 30px 8px',
-                boxShadow: isHovered
-                  ? '0 16px 40px rgba(0,0,0,0.30)'
-                  : '0 4px 16px rgba(0,0,0,0.18)',
+                padding:    '6px 6px 10px 6px',
+                boxShadow:  isHovered
+                  ? '0 14px 36px rgba(0,0,0,0.32)'
+                  : '0 4px 14px rgba(0,0,0,0.20)',
                 transition: 'box-shadow 200ms ease',
               }}
             >
-              {/* Image */}
-              <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
+              {/* Portrait image — 3:4 ratio */}
+              <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3/4' }}>
                 <Image
                   src={photo.photo_url}
                   alt={photo.caption ?? 'Shop photo'}
                   fill
                   className="object-cover"
-                  sizes="(min-width: 1024px) 22vw, 0vw"
+                  sizes="(min-width: 1024px) 20vw, 0vw"
                   draggable={false}
                 />
               </div>
 
-              {/* Caption */}
-              <p className="mt-1.5 text-center text-xs text-slate-500 truncate px-1 min-h-[16px]">
-                {photo.caption ?? ''}
-              </p>
+              {/* Caption — only rendered if it exists */}
+              {photo.caption && (
+                <p className="mt-1 text-center text-xs text-slate-500 truncate px-1">
+                  {photo.caption}
+                </p>
+              )}
             </div>
           </div>
         )
