@@ -34,10 +34,14 @@ export function effectiveHoursForBarber(
   barber: Pick<Barber, 'hours'>,
   shopConfig: TenantConfig,
 ): BarberHours | undefined {
-  if (barber.hours && Object.keys(barber.hours).length > 0) {
-    return barber.hours
+  if (!barber.hours || Object.keys(barber.hours).length === 0) {
+    return shopConfig.hours as BarberHours | undefined
   }
-  return shopConfig.hours as BarberHours | undefined
+  // Merge: shop hours as base, barber overrides on top.
+  // A barber with only { wed: null } keeps shop hours for all other days
+  // instead of making them appear closed.
+  const shopHours = (shopConfig.hours ?? {}) as BarberHours
+  return { ...shopHours, ...barber.hours }
 }
 
 export function applyPriceModifier(basePrice: number, modifier: number): number {

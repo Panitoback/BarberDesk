@@ -463,8 +463,8 @@ export default function BookingForm({ services, shopName, depositActive = false,
             onClick={() => setWaitlistOpen(true)}
             className="text-sm text-slate-400 hover:text-slate-700 transition-colors"
           >
-            Don&apos;t see the time you want?{' '}
-            <span className="underline underline-offset-2">Join the waitlist</span>
+            Don&apos;t see the time you want? Join the{' '}
+            <span className="text-indigo-600 underline underline-offset-2">waitlist</span>
           </button>
         ) : (
           <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-4 space-y-3">

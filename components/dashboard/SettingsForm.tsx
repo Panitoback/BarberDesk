@@ -263,20 +263,42 @@ export default function SettingsForm({
         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
     }`
 
+  const hasSaveBar = activeTab === 'general' || activeTab === 'services' || activeTab === 'reminders'
+
   return (
     <div className="space-y-6">
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1 overflow-x-auto">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={tabClass(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Sticky tab bar + save button */}
+      <div className="sticky top-16 md:top-0 z-20 bg-slate-50 pt-1 pb-3 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-1 gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto min-w-0">
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={tabClass(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {hasSaveBar && (
+            <div className="flex items-center gap-3 shrink-0">
+              {feedback && (
+                <p role="status" className={`text-sm hidden sm:block ${feedback.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                  {feedback.text}
+                </p>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {saving ? 'Saving…' : 'Save settings'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* General tab */}
@@ -611,7 +633,6 @@ export default function SettingsForm({
             )}
           </section>
 
-          <SaveBar feedback={feedback} saving={saving} onSave={handleSave} />
         </>
       )}
 
@@ -690,7 +711,6 @@ export default function SettingsForm({
             )}
           </section>
 
-          <SaveBar feedback={feedback} saving={saving} onSave={handleSave} />
         </>
       )}
 
@@ -768,7 +788,6 @@ export default function SettingsForm({
             </div>
           </section>
 
-          <SaveBar feedback={feedback} saving={saving} onSave={handleSave} />
         </>
       )}
     </div>

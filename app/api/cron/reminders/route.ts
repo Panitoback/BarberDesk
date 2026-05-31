@@ -25,14 +25,54 @@ async function sendReminderEmail(opts: {
     body: JSON.stringify({
       from:    `${opts.shopName} <noreply@barberqueue.pro>`,
       to:      [opts.to],
-      subject: `Reminder: your ${opts.service} at ${opts.shopName}`,
-      html: `
-        <p>Hi ${firstName},</p>
-        <p>Just a reminder that your <strong>${opts.service}</strong> appointment at <strong>${opts.shopName}</strong> is scheduled for <strong>${when}</strong>.</p>
-        <p>If you need to reschedule, please contact the shop directly.</p>
-        <p>See you soon!</p>
-        <p>— The ${opts.shopName} team</p>
-      `,
+      subject: `Reminder: your ${opts.service} appointment tomorrow`,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+        <tr><td align="center" style="padding-bottom:24px;">
+          <p style="margin:0;font-size:20px;font-weight:700;color:#1e293b;letter-spacing:-0.5px;">✂ ${opts.shopName}</p>
+        </td></tr>
+
+        <tr><td style="background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;padding:40px 32px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#6366f1;text-transform:uppercase;letter-spacing:0.5px;">Upcoming appointment</p>
+          <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#0f172a;">See you soon, ${firstName}!</h1>
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:12px;padding:20px;margin-bottom:24px;">
+            <tr>
+              <td style="padding:6px 0;">
+                <p style="margin:0;font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Service</p>
+                <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#0f172a;">${opts.service}</p>
+              </td>
+            </tr>
+            <tr><td style="border-top:1px solid #e2e8f0;padding:6px 0 6px;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">When</p>
+              <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#0f172a;">${when}</p>
+            </td></tr>
+            <tr><td style="border-top:1px solid #e2e8f0;padding-top:6px;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Location</p>
+              <p style="margin:4px 0 0;font-size:16px;font-weight:600;color:#0f172a;">${opts.shopName}</p>
+            </td></tr>
+          </table>
+
+          <p style="margin:0;font-size:14px;color:#64748b;line-height:1.6;">
+            Need to reschedule? Contact the shop directly as soon as possible so they can open the slot for someone else.
+          </p>
+        </td></tr>
+
+        <tr><td align="center" style="padding-top:24px;">
+          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 BarberQueue · barberqueue.pro</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
     }),
   })
 
