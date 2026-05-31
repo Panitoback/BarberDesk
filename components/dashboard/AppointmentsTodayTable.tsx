@@ -370,9 +370,10 @@ export default function AppointmentsTodayTable({
                 </td>
                 <td className="px-6 py-4">
                   {(() => {
-                    const price = displayPrice(appointment)
-                    const depositPaid = appointment.deposit_paid && depositAmountCad > 0
-                    const remaining = price !== null && depositPaid ? Math.max(0, price - depositAmountCad) : null
+                    const price       = displayPrice(appointment)
+                    const isFullyPaid = fullPaymentActive && !!appointment.deposit_paid
+                    const isDeposit   = !fullPaymentActive && !!appointment.deposit_paid && depositAmountCad > 0
+                    const remaining   = isDeposit && price !== null ? Math.max(0, price - depositAmountCad) : null
                     return (
                       <div className="space-y-1">
                         <p className="font-mono text-slate-600 whitespace-nowrap">
