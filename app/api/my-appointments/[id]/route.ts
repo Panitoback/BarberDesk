@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { todayInToronto, formatDateTimeForSms } from '@/lib/dates'
 import { sendSms } from '@/lib/twilio'
 import { normalizePhone } from '@/lib/phone'
+import { notifyWaitlist } from '@/lib/waitlist'
 
 export async function DELETE(
   request: Request,
@@ -42,7 +43,7 @@ export async function DELETE(
   const today = todayInToronto()
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('id, date, time, status')
+    .select('id, date, time, service, status')
     .eq('id', appointmentId)
     .eq('tenant_id', tenant.id)
     .eq('client_id', client.id)
@@ -87,6 +88,10 @@ export async function DELETE(
       status:    'failed',
     })
   }
+
+  after(async () => {
+    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service)
+  })
 
   return NextResponse.json({ ok: true })
 }

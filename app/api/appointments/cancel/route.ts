@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { sendSms } from '@/lib/twilio'
 import { formatDateTimeForSms } from '@/lib/dates'
+import { notifyWaitlist } from '@/lib/waitlist'
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
   // Fetch first so we have the data needed for the SMS body and a clear status check.
   const { data: appointment } = await supabase
     .from('appointments')
-    .select('id, date, time, status, client_id, clients(name, phone)')
+    .select('id, date, time, service, status, client_id, clients(name, phone)')
     .eq('id', appointmentId)
     .eq('tenant_id', tenant.id)
     .single()
@@ -88,6 +89,10 @@ export async function POST(request: Request) {
       })
     }
   }
+
+  after(async () => {
+    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service)
+  })
 
   return NextResponse.json({ ok: true })
 }

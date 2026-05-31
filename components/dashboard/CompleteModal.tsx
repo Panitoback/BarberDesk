@@ -8,14 +8,15 @@ import type { VisitExtra } from '@/lib/extras'
 type Extra = { id: number; name: string; price: number }
 
 interface Props {
-  service:       string
-  basePrice:     number | null
-  services:      Service[]
-  onClose:       () => void
-  onConfirm:     (finalPrice: number | null, extras: VisitExtra[]) => void
-  loading:       boolean
-  depositPaid?:  boolean
-  depositAmount?: number
+  service:           string
+  basePrice:         number | null
+  services:          Service[]
+  onClose:           () => void
+  onConfirm:         (finalPrice: number | null, extras: VisitExtra[]) => void
+  loading:           boolean
+  depositPaid?:      boolean
+  depositAmount?:    number
+  fullPaymentActive?: boolean
 }
 
 let nextId = 1
@@ -27,8 +28,9 @@ export default function CompleteModal({
   onClose,
   onConfirm,
   loading,
-  depositPaid  = false,
-  depositAmount = 0,
+  depositPaid       = false,
+  depositAmount     = 0,
+  fullPaymentActive = false,
 }: Props) {
   const [extras, setExtras]     = useState<Extra[]>([])
   const [selected, setSelected] = useState('')
@@ -56,7 +58,8 @@ export default function CompleteModal({
   const total           = (basePrice ?? 0) + extrasTotal
   const hasPrice        = basePrice !== null || extrasTotal > 0
   const finalPrice      = hasPrice ? total : null
-  const showDeposit     = depositPaid && depositAmount > 0 && hasPrice
+  const showFullPaid    = fullPaymentActive && depositPaid && hasPrice
+  const showDeposit     = !fullPaymentActive && depositPaid && depositAmount > 0 && hasPrice
   const remaining       = showDeposit ? Math.max(0, total - depositAmount) : null
 
   return (
@@ -164,6 +167,12 @@ export default function CompleteModal({
                   <span className="text-lg font-bold text-amber-600 font-mono">${remaining!.toFixed(2)} CAD</span>
                 </div>
               </>
+            )}
+            {showFullPaid && (
+              <div className="flex items-center justify-between bg-emerald-50 rounded-lg px-3 py-2.5">
+                <span className="text-sm font-semibold text-emerald-800">Full payment received</span>
+                <span className="text-sm font-mono text-emerald-700">$0.00 due</span>
+              </div>
             )}
           </div>
         </div>

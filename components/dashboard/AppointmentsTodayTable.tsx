@@ -21,6 +21,15 @@ function DepositBadge({ paid, amount }: { paid: boolean | null; amount: number }
   )
 }
 
+function FullPaymentBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 rounded-full px-2 py-0.5">
+      <BadgeCheck className="w-3 h-3" />
+      Paid in full
+    </span>
+  )
+}
+
 function ClientNoteRow({ note }: { note: string | null }) {
   if (!note) return null
   return (
@@ -62,7 +71,7 @@ const statusLabel: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
-type ModalState = { appointmentId: string; service: string; basePrice: number | null; depositPaid: boolean; depositAmount: number }
+type ModalState = { appointmentId: string; service: string; basePrice: number | null; depositPaid: boolean; depositAmount: number; fullPaymentActive: boolean }
 
 function BarberBadge({
   barberId,
@@ -135,11 +144,13 @@ export default function AppointmentsTodayTable({
   services,
   barbers = [],
   depositAmountCad = 0,
+  fullPaymentActive = false,
 }: {
-  appointments:    AppointmentWithClient[]
-  services:        Service[]
-  barbers?:        BarberOption[]
+  appointments:      AppointmentWithClient[]
+  services:          Service[]
+  barbers?:          BarberOption[]
   depositAmountCad?: number
+  fullPaymentActive?: boolean
 }) {
   const [appointments, setAppointments] = useState(initialAppointments)
   const [modal, setModal]               = useState<ModalState | null>(null)
@@ -153,11 +164,12 @@ export default function AppointmentsTodayTable({
 
   function openModal(appt: AppointmentWithClient) {
     setModal({
-      appointmentId: appt.id,
-      service:       appt.service,
-      basePrice:     appt.price ?? null,
-      depositPaid:   appt.deposit_paid ?? false,
-      depositAmount: depositAmountCad,
+      appointmentId:    appt.id,
+      service:          appt.service,
+      basePrice:        appt.price ?? null,
+      depositPaid:      appt.deposit_paid ?? false,
+      depositAmount:    depositAmountCad,
+      fullPaymentActive,
     })
   }
 
@@ -259,6 +271,7 @@ export default function AppointmentsTodayTable({
           loading={completing}
           depositPaid={modal.depositPaid}
           depositAmount={modal.depositAmount}
+          fullPaymentActive={modal.fullPaymentActive}
         />
       )}
 
@@ -293,12 +306,14 @@ export default function AppointmentsTodayTable({
             </div>
             {(() => {
               const price = displayPrice(appointment)
-              const depositPaid = appointment.deposit_paid && depositAmountCad > 0
-              const remaining = price !== null && depositPaid ? Math.max(0, price - depositAmountCad) : null
+              const isFullyPaid = fullPaymentActive && !!appointment.deposit_paid
+              const isDeposit   = !fullPaymentActive && !!appointment.deposit_paid && depositAmountCad > 0
+              const remaining   = isDeposit && price !== null ? Math.max(0, price - depositAmountCad) : null
               return (
                 <div className="mt-1 space-y-1">
                   {price !== null && <p className="text-xs text-slate-400">${price.toFixed(2)} CAD</p>}
-                  <DepositBadge paid={appointment.deposit_paid} amount={depositAmountCad} />
+                  {isFullyPaid && <FullPaymentBadge />}
+                  {isDeposit && <DepositBadge paid amount={depositAmountCad} />}
                   {remaining !== null && (
                     <p className="text-xs font-semibold text-amber-700">Owes: ${remaining.toFixed(2)} CAD</p>
                   )}
@@ -363,7 +378,8 @@ export default function AppointmentsTodayTable({
                         <p className="font-mono text-slate-600 whitespace-nowrap">
                           {price !== null ? `$${price.toFixed(2)}` : <span className="text-slate-300">—</span>}
                         </p>
-                        <DepositBadge paid={appointment.deposit_paid} amount={depositAmountCad} />
+                        {isFullyPaid && <FullPaymentBadge />}
+                        {isDeposit && <DepositBadge paid amount={depositAmountCad} />}
                         {remaining !== null && (
                           <p className="text-xs font-semibold text-amber-700 whitespace-nowrap">Owes: ${remaining.toFixed(2)}</p>
                         )}

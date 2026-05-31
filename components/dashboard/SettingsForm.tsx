@@ -71,7 +71,9 @@ export default function SettingsForm({
   const [services,          setServices]          = useState<Service[]>(initialConfig.services ?? [])
   const [address,           setAddress]           = useState(initialConfig.address ?? '')
   const [notificationEmail, setNotificationEmail] = useState(initialConfig.notification_email ?? '')
-  const [depositActive,     setDepositActive]     = useState(initialConfig.deposit_active ?? false)
+  const [paymentMode, setPaymentMode] = useState<'none' | 'deposit' | 'full'>(
+    initialConfig.full_payment_active ? 'full' : initialConfig.deposit_active ? 'deposit' : 'none'
+  )
   const [depositAmount,     setDepositAmount]     = useState(String(initialConfig.deposit_amount_cad ?? 20))
   const [stripeKey,         setStripeKey]         = useState('')
   const [stripeWebhook,     setStripeWebhook]     = useState('')
@@ -219,9 +221,10 @@ export default function SettingsForm({
       if (cleanNotifEmail.length > 0) config.notification_email = cleanNotifEmail
 
       config.brand_theme        = brandTheme
-      config.deposit_active     = depositActive
-      const parsedDeposit       = parseFloat(depositAmount)
-      config.deposit_amount_cad = isFinite(parsedDeposit) && parsedDeposit > 0 ? parsedDeposit : 20
+      config.deposit_active      = paymentMode === 'deposit'
+      config.full_payment_active = paymentMode === 'full'
+      const parsedDeposit        = parseFloat(depositAmount)
+      config.deposit_amount_cad  = isFinite(parsedDeposit) && parsedDeposit > 0 ? parsedDeposit : 20
 
       const hours_val = Math.min(72, Math.max(1, Math.round(reminderHours) || 24))
       const pct       = Math.min(100, Math.max(1, Math.round(flashDiscountPct) || 20))
@@ -382,46 +385,67 @@ export default function SettingsForm({
             />
           </section>
 
-          {/* Deposit */}
+          {/* Online booking payment */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-4 mb-1">
-              <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-slate-900">Booking deposit</h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Require clients to pay a deposit via Stripe before their booking is confirmed.
-                  The deposit is charged upfront — you apply it toward the service at checkout.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDepositActive(v => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${depositActive ? 'bg-indigo-600' : 'bg-slate-200'}`}
-                role="switch"
-                aria-checked={depositActive}
-              >
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${depositActive ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Online booking payment</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Optionally require clients to pay via Stripe when they book online. Requires your Stripe account below.
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="radio" name="paymentMode" value="none"
+                  checked={paymentMode === 'none'}
+                  onChange={() => setPaymentMode('none')}
+                  className="mt-0.5 accent-indigo-600" />
+                <div>
+                  <span className="text-sm font-medium text-slate-900">No prepayment</span>
+                  <p className="text-xs text-slate-500 mt-0.5">Clients book for free — you collect at the appointment.</p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="radio" name="paymentMode" value="deposit"
+                  checked={paymentMode === 'deposit'}
+                  onChange={() => setPaymentMode('deposit')}
+                  className="mt-0.5 accent-indigo-600" />
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-slate-900">Deposit</span>
+                  <p className="text-xs text-slate-500 mt-0.5">Charge a fixed amount upfront to secure the booking — applied toward the service at checkout.</p>
+                </div>
+              </label>
+
+              {paymentMode === 'deposit' && (
+                <div className="ml-6 flex items-center gap-3 max-w-xs">
+                  <label className="text-sm text-slate-700 whitespace-nowrap">Amount (CAD)</label>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      step="1"
+                      value={depositAmount}
+                      onChange={e => setDepositAmount(e.target.value)}
+                      className="w-full text-sm border border-slate-300 rounded-lg pl-7 pr-3 py-2 min-h-[40px]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="radio" name="paymentMode" value="full"
+                  checked={paymentMode === 'full'}
+                  onChange={() => setPaymentMode('full')}
+                  className="mt-0.5 accent-indigo-600" />
+                <div>
+                  <span className="text-sm font-medium text-slate-900">Full payment upfront</span>
+                  <p className="text-xs text-slate-500 mt-0.5">Charge the complete service price when the client books — nothing to collect at the appointment. The amount adjusts automatically per service.</p>
+                </div>
+              </label>
             </div>
 
-            {depositActive && (
-              <div className="mt-4 flex items-center gap-3 max-w-xs">
-                <label className="text-sm text-slate-700 whitespace-nowrap">Deposit amount (CAD)</label>
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="500"
-                    step="1"
-                    value={depositAmount}
-                    onChange={e => setDepositAmount(e.target.value)}
-                    className="w-full text-sm border border-slate-300 rounded-lg pl-7 pr-3 py-2 min-h-[40px]"
-                  />
-                </div>
-              </div>
-            )}
-
-            {depositActive && (
+            {paymentMode !== 'none' && (
               <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Stripe credentials</p>
 

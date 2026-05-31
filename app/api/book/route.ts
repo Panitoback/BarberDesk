@@ -447,27 +447,46 @@ export async function POST(request: Request) {
     })
   }
 
-  // ── Deposit flow ──────────────────────────────────────────────────────────
-  const depositActive    = cfgResult.ok && cfgResult.config.deposit_active
-  const depositAmountCad = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 20) : 20
-  const tenantStripeKey  = cfgResult.ok ? cfgResult.config.stripe_secret_key : undefined
+  // ── Stripe payment flow (deposit or full payment) ─────────────────────────
+  const depositActive     = cfgResult.ok && cfgResult.config.deposit_active
+  const fullPaymentActive = cfgResult.ok && !!cfgResult.config.full_payment_active
+  const depositAmountCad  = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 20) : 20
+  const tenantStripeKey   = cfgResult.ok ? cfgResult.config.stripe_secret_key : undefined
 
-  if (depositActive && tenantStripeKey) {
+  const chargeActive = depositActive || fullPaymentActive
+  const chargeAmount = fullPaymentActive ? (finalPrice ?? 0) : depositAmountCad
+
+  if (chargeActive && tenantStripeKey && chargeAmount > 0) {
     const origin = request.headers.get('origin') ?? `https://${subdomain}.barberqueue.pro`
+    const paymentType   = fullPaymentActive ? 'full' : 'deposit'
+    const productName   = fullPaymentActive
+      ? `${service} at ${tenant.name}`
+      : `Deposit — ${service} at ${tenant.name}`
 
     let checkoutUrl: string
     try {
       const session = await getStripeForKey(tenantStripeKey).checkout.sessions.create({
         payment_method_types: ['card'],
         mode:                 'payment',
-        line_items: [{
-          price_data: {
-            currency:     'cad',
-            unit_amount:  Math.round(depositAmountCad * 100),
-            product_data: { name: `Deposit — ${service} at ${tenant.name}` },
+        line_items: [
+          {
+            price_data: {
+              currency:     'cad',
+              unit_amount:  Math.round(chargeAmount * 100),
+              product_data: { name: productName },
+            },
+            quantity: 1,
           },
-          quantity: 1,
-        }],
+          // Ontario HST (13%) — only on full payment; deposits are pre-tax
+          ...(fullPaymentActive ? [{
+            price_data: {
+              currency:     'cad',
+              unit_amount:  Math.round(chargeAmount * 0.13 * 100),
+              product_data: { name: 'HST (13%)' },
+            },
+            quantity: 1,
+          }] : []),
+        ],
         metadata: {
           appointment_id: appointmentId,
           tenant_id:      tenant.id,
@@ -479,6 +498,7 @@ export async function POST(request: Request) {
           time,
           shop_name:      tenant.name,
           barber_name:    assignedBarber?.name ?? '',
+          payment_type:   paymentType,
         },
         success_url: `${origin}/book/deposit-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url:  `${origin}/book/deposit-cancel?appointment_id=${appointmentId}`,
@@ -499,6 +519,7 @@ export async function POST(request: Request) {
         metadata: {
           stage: 'stripe_checkout_create',
           appointment_id: appointmentId,
+          payment_type:   paymentType,
           rollback_failed: !!deleteErr,
         },
         requestBody: { service, date, time },
@@ -511,7 +532,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkout_url: checkoutUrl })
   }
-  // ── End deposit flow ──────────────────────────────────────────────────────
+  // ── End Stripe payment flow ───────────────────────────────────────────────
 
   const resendKey = process.env.RESEND_API_KEY
 

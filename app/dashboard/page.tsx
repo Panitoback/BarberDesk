@@ -57,8 +57,9 @@ export default async function DashboardPage() {
   const cfgResult       = validateTenantConfig(tenantRow?.config ?? {})
   const services        = cfgResult.ok ? (cfgResult.config.services ?? []) : []
   const multiBarber     = tenantRow?.multi_barber ?? false
-  const depositActive   = cfgResult.ok ? (cfgResult.config.deposit_active ?? false) : false
-  const depositAmountCad = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 0) : 0
+  const depositActive      = cfgResult.ok ? (cfgResult.config.deposit_active      ?? false) : false
+  const fullPaymentActive  = cfgResult.ok ? (cfgResult.config.full_payment_active ?? false) : false
+  const depositAmountCad   = cfgResult.ok ? (cfgResult.config.deposit_amount_cad  ?? 0)     : 0
   const monthlyRevenue = revenueData?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
 
   // Revenue per barber — aggregate visits by barber_id
@@ -141,6 +142,7 @@ export default async function DashboardPage() {
           services={services}
           barbers={multiBarber ? (barbers ?? []) : []}
           depositAmountCad={depositActive ? depositAmountCad : 0}
+          fullPaymentActive={fullPaymentActive}
         />
       </div>
 

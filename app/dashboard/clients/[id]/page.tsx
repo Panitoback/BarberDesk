@@ -4,9 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'
 import type { LoyaltyLevel } from '@/lib/loyalty'
-import MarkMessagesRead from '@/components/dashboard/MarkMessagesRead'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
 import ClientNotes from '@/components/dashboard/ClientNotes'
+import SmsThread from '@/components/dashboard/SmsThread'
 import { parseExtras } from '@/lib/extras'
 
 const levelStyles: Record<LoyaltyLevel, string> = {
@@ -23,12 +23,6 @@ function formatDate(dateStr: string) {
   })
 }
 
-function formatDateTime(isoStr: string) {
-  return new Date(isoStr).toLocaleDateString('en-CA', {
-    timeZone: 'America/Toronto',
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-  })
-}
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -201,34 +195,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         )}
       </div>
 
-      {/* Mark all inbound messages from this client as read */}
-      <MarkMessagesRead clientId={id} />
-
-      {/* SMS history */}
-      {messages && messages.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold text-slate-900 mb-3">SMS messages</h2>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            {messages.map(msg => (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${msg.direction === 'outbound' ? 'flex-row-reverse' : ''}`}
-              >
-                <div className={`max-w-[75%] sm:max-w-sm text-sm rounded-xl px-4 py-2.5 break-words ${
-                  msg.direction === 'inbound'
-                    ? 'bg-slate-100 text-slate-800'
-                    : 'bg-indigo-600 text-white'
-                }`}>
-                  {msg.body}
-                </div>
-                <span className="self-end text-xs text-slate-400 shrink-0">
-                  {formatDateTime(msg.created_at)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* SMS thread + compose */}
+      <SmsThread
+        clientId={id}
+        initialMessages={messages ?? []}
+        hasPhone={!!client.phone}
+      />
 
     </div>
   )

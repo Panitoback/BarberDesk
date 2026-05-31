@@ -60,6 +60,7 @@ export async function POST(request: Request) {
   const time          = meta.time
   const shopName      = meta.shop_name
   const barberName    = meta.barber_name ?? null
+  const paymentType   = (meta.payment_type ?? 'deposit') as 'deposit' | 'full'
 
   if (!appointmentId || !tenantId) {
     return new NextResponse('Missing metadata', { status: 400 })
@@ -90,7 +91,10 @@ export async function POST(request: Request) {
   // Send confirmation SMS only on first delivery
   if (!alreadyProcessed && phone && clientName && service && date && time && shopName) {
     const barberSuffix = barberName ? ` with ${barberName}` : ''
-    const smsBody = `Hi ${clientName.split(' ')[0]}, your deposit is confirmed! Your ${service}${barberSuffix} at ${shopName} is booked for ${formatDateTimeForSms(date, time)}.`
+    const firstName    = clientName.split(' ')[0]
+    const smsBody = paymentType === 'full'
+      ? `Hi ${firstName}, your payment is confirmed! Your ${service}${barberSuffix} at ${shopName} is fully paid and booked for ${formatDateTimeForSms(date, time)}.`
+      : `Hi ${firstName}, your deposit is confirmed! Your ${service}${barberSuffix} at ${shopName} is booked for ${formatDateTimeForSms(date, time)}.`
     const resolvedClientId = clientId && clientId.length > 0 ? clientId : null
     try {
       const sid = await sendSms(phone, smsBody)

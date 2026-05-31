@@ -27,6 +27,7 @@ export type TenantConfig = {
   notification_email?:     string
   deposit_active?:         boolean
   deposit_amount_cad?:     number
+  full_payment_active?:    boolean
   stripe_secret_key?:      string
   stripe_webhook_secret?:  string
   brand_theme?:            string
@@ -110,6 +111,11 @@ export function validateTenantConfig(input: unknown): ValidationResult {
   if (c.deposit_active !== undefined) {
     if (typeof c.deposit_active !== 'boolean') return { ok: false, error: 'deposit_active must be boolean' }
     config.deposit_active = c.deposit_active
+  }
+
+  if (c.full_payment_active !== undefined) {
+    if (typeof c.full_payment_active !== 'boolean') return { ok: false, error: 'full_payment_active must be boolean' }
+    config.full_payment_active = c.full_payment_active
   }
 
   if (c.deposit_amount_cad !== undefined) {

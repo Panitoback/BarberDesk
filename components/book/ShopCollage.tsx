@@ -9,13 +9,13 @@ type Props = {
 }
 
 // 4 cards max — angles chosen so no two adjacent cards feel parallel.
-// Left column alternates: strong left / right lean
-// Right column alternates: subtle right / left lean (always opposite of left column)
+// Tops use px-based percentages anchored to a 720px container so the button
+// below the div always has breathing room (bottom cards end at ~640px, button at ~732px).
 const CARDS = [
-  { rotate: '-8deg', left: '2%',  top: '1%'  },  // top-left    — hard left
-  { rotate:  '3deg', left: '52%', top: '7%'  },  // top-right   — gentle right
-  { rotate:  '6deg', left: '5%',  top: '50%' },  // bottom-left — right (≠ top-left)
-  { rotate: '-5deg', left: '50%', top: '55%' },  // bottom-right— left  (≠ top-right)
+  { rotate: '-8deg', left: '2%',  top: '0%'  },  // top-left    — hard left
+  { rotate:  '3deg', left: '52%', top: '5%'  },  // top-right   — gentle right
+  { rotate:  '6deg', left: '5%',  top: '44%' },  // bottom-left — right (≠ top-left)
+  { rotate: '-5deg', left: '50%', top: '48%' },  // bottom-right— left  (≠ top-right)
 ]
 
 export default function ShopCollage({ photos }: Props) {
@@ -58,7 +58,7 @@ export default function ShopCollage({ photos }: Props) {
       {/* ── Collage (4 photos max) ── */}
       <div
         className="relative w-full select-none"
-        style={{ minHeight: '600px' }}
+        style={{ minHeight: '720px' }}
         aria-hidden={carouselOpen}
       >
         {visible.map((photo, i) => {
@@ -117,7 +117,7 @@ export default function ShopCollage({ photos }: Props) {
         <button
           type="button"
           onClick={() => openCarousel(0)}
-          className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-700 transition-colors mx-auto"
+          className="relative z-[60] mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-700 transition-colors mx-auto"
         >
           <span className="underline underline-offset-2">
             See all {photos.length} photos

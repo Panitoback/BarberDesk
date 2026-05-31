@@ -22,8 +22,9 @@ export default async function DepositSuccessPage({ searchParams }: { searchParam
 
   if (!tenant) notFound()
 
-  const cfgResult    = validateTenantConfig(tenant.config ?? {})
-  const depositAmount = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 0) : 0
+  const cfgResult         = validateTenantConfig(tenant.config ?? {})
+  const depositAmount      = cfgResult.ok ? (cfgResult.config.deposit_amount_cad ?? 0) : 0
+  const fullPaymentActive  = cfgResult.ok ? (cfgResult.config.full_payment_active ?? false) : false
 
   const { session_id } = await searchParams
 
@@ -72,10 +73,12 @@ export default async function DepositSuccessPage({ searchParams }: { searchParam
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-3">
-          Deposit received!
+          {fullPaymentActive ? 'Payment received!' : 'Deposit received!'}
         </h1>
         <p className="text-slate-500 text-base mb-8 max-w-sm">
-          Your deposit is confirmed and your appointment is locked in. You&apos;ll get a text shortly.
+          {fullPaymentActive
+            ? 'Your appointment is fully paid and locked in. You\'ll get a text shortly.'
+            : 'Your deposit is confirmed and your appointment is locked in. You\'ll get a text shortly.'}
         </p>
 
         {appointmentDetails && (
@@ -88,7 +91,19 @@ export default async function DepositSuccessPage({ searchParams }: { searchParam
           </div>
         )}
 
-        {remaining !== null && (
+        {fullPaymentActive ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 w-full max-w-sm mb-4 text-left">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">Fully paid — nothing to bring</p>
+                <p className="text-xs text-emerald-700 mt-1">
+                  Your appointment is paid in full. No balance is due at the shop.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : remaining !== null ? (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 w-full max-w-sm mb-4 text-left">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -101,7 +116,7 @@ export default async function DepositSuccessPage({ searchParams }: { searchParam
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="flex items-center gap-2 text-xs text-slate-400 mb-8">
           <CreditCard className="w-3.5 h-3.5" />

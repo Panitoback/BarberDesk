@@ -2,7 +2,63 @@
 
 This document records the findings from formal audits of the codebase. Its purpose is to prevent future developers (or AI assistants) from re-opening the same issues, flagging intentional patterns as bugs, or "fixing" things that are correct by design.
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-05-31
+
+---
+
+## Shop Gallery + Branding + Barber Hours Audit — 2026-05-31
+
+### REAL BUGS FIXED
+
+| # | File | Issue | Fix |
+|---|---|---|---|
+| 1 | `components/dashboard/SidebarNav.tsx` | Inactive nav links lost hover effect — `style={{ color: '#94a3b8' }}` inline had higher CSS specificity than `hover:text-white` Tailwind class, so hover never fired | Replaced inline styles with pure Tailwind classes (`text-slate-400 hover:text-white`, `hover:bg-white/10`) |
+| 2 | `components/book/ShopCollage.tsx` | "See all photos" button positioned `absolute bottom-0` inside collage div — rotated cards visually overflowed the div and buried the button | Moved button outside the collage div as a sibling element; added `relative z-[60]` |
+| 3 | `components/book/ShopCollage.tsx` | `openCarousel(4)` on "See all" opened carousel at the 5th photo instead of the beginning | Changed to `openCarousel(0)` — "See all" starts from photo 1 |
+| 4 | `app/globals.css` | CSS class overrides with `!important` did not propagate theme colors to Tailwind utilities — in Tailwind v4 utilities are generated inside `@layer utilities`; unlayered `!important` won the cascade but the `var()` reference resolved at element level, not container | Replaced manual class overrides with `@theme inline` token redefinition — Tailwind v4 inlines `var(--theme-accent, ...)` directly into every indigo utility at build time |
+| 5 | `lib/theme.ts` | Forest (`#86efac`) and Ocean (`#38bdf8`) accent colors too light for white text on buttons — contrast ratio ~1.5:1 and ~3:1 respectively | Changed Forest accent to `#16a34a` and Ocean to `#0284c7`; both pass WCAG AA with white text |
+
+### FALSE POSITIVES — DO NOT RE-OPEN
+
+**1. `logo_path` overwritten when "Save settings" is clicked**
+- Claim: `SettingsForm.handleSave` sends `config` object to `/api/settings` which would overwrite the existing `logo_path`.
+- Reality: `handleSave` never includes `logo_path` in the config it sends. `validateTenantConfig(rawConfig)` only sets fields present in `rawConfig`. The server merge is `{ ...existingConfig, ...result.config }` — `logo_path` comes from `existingConfig` (DB) and is preserved. Verified by reading `/api/settings/route.ts` lines 91-106.
+
+**2. `brand_theme` always sent in settings save even when it's the default**
+- Claim: SettingsForm always sends `brand_theme` in config, polluting the config object for shops that never changed the theme.
+- Reality: intentional simplification. `validateTenantConfig` accepts and silently drops unknown theme IDs. The default theme `midnight` stored explicitly is functionally equivalent to no theme stored. No impact on behavior.
+
+**3. `POST /api/barbers` ignores `hours` in the payload**
+- Claim: when creating a new barber, the `hours` field is sent but ignored.
+- Reality: intentional design. For new barbers the hours payload is always `null` (empty `{}` normalized to `null`). Hours are configured after creation via PATCH. No data loss — the user saves the barber first, then sets custom hours.
+
+**4. `barbers.hours = null` (all days inherit) vs `barbers.hours = {}` (empty custom)**
+- Claim: the system can't distinguish "never had custom hours" from "had custom hours then reset all to inherit".
+- Reality: functionally equivalent. `parseHours(null)` and `parseHours({})` both return `{}`, which causes all days to show "Same as shop". The backend (`effectiveHoursForBarber`) treats both as "use shop hours". No behavior difference.
+
+**5. `shop_gallery` DELETE route enforces min=2 via `count <= GALLERY_MIN` — potential race condition**
+- Claim: two simultaneous DELETE requests with 3 photos could both pass the `count <= 2` guard and leave 1 photo.
+- Reality: accepted risk for MVP. Concurrent deletes from the same tenant's Settings UI are extremely unlikely (single-user session). The frontend disables the delete button when `photos.length <= 2`. No atomic transaction is available via Supabase REST API without an RPC; the cost of an RPC for this is disproportionate to the risk.
+
+**6. `color-mix()` in `@theme inline` not supported in old browsers**
+- Claim: `color-mix(in srgb, var(--theme-accent, ...) X%, white)` breaks in browsers that don't support `color-mix`.
+- Reality: graceful degradation. In unsupported browsers the `@theme inline` value is treated as invalid and the element falls back to no background color (or transparent). Only affects `bg-indigo-50/100` light tint badges. Main buttons (`bg-indigo-600`) use `var(--theme-accent, #4f46e5)` without `color-mix` and work everywhere. Chrome 111+, Firefox 113+, Safari 16.2+ all support `color-mix` — covers 95%+ of 2026 traffic.
+
+**7. CSS vars defined on a `<div>` wrapper don't affect unthemed pages**
+- Claim: `--theme-accent` defined on dashboard/booking wrappers might bleed into other pages via inheritance.
+- Reality: CSS vars don't cross DOM subtrees. The wrapper `<div>` is a child of `<body>`. Sibling subtrees (login, landing, etc.) don't inherit its vars. `var(--theme-accent, #4f46e5)` on those pages resolves to the fallback `#4f46e5` = original indigo-600. Verified: landing page tests show no color change.
+
+**8. `ShopCollage` is `aria-hidden` on the booking page**
+- Claim: hiding the collage from assistive tech is inaccessible.
+- Reality: intentional. The collage is decorative — it adds visual appeal but carries no information that isn't already available in the booking form. Setting `aria-hidden="true"` when the carousel is open prevents focus trapping issues. The carousel itself has proper labels (`aria-label` on nav buttons) and keyboard navigation (← → Escape).
+
+**9. `SidebarNav` active link uses inline `style` instead of Tailwind classes**
+- Claim: mixing inline styles and Tailwind is inconsistent.
+- Reality: necessary. The active link background must be `var(--theme-accent)` which cannot be expressed as a static Tailwind class. Inline style is the only way to apply a CSS var as a background in React without a custom CSS class. The inactive state uses pure Tailwind (no inline style) — the inconsistency is minimal and intentional.
+
+**10. `tenant-logos` Storage DELETE blocked via SQL**
+- Claim: orphaned logo files remain in Storage after `DELETE` from `storage.objects` is blocked.
+- Reality: Supabase blocks direct SQL deletion from storage tables (`storage.protect_delete()` trigger). The logo DELETE route uses the Storage API (`supabase.storage.from().remove()`) which works correctly. The SQL block was only hit during manual cleanup of test data — not a production concern.
 
 ---
 

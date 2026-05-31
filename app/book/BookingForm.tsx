@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight, StickyNote, CreditCard } from 'lucide-react'
+import { Calendar, Clock, User, Phone, Mail, Scissors as ScissorsIcon, ArrowRight, StickyNote, CreditCard, Bell } from 'lucide-react'
 import Image from 'next/image'
 import type { Service } from '@/lib/tenant-config'
 import { formatPriceModifier } from '@/lib/barbers'
@@ -67,6 +67,12 @@ export default function BookingForm({ services, shopName, depositActive = false,
   const [clientNote, setClientNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]           = useState<string | null>(null)
+
+  // Waitlist state
+  const [waitlistOpen,        setWaitlistOpen]        = useState(false)
+  const [waitlistDone,        setWaitlistDone]        = useState(false)
+  const [waitlistSubmitting,  setWaitlistSubmitting]  = useState(false)
+  const [waitlistError,       setWaitlistError]       = useState<string | null>(null)
 
   // Barber picker state
   const [barbers, setBarbers]         = useState<BarberOption[]>([])
@@ -233,6 +239,32 @@ export default function BookingForm({ services, shopName, depositActive = false,
 
   const noSlots    = !loadingSlots && availableSlots.length === 0
   const hasBarbers = barbersLoaded && barbers.length > 0
+
+  async function handleWaitlistSubmit() {
+    if (!name.trim() || !phone.trim()) {
+      setWaitlistError('Fill in your name and phone above first.')
+      return
+    }
+    setWaitlistSubmitting(true)
+    setWaitlistError(null)
+    try {
+      const res = await fetch('/api/waitlist', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name: name.trim(), phone: phone.trim(), service, date }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setWaitlistError((data as { error?: string }).error ?? 'Could not join the waitlist.')
+        return
+      }
+      setWaitlistDone(true)
+    } catch {
+      setWaitlistError('Network error. Please try again.')
+    } finally {
+      setWaitlistSubmitting(false)
+    }
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -412,6 +444,52 @@ export default function BookingForm({ services, shopName, depositActive = false,
           : <>Book with {shopName} <ArrowRight className="w-4 h-4" /></>
         }
       </button>
+
+      {/* ── Waitlist ── */}
+      <div className="border-t border-slate-200 pt-4">
+        {waitlistDone ? (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-start gap-3">
+            <Bell className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">You&apos;re on the waitlist!</p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                We&apos;ll text you when a spot opens for <strong>{service}</strong> on <strong>{date}</strong>.
+              </p>
+            </div>
+          </div>
+        ) : !waitlistOpen ? (
+          <button
+            type="button"
+            onClick={() => setWaitlistOpen(true)}
+            className="text-sm text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            Don&apos;t see the time you want?{' '}
+            <span className="underline underline-offset-2">Join the waitlist</span>
+          </button>
+        ) : (
+          <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-slate-400" />
+              <p className="text-sm font-semibold text-slate-700">Join the waitlist</p>
+            </div>
+            <p className="text-xs text-slate-500">
+              We&apos;ll text you as soon as a spot opens up for{' '}
+              <strong>{service}</strong> on <strong>{date}</strong>.
+            </p>
+            {waitlistError && (
+              <p className="text-xs text-red-600">{waitlistError}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleWaitlistSubmit}
+              disabled={waitlistSubmitting}
+              className="w-full inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+            >
+              {waitlistSubmitting ? 'Joining…' : <>Notify me <Bell className="w-3.5 h-3.5" /></>}
+            </button>
+          </div>
+        )}
+      </div>
     </form>
   )
 }

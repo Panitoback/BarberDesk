@@ -60,8 +60,8 @@ export type Database = {
         Row: {
           barber_id: string | null
           client_id: string
-          created_at: string
           client_note: string | null
+          created_at: string
           date: string
           deposit_paid: boolean
           duration_min: number
@@ -135,56 +135,6 @@ export type Database = {
           },
         ]
       }
-      barbers: {
-        Row: {
-          active: boolean
-          bio: string | null
-          created_at: string
-          display_order: number
-          email: string | null
-          hours: Json | null
-          id: string
-          name: string
-          photo_path: string | null
-          price_modifier: number
-          tenant_id: string
-        }
-        Insert: {
-          active?: boolean
-          bio?: string | null
-          created_at?: string
-          display_order?: number
-          email?: string | null
-          hours?: Json | null
-          id?: string
-          name: string
-          photo_path?: string | null
-          price_modifier?: number
-          tenant_id: string
-        }
-        Update: {
-          active?: boolean
-          bio?: string | null
-          created_at?: string
-          display_order?: number
-          email?: string | null
-          hours?: Json | null
-          id?: string
-          name?: string
-          photo_path?: string | null
-          price_modifier?: number
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "barbers_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       automations_config: {
         Row: {
           flash_active: boolean
@@ -239,6 +189,56 @@ export type Database = {
             foreignKeyName: "automations_config_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      barbers: {
+        Row: {
+          active: boolean
+          bio: string | null
+          created_at: string
+          display_order: number
+          email: string | null
+          hours: Json | null
+          id: string
+          name: string
+          photo_path: string | null
+          price_modifier: number
+          tenant_id: string
+        }
+        Insert: {
+          active?: boolean
+          bio?: string | null
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          hours?: Json | null
+          id?: string
+          name: string
+          photo_path?: string | null
+          price_modifier?: number
+          tenant_id: string
+        }
+        Update: {
+          active?: boolean
+          bio?: string | null
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          hours?: Json | null
+          id?: string
+          name?: string
+          photo_path?: string | null
+          price_modifier?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barbers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -450,6 +450,80 @@ export type Database = {
           },
         ]
       }
+      shop_gallery: {
+        Row: {
+          caption: string | null
+          created_at: string
+          display_order: number
+          id: string
+          photo_path: string
+          tenant_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_path: string
+          tenant_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_gallery_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          multi_barber: boolean
+          name: string
+          owner_id: string
+          plan: Database["public"]["Enums"]["plan_type"]
+          staff_token: string
+          subdomain: string
+          twilio_number: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          multi_barber?: boolean
+          name: string
+          owner_id: string
+          plan?: Database["public"]["Enums"]["plan_type"]
+          staff_token?: string
+          subdomain: string
+          twilio_number?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          multi_barber?: boolean
+          name?: string
+          owner_id?: string
+          plan?: Database["public"]["Enums"]["plan_type"]
+          staff_token?: string
+          subdomain?: string
+          twilio_number?: string | null
+        }
+        Relationships: []
+      }
       time_blocks: {
         Row: {
           all_day: boolean
@@ -499,80 +573,6 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      tenants: {
-        Row: {
-          config: Json
-          created_at: string
-          id: string
-          multi_barber: boolean
-          name: string
-          owner_id: string
-          plan: Database["public"]["Enums"]["plan_type"]
-          staff_token: string
-          subdomain: string
-          twilio_number: string | null
-        }
-        Insert: {
-          config?: Json
-          created_at?: string
-          id?: string
-          multi_barber?: boolean
-          name: string
-          owner_id: string
-          plan?: Database["public"]["Enums"]["plan_type"]
-          staff_token?: string
-          subdomain: string
-          twilio_number?: string | null
-        }
-        Update: {
-          config?: Json
-          created_at?: string
-          id?: string
-          multi_barber?: boolean
-          name?: string
-          owner_id?: string
-          plan?: Database["public"]["Enums"]["plan_type"]
-          staff_token?: string
-          subdomain?: string
-          twilio_number?: string | null
-        }
-        Relationships: []
-      }
-      shop_gallery: {
-        Row: {
-          id:            string
-          tenant_id:     string
-          photo_path:    string
-          caption:       string | null
-          display_order: number
-          created_at:    string
-        }
-        Insert: {
-          id?:           string
-          tenant_id:     string
-          photo_path:    string
-          caption?:      string | null
-          display_order?: number
-          created_at?:   string
-        }
-        Update: {
-          id?:           string
-          tenant_id?:    string
-          photo_path?:   string
-          caption?:      string | null
-          display_order?: number
-          created_at?:   string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shop_gallery_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          }
         ]
       }
       visits: {
@@ -632,6 +632,47 @@ export type Database = {
           },
           {
             foreignKeyName: "visits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          name: string
+          notified_at: string | null
+          phone: string
+          service: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+          notified_at?: string | null
+          phone: string
+          service: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+          notified_at?: string | null
+          phone?: string
+          service?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
