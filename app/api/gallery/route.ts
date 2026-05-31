@@ -86,7 +86,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Photo must be under 3 MB.' }, { status: 400 })
   }
 
-  const caption = (formData.get('caption') as string | null)?.trim() || null
+  const rawCaption = formData.get('caption')
+  const captionTrimmed = typeof rawCaption === 'string' ? rawCaption.trim() : null
+  if (captionTrimmed && captionTrimmed.length > 500) {
+    return NextResponse.json({ error: 'Caption must be 500 characters or fewer.' }, { status: 400 })
+  }
+  const caption = captionTrimmed || null
 
   const ext = file.type === 'image/webp' ? 'webp' : file.type === 'image/png' ? 'png' : 'jpg'
   const photoId = randomUUID()

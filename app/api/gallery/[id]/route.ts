@@ -23,12 +23,13 @@ export async function DELETE(
     .single()
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
 
-  // Enforce min 2 photos
+  // Enforce min 2 photos — check count before allowing delete
   const { count } = await supabase
     .from('shop_gallery')
     .select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenant.id)
 
+  // count <= GALLERY_MIN means we are AT or BELOW minimum — block deletion
   if ((count ?? 0) <= GALLERY_MIN) {
     return NextResponse.json(
       { error: `You must keep at least ${GALLERY_MIN} photos.` },

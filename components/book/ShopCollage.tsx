@@ -2,12 +2,7 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-
-type GalleryPhoto = {
-  id: string
-  photo_url: string
-  caption: string | null
-}
+import type { GalleryPhoto } from '@/lib/gallery'
 
 type Props = {
   photos: GalleryPhoto[]
