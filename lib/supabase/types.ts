@@ -540,6 +540,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_gallery: {
+        Row: {
+          id:            string
+          tenant_id:     string
+          photo_path:    string
+          caption:       string | null
+          display_order: number
+          created_at:    string
+        }
+        Insert: {
+          id?:           string
+          tenant_id:     string
+          photo_path:    string
+          caption?:      string | null
+          display_order?: number
+          created_at?:   string
+        }
+        Update: {
+          id?:           string
+          tenant_id?:    string
+          photo_path?:   string
+          caption?:      string | null
+          display_order?: number
+          created_at?:   string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_gallery_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       visits: {
         Row: {
           appointment_id: string | null

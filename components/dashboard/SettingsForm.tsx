@@ -14,7 +14,9 @@ import {
   type ServiceDuration,
 } from '@/lib/tenant-config'
 import BarbersTab from './BarbersTab'
+import GalleryTab from './settings/GalleryTab'
 import type { Barber } from '@/lib/barbers'
+import type { GalleryPhoto } from '@/lib/gallery'
 
 type HoursMap = Partial<Record<Weekday, DayHours>>
 type BarberRow = Omit<Barber, 'hours'> & { hours: unknown }
@@ -24,6 +26,7 @@ const ALL_TABS = [
   { id: 'services',  label: 'Services' },
   { id: 'barbers',   label: 'Barbers', requiresMultiBarber: true },
   { id: 'reminders', label: 'Reminders' },
+  { id: 'gallery',   label: 'Gallery' },
 ] as const
 type TabId = typeof ALL_TABS[number]['id']
 
@@ -39,6 +42,7 @@ export default function SettingsForm({
   subdomain,
   hasStripeKey            = false,
   hasStripeWebhookSecret  = false,
+  initialGallery          = [],
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -51,6 +55,7 @@ export default function SettingsForm({
   subdomain:               string
   hasStripeKey?:           boolean
   hasStripeWebhookSecret?: boolean
+  initialGallery?:         GalleryPhoto[]
 }) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -535,6 +540,11 @@ export default function SettingsForm({
       {/* Barbers tab */}
       {activeTab === 'barbers' && (
         <BarbersTab initialBarbers={initialBarbers} />
+      )}
+
+      {/* Gallery tab */}
+      {activeTab === 'gallery' && (
+        <GalleryTab initialPhotos={initialGallery} />
       )}
 
       {/* Reminders tab */}
