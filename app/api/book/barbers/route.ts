@@ -19,18 +19,19 @@ export async function GET() {
 
   const { data: barbers } = await supabase
     .from('barbers')
-    .select('id, name, photo_path, bio, price_modifier')
+    .select('id, name, photo_path, bio, price_modifier, instagram_handle')
     .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('display_order', { ascending: true })
     .order('created_at', { ascending: true })
 
   const result = (barbers ?? []).map(b => ({
-    id:             b.id,
-    name:           b.name,
-    photo_url:      barberPhotoUrl(b.photo_path),
-    bio:            b.bio,
-    price_modifier: b.price_modifier,
+    id:               b.id,
+    name:             b.name,
+    photo_url:        barberPhotoUrl(b.photo_path),
+    bio:              b.bio,
+    price_modifier:   b.price_modifier,
+    instagram_handle: b.instagram_handle,
   }))
 
   return NextResponse.json({ barbers: result })

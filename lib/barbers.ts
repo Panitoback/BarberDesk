@@ -10,6 +10,7 @@ export type Barber = {
   email: string | null
   photo_path: string | null
   bio: string | null
+  instagram_handle: string | null
   price_modifier: number
   hours: BarberHours | null
   display_order: number

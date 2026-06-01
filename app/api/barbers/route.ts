@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { name: rawName, email: rawEmail, bio: rawBio, price_modifier: rawMod } = body as Record<string, unknown>
+  const { name: rawName, email: rawEmail, bio: rawBio, instagram_handle: rawIg, price_modifier: rawMod } = body as Record<string, unknown>
 
   const name = typeof rawName === 'string' ? rawName.trim() : ''
   if (name.length < 1 || name.length > 80) {
@@ -54,6 +54,10 @@ export async function POST(request: Request) {
 
   const bio = typeof rawBio === 'string' && rawBio.trim().length > 0
     ? rawBio.trim().slice(0, 200)
+    : null
+
+  const instagramHandle = typeof rawIg === 'string' && rawIg.trim().length > 0
+    ? rawIg.trim().replace(/^@/, '').slice(0, 50)
     : null
 
   const priceModifier = typeof rawMod === 'number' ? rawMod : 1.0
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
 
   const { data: barber, error } = await supabase
     .from('barbers')
-    .insert({ tenant_id: tenant.id, name, email, bio, price_modifier: priceModifier })
+    .insert({ tenant_id: tenant.id, name, email, bio, instagram_handle: instagramHandle, price_modifier: priceModifier })
     .select()
     .single()
 

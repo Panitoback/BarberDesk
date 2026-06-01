@@ -64,6 +64,13 @@ export async function PATCH(
     updates.hours = (b.hours ?? null) as import('@/lib/supabase/types').Json | null | undefined
   }
 
+  if ('instagram_handle' in b) {
+    const handle = typeof b.instagram_handle === 'string' && b.instagram_handle.trim().length > 0
+      ? b.instagram_handle.trim().replace(/^@/, '').slice(0, 50)
+      : null
+    updates.instagram_handle = handle
+  }
+
   if ('display_order' in b) {
     updates.display_order = typeof b.display_order === 'number' ? b.display_order : 0
   }

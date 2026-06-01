@@ -30,10 +30,11 @@ export const getTenant = cache(async () => {
   const config = result.ok ? result.config : {}
 
   return {
-    id:         tenant.id,
-    name:       tenant.name,
-    subdomain:  tenant.subdomain,
-    brandTheme: config.brand_theme,
-    logoUrl:    logoUrl(config.logo_path),
+    id:             tenant.id,
+    name:           tenant.name,
+    subdomain:      tenant.subdomain,
+    brandTheme:     config.brand_theme,
+    logoUrl:        logoUrl(config.logo_path),
+    onboardingDone: config.onboarding_done === true,
   }
 })

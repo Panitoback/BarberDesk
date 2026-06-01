@@ -32,6 +32,7 @@ export type TenantConfig = {
   stripe_webhook_secret?:  string
   brand_theme?:            string
   logo_path?:              string
+  onboarding_done?:        boolean
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -154,6 +155,12 @@ export function validateTenantConfig(input: unknown): ValidationResult {
   if (c.logo_path !== undefined) {
     if (typeof c.logo_path === 'string' && c.logo_path.trim().length > 0) {
       config.logo_path = c.logo_path.trim()
+    }
+  }
+
+  if (c.onboarding_done !== undefined) {
+    if (typeof c.onboarding_done === 'boolean') {
+      config.onboarding_done = c.onboarding_done
     }
   }
 

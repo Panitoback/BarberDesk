@@ -10,18 +10,19 @@ type BarberRow = Omit<Barber, 'hours'> & { hours: unknown }
 type BarberHours = Partial<Record<Weekday, DayHours>>
 
 type BarberDraft = {
-  id:             string | null
-  name:           string
-  email:          string
-  bio:            string
-  price_modifier: number
-  active:         boolean
-  photo_path:     string | null
-  hours:          BarberHours
-  showHours:      boolean
-  isNew?:         boolean
-  saving?:        boolean
-  error?:         string | null
+  id:               string | null
+  name:             string
+  email:            string
+  bio:              string
+  instagram_handle: string
+  price_modifier:   number
+  active:           boolean
+  photo_path:       string | null
+  hours:            BarberHours
+  showHours:        boolean
+  isNew?:           boolean
+  saving?:          boolean
+  error?:           string | null
 }
 
 function pctToModifier(pct: number): number {
@@ -60,15 +61,16 @@ function getDayMode(hours: BarberHours, day: Weekday): DayMode {
 export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberRow[] }) {
   const [barbers, setBarbers] = useState<BarberDraft[]>(
     initialBarbers.map(b => ({
-      id:             b.id,
-      name:           b.name,
-      email:          b.email ?? '',
-      bio:            b.bio ?? '',
-      price_modifier: b.price_modifier,
-      active:         b.active,
-      photo_path:     b.photo_path,
-      hours:          parseHours(b.hours),
-      showHours:      false,
+      id:               b.id,
+      name:             b.name,
+      email:            b.email ?? '',
+      bio:              b.bio ?? '',
+      instagram_handle: b.instagram_handle ?? '',
+      price_modifier:   b.price_modifier,
+      active:           b.active,
+      photo_path:       b.photo_path,
+      hours:            parseHours(b.hours),
+      showHours:        false,
     }))
   )
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -106,7 +108,7 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
 
   function addBarber() {
     setBarbers(bs => [...bs, {
-      id: null, name: '', email: '', bio: '',
+      id: null, name: '', email: '', bio: '', instagram_handle: '',
       price_modifier: 1.0, active: true, photo_path: null,
       hours: {}, showHours: false, isNew: true,
     }])
@@ -120,12 +122,13 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
     const hoursPayload = Object.keys(b.hours).length > 0 ? b.hours : null
 
     const payload = {
-      name:           b.name.trim(),
-      email:          b.email.trim() || null,
-      bio:            b.bio.trim() || null,
-      price_modifier: b.price_modifier,
-      active:         b.active,
-      hours:          hoursPayload,
+      name:             b.name.trim(),
+      email:            b.email.trim() || null,
+      bio:              b.bio.trim() || null,
+      instagram_handle: b.instagram_handle.trim() || null,
+      price_modifier:   b.price_modifier,
+      active:           b.active,
+      hours:            hoursPayload,
     }
 
     try {
@@ -269,6 +272,16 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
                   placeholder="barber@example.com (booking notifications)" maxLength={200}
                   className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
                 />
+
+                <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden min-h-[40px]">
+                  <span className="px-3 text-sm text-slate-400 bg-slate-50 border-r border-slate-300 select-none">instagram.com/</span>
+                  <input
+                    type="text" value={b.instagram_handle}
+                    onChange={e => update(idx, { instagram_handle: e.target.value.replace(/^@/, '').replace(/\s/g, '') })}
+                    placeholder="username (optional)" maxLength={50}
+                    className="flex-1 text-sm px-3 py-2 focus:outline-none"
+                  />
+                </div>
 
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-slate-500 whitespace-nowrap">Price adjustment</label>

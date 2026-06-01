@@ -203,6 +203,7 @@ export type Database = {
           email: string | null
           hours: Json | null
           id: string
+          instagram_handle: string | null
           name: string
           photo_path: string | null
           price_modifier: number
@@ -216,6 +217,7 @@ export type Database = {
           email?: string | null
           hours?: Json | null
           id?: string
+          instagram_handle?: string | null
           name: string
           photo_path?: string | null
           price_modifier?: number
@@ -229,6 +231,7 @@ export type Database = {
           email?: string | null
           hours?: Json | null
           id?: string
+          instagram_handle?: string | null
           name?: string
           photo_path?: string | null
           price_modifier?: number

@@ -16,6 +16,7 @@ import { barberColor } from '@/lib/barbers'
 export default async function DashboardPage() {
   const tenant = await getTenant()
   if (!tenant) redirect('/login')
+  if (!tenant.onboardingDone) redirect('/setup')
 
   const supabase = await createClient()
 
