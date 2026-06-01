@@ -60,6 +60,10 @@ export async function proxy(request: NextRequest) {
       pathname === '/my-appointments' ||
       pathname.startsWith('/my-appointments/') ||
       pathname.startsWith('/api/my-appointments') ||
+      // PWA assets must be public — browsers fetch these without auth and on
+      // subdomains the proxy would otherwise rewrite or redirect them.
+      pathname === '/manifest.webmanifest' ||
+      pathname === '/sw.js' ||
       // /api/errors must accept unauthenticated POSTs so client-side errors
       // from public/login/register pages reach error_logs. The route itself
       // is fail-silent and size-capped, no auth needed.

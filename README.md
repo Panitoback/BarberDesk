@@ -2,7 +2,19 @@
 
 Multi-tenant SaaS for independent barbershops. Each shop gets a subdomain, private dashboard, public booking page, and SMS automations powered by Twilio + n8n.
 
-**Live:** [barberqueue.pro](https://barberqueue.pro) · $19.99 USD/month · 7-day free trial
+**Live:** [barberqueue.pro](https://barberqueue.pro)
+**Pricing:** $19.99 USD/month (solo barber) · $29.99 USD/month (multi-barber) · 7-day free trial · no credit card required
+
+---
+
+## Docs
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Architecture, DB schema, API routes, technical decisions |
+| `LAUNCH.md` | In-person sales guide, pitch scripts, FAQs, objection handling |
+| `COMPETITORS.md` | Square and SQUIRE feature/pricing breakdown |
+| `AUDIT.md` | Bug audit log and intentional design decisions |
 
 ---
 
@@ -58,6 +70,8 @@ All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOO
 - **Multi-tenant** — each shop gets its own subdomain, RLS-isolated data, and independent config.
 - **Public booking** — client-facing page with barber picker, preferred-barber pre-selection by phone, slot availability, and SMS + email confirmation.
 - **Stripe deposits** — opt-in per tenant. Client pays a deposit via Stripe Checkout before the booking is confirmed. Deposit applied to service total at checkout. Per-tenant keys stored in `tenants.config`.
+- **Full payment upfront** — alternative to deposit; charges the full service price + 13% Ontario HST at booking time. Settings UI lets the owner choose between None / Deposit / Full payment. Dashboard shows "Paid in full" badge; CompleteModal shows $0 due.
+- **Waitlist** — clients can join a waitlist for any service+date via a persistent section below the booking form. When an appointment is cancelled, the first unnotified waitlist entry for that date+service is notified via SMS (FIFO).
 - **Walk-ins** — instant walk-in entry with anonymous client bucket per shop.
 - **Client portal** — clients view and cancel upcoming appointments by phone number at `/my-appointments`.
 
@@ -82,6 +96,19 @@ All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOO
 
 ### Messaging
 - Inbound/outbound SMS via Twilio with Realtime notification bell in dashboard.
+- **SMS reply from client detail** — owners can reply directly from the client profile page. Chat-bubble thread with optimistic UI and Ctrl+Enter shortcut.
+
+### Planned (not yet built)
+- **Analytics dashboard** — revenue trends, top services, busiest hours, client retention.
+- **Automated tenant billing** — Stripe Subscriptions for $19.99/$29.99 plans with trial enforcement.
+- **PWA** — installable dashboard and booking page via `next-pwa` (no App Store required).
+- **Google Calendar sync** — OAuth2 per barber, auto-sync appointments.
+- **Commission tracking** — per-barber revenue breakdown for staff payroll.
+- **Barber portfolio** — before/after photo gallery per barber on the booking page.
+
+### Email notifications
+- Branded HTML emails for appointment reminders (appointment details card) and reactivation campaigns (10% off highlight box). Sent via Resend from `noreply@barberqueue.pro`.
+- Supabase auth emails (password reset, email confirmation) also route through Resend using the custom domain.
 
 ---
 
@@ -94,10 +121,7 @@ npx supabase db push
 npx supabase gen types typescript --project-id gjefeiwsvcjroklvkbuk > lib/supabase/types.ts
 ```
 
-> After regenerating types, manually re-add:
-> - `complete_appointment` and `user_owns_tenant` in the `Functions` block
-> - `shop_gallery` table definition (added 2026-05-31, not in remote type gen until next run)
-> - `deposit_paid` and `stripe_session_id` on the `appointments` table
+> After regenerating types, manually re-add `complete_appointment` and `user_owns_tenant` to the `Functions` block if they are missing.
 
 ---
 

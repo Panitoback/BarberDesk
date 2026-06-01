@@ -2,7 +2,45 @@
 
 This document records the findings from formal audits of the codebase. Its purpose is to prevent future developers (or AI assistants) from re-opening the same issues, flagging intentional patterns as bugs, or "fixing" things that are correct by design.
 
-**Last updated:** 2026-05-31
+**Last updated:** 2026-05-31 (session 3)
+
+---
+
+## Full Payment, Waitlist, SMS Reply, Email Templates Audit — 2026-05-31 (session 2)
+
+### REAL BUGS FIXED
+
+| # | File | Issue | Fix |
+|---|---|---|---|
+| 1 | `lib/barbers.ts` | `effectiveHoursForBarber` returned only the barber's partial override object as-is — a barber with only `{ wed: null }` made all other days appear closed because shop hours were never merged | Changed to `{ ...shopHours, ...barber.hours }` so shop hours are the base and barber only overrides the days explicitly configured |
+| 2 | `app/api/cron/reactivate/route.ts` | `sendReactivationEmail` used `${firstName}` in the HTML template string but never defined it — `clientName` was passed as param but never split | Added `const firstName = clientName.split(' ')[0]` at the top of the function — caused build failure on Vercel |
+| 3 | `components/dashboard/AppointmentsTodayTable.tsx` | Desktop IIFE block had stale `depositPaid` / `remaining` variable declarations while the JSX below used the renamed `isFullyPaid` / `isDeposit` names (introduced during full-payment refactor) | Updated desktop IIFE declarations to match the new variable names |
+
+### FALSE POSITIVES — DO NOT RE-OPEN
+
+**1. Waitlist returns 200 for a duplicate join (not 409)**
+- Claim: returning 200 for a duplicate waitlist entry is misleading — client might not know they're already on the list.
+- Reality: intentional. The booking form already shows the waitlist section only when the client hasn't yet joined for that service+date. A silent 200 prevents confusing error states if the form is submitted twice. The client receives the confirmation SMS only once (first join).
+
+**2. `notifyWaitlist()` sets `notified_at` before SMS — could mark entry "notified" even if SMS fails**
+- Claim: if `sendSms` throws after `notified_at` is set, the entry is permanently skipped.
+- Reality: intentional trade-off documented in CLAUDE.md under cron reminders pattern. Double-notifying a client (duplicate SMS on a cancellation that triggers two paths) is worse than missing one rare notification. The entry being "skipped" means the next waitlist entry gets notified instead — no slot goes unfilled.
+
+**3. Waitlist has no expiry — old entries accumulate**
+- Claim: entries for past dates remain in the table forever.
+- Reality: accepted for MVP. The FIFO query filters by `date` and `service` on the exact cancellation, so old entries for past dates are never selected. A periodic cleanup cron can be added when needed.
+
+**4. `POST /api/clients/[id]/message` always saves to messages even if SMS fails**
+- Claim: saving a message with `status: 'failed'` when Twilio rejects it is confusing — it appears in the thread as a sent message.
+- Reality: the route returns 502 on Twilio failure, and the `SmsThread` component handles this with optimistic rollback — the message is removed from the UI. The DB record with `status: 'failed'` is only visible in raw DB queries, not in the thread UI (which only shows `queued`/`sent`/`delivered` messages).
+
+**5. Sticky tab bar `z-20` could overlap dropdowns**
+- Claim: dropdowns inside the settings form might render beneath the sticky bar.
+- Reality: shadcn/ui `<Select>` and `<Popover>` components render in a portal at `z-50`, well above `z-20`. No overlap possible.
+
+**6. Full payment HST hardcoded at 13% — not configurable**
+- Claim: tax rate should be a config value, not hardcoded.
+- Reality: intentional for MVP. BarberQueue serves Toronto-area shops only. Ontario HST is a fixed statutory rate (13%). If the product expands to other provinces/countries, a `tax_rate` config field can be added. Hardcoding avoids misconfiguration risk.
 
 ---
 
