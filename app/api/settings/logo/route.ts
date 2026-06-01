@@ -48,19 +48,19 @@ export async function POST(request: Request) {
 
   if (uploadErr) return NextResponse.json({ error: uploadErr.message }, { status: 500 })
 
-  // Persist logo_path in tenants.config
   const currentConfig = (typeof tenant.config === 'object' && tenant.config !== null)
     ? tenant.config as Record<string, unknown>
     : {}
 
+  const updatedAt = Date.now()
   const { error: updateErr } = await supabase
     .from('tenants')
-    .update({ config: { ...currentConfig, logo_path: storagePath } })
+    .update({ config: { ...currentConfig, logo_path: storagePath, logo_updated_at: updatedAt } })
     .eq('id', tenant.id)
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
 
-  return NextResponse.json({ logo_path: storagePath })
+  return NextResponse.json({ logo_path: storagePath, logo_updated_at: updatedAt })
 }
 
 export async function DELETE(request: Request) {

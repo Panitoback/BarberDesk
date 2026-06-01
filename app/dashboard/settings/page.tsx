@@ -41,7 +41,7 @@ export default async function SettingsPage() {
   const initialConfig: TenantConfig = safeConfig
   const hasStripeKey            = !!stripe_secret_key
   const hasStripeWebhookSecret  = !!stripe_webhook_secret
-  const initialLogoUrl          = logoUrl(fullConfig.logo_path)
+  const initialLogoUrl          = logoUrl(fullConfig.logo_path, fullConfig.logo_updated_at)
 
   const initialReviewLink       = automationsRow?.review_link       ?? ''
   const initialReminderActive   = automationsRow?.reminder_active   ?? true

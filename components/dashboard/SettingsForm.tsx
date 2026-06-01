@@ -172,11 +172,11 @@ export default function SettingsForm({
       const fd = new FormData()
       fd.append('logo', file)
       const res  = await fetch('/api/settings/logo', { method: 'POST', body: fd })
-      const json = await res.json() as { logo_path?: string; error?: string }
+      const json = await res.json() as { logo_path?: string; logo_updated_at?: number; error?: string }
       if (!res.ok) throw new Error(json.error ?? 'Upload failed')
-      // Build public URL from path
       const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-      setLogoUrl(`${base}/storage/v1/object/public/tenant-logos/${json.logo_path}`)
+      const bust = json.logo_updated_at ? `?t=${json.logo_updated_at}` : ''
+      setLogoUrl(`${base}/storage/v1/object/public/tenant-logos/${json.logo_path}${bust}`)
       setFeedback({ type: 'success', text: 'Logo updated.' })
       router.refresh() // sync sidebar logo
     } catch (err) {

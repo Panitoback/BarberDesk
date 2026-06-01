@@ -4,13 +4,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays, BarChart2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 
 const navItems = [
   { href: '/',            label: 'Dashboard',   icon: LayoutDashboard, exact: true },
   { href: '/agenda',      label: 'Agenda',      icon: CalendarDays,    exact: false },
+  { href: '/analytics',   label: 'Analytics',   icon: BarChart2,       exact: false },
   { href: '/clients',     label: 'Clients',     icon: Users,           exact: false },
   { href: '/automations', label: 'Automations', icon: Zap,             exact: false },
   { href: '/settings',    label: 'Settings',    icon: Settings,        exact: false },

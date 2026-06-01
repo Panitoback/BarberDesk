@@ -32,6 +32,7 @@ export type TenantConfig = {
   stripe_webhook_secret?:  string
   brand_theme?:            string
   logo_path?:              string
+  logo_updated_at?:        number
   onboarding_done?:        boolean
 }
 
@@ -155,6 +156,12 @@ export function validateTenantConfig(input: unknown): ValidationResult {
   if (c.logo_path !== undefined) {
     if (typeof c.logo_path === 'string' && c.logo_path.trim().length > 0) {
       config.logo_path = c.logo_path.trim()
+    }
+  }
+
+  if (c.logo_updated_at !== undefined) {
+    if (typeof c.logo_updated_at === 'number' && isFinite(c.logo_updated_at)) {
+      config.logo_updated_at = c.logo_updated_at
     }
   }
 

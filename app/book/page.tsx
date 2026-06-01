@@ -56,7 +56,10 @@ export default async function BookPage() {
 
   const hasGallery = gallery.length >= GALLERY_MIN
   const tenantTheme = themeStyle(configResult.ok ? configResult.config.brand_theme : undefined)
-  const tenantLogoUrl = buildLogoUrl(configResult.ok ? configResult.config.logo_path : undefined)
+  const tenantLogoUrl = buildLogoUrl(
+    configResult.ok ? configResult.config.logo_path : undefined,
+    configResult.ok ? configResult.config.logo_updated_at : undefined,
+  )
 
   return (
     <div className="min-h-screen bg-slate-50" style={tenantTheme}>

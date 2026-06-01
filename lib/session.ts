@@ -5,9 +5,10 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
-export function logoUrl(logoPath: string | null | undefined): string | null {
+export function logoUrl(logoPath: string | null | undefined, updatedAt?: number | null): string | null {
   if (!logoPath) return null
-  return `${SUPABASE_URL}/storage/v1/object/public/tenant-logos/${logoPath}`
+  const base = `${SUPABASE_URL}/storage/v1/object/public/tenant-logos/${logoPath}`
+  return updatedAt ? `${base}?t=${updatedAt}` : base
 }
 
 export const getTenant = cache(async () => {
@@ -34,7 +35,7 @@ export const getTenant = cache(async () => {
     name:           tenant.name,
     subdomain:      tenant.subdomain,
     brandTheme:     config.brand_theme,
-    logoUrl:        logoUrl(config.logo_path),
+    logoUrl:        logoUrl(config.logo_path, config.logo_updated_at),
     onboardingDone: config.onboarding_done === true,
   }
 })
