@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Plus, Trash2, Copy, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, Copy, RefreshCw, Menu, ChevronDown } from 'lucide-react'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
@@ -85,6 +85,7 @@ export default function SettingsForm({
   const [logoUrl,        setLogoUrl]        = useState<string | null>(initialLogoUrl)
   const [logoUploading,  setLogoUploading]  = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
+  const [menuOpen,       setMenuOpen]       = useState(false)
   const [saving,         setSaving]         = useState(false)
   const [feedback,       setFeedback]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [currentToken,   setCurrentToken]   = useState(staffToken)
@@ -270,7 +271,41 @@ export default function SettingsForm({
       {/* Sticky tab bar + save button */}
       <div className="sticky top-16 md:top-0 z-20 bg-slate-50 pt-1 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex flex-1 gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto min-w-0">
+          {/* Mobile: hamburger dropdown */}
+          <div className="relative flex-1 min-w-0 md:hidden">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(o => !o)}
+              className="flex items-center gap-2 w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Menu className="w-4 h-4 shrink-0 text-slate-500" />
+              <span className="flex-1 text-left">{tabs.find(t => t.id === activeTab)?.label}</span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-150 ${menuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden">
+                  {tabs.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => { setTab(t.id); setMenuOpen(false) }}
+                      className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                        t.id === activeTab
+                          ? 'bg-indigo-50 text-indigo-700'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          {/* Desktop: pill tabs */}
+          <div className="hidden md:flex flex-1 gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto min-w-0">
             {tabs.map(t => (
               <button
                 key={t.id}
@@ -316,38 +351,36 @@ export default function SettingsForm({
                 const mode: 'unset' | 'open' | 'closed' =
                   dh === undefined ? 'unset' : dh === null ? 'closed' : 'open'
                 return (
-                  <div key={day} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-24 text-sm font-medium text-slate-700">{WEEKDAY_LABELS[day]}</div>
-                      <select
-                        value={mode}
-                        onChange={(e) => changeDayMode(day, e.target.value as 'unset' | 'open' | 'closed')}
-                        aria-label={`${WEEKDAY_LABELS[day]} status`}
-                        className="text-sm border border-slate-300 rounded-lg px-2 py-2 bg-white min-h-[40px]"
-                      >
-                        <option value="unset">Not set</option>
-                        <option value="open">Open</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </div>
+                  <div key={day} className="flex items-center gap-1.5">
+                    <span className="w-[4.5rem] shrink-0 text-sm font-medium text-slate-700">{WEEKDAY_LABELS[day]}</span>
+                    <select
+                      value={mode}
+                      onChange={(e) => changeDayMode(day, e.target.value as 'unset' | 'open' | 'closed')}
+                      aria-label={`${WEEKDAY_LABELS[day]} status`}
+                      className="text-sm border border-slate-300 rounded-lg px-2 py-2 bg-white min-h-[40px] w-[5.5rem] shrink-0"
+                    >
+                      <option value="unset">Not set</option>
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                    </select>
                     {mode === 'open' && dh && (
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <>
                         <input
                           type="time"
                           value={dh.open}
                           onChange={(e) => setDayTime(day, 'open', e.target.value)}
                           aria-label={`${WEEKDAY_LABELS[day]} opening time`}
-                          className="text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px]"
+                          className="text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px] flex-1 min-w-0"
                         />
-                        <span className="text-slate-400 text-sm">to</span>
+                        <span className="text-slate-400 text-sm shrink-0">–</span>
                         <input
                           type="time"
                           value={dh.close}
                           onChange={(e) => setDayTime(day, 'close', e.target.value)}
                           aria-label={`${WEEKDAY_LABELS[day]} closing time`}
-                          className="text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px]"
+                          className="text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px] flex-1 min-w-0"
                         />
-                      </div>
+                      </>
                     )}
                   </div>
                 )
