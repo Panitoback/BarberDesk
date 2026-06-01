@@ -88,13 +88,16 @@ const steps = [
 ]
 
 const comparison = [
-  { feature: 'Online booking page',          old: 'Pen & paper',     other: true,                ours: true },
-  { feature: 'SMS automations',              old: 'Manual or none',  other: 'Coming soon',       ours: true },
-  { feature: 'AI auto-replies to texts',     old: false,             other: false,               ours: true },
-  { feature: 'Loyalty program',              old: 'Punch cards',     other: false,               ours: '4 tiers' },
-  { feature: 'Inactive-client win-back',     old: 'Manual',          other: false,               ours: true },
-  { feature: 'Google review requests',       old: false,             other: false,               ours: true },
-  { feature: 'Monthly price',                old: '—',               other: '$29–$199 CAD',      ours: 'From $19.99 CAD' },
+  { feature: 'Online booking page',           old: 'Pen & paper',    other: true,           ours: true },
+  { feature: 'No-show SMS recovery',          old: 'Manual',         other: false,          ours: true },
+  { feature: 'SMS automations',               old: 'Manual or none', other: 'Coming soon',  ours: true },
+  { feature: 'AI auto-replies to texts',      old: false,            other: false,          ours: true },
+  { feature: 'Loyalty program',               old: 'Punch cards',    other: false,          ours: '4 tiers' },
+  { feature: 'Inactive-client win-back',      old: 'Manual',         other: false,          ours: true },
+  { feature: 'Google review requests',        old: false,            other: false,          ours: true },
+  { feature: 'Online payments & deposits',    old: false,            other: 'Paid add-on',  ours: true },
+  { feature: 'Waitlist management',           old: false,            other: false,          ours: true },
+  { feature: 'Monthly price',                 old: '—',              other: '$29–$199 CAD', ours: 'From $19.99 CAD' },
 ] satisfies ReadonlyArray<{
   feature: string
   old: string | boolean
@@ -138,15 +141,17 @@ const faqs = [
 ]
 
 const pricingFeatures = [
-  'Public booking page (yourshop.barberqueue.pro/book)',
-  'Unlimited clients',
-  'All SMS automations',
-  'Loyalty tiers (Bronze → Platinum)',
-  'Weekly reactivation campaigns',
-  'Automatic Google review requests',
-  'AI-powered auto-replies',
+  'Public booking page',
+  'Unlimited clients & visit history',
+  'No-show SMS recovery',
+  'Loyalty program — Bronze to Platinum',
+  'Inactive client win-back',
+  'Google review requests',
+  'AI-powered SMS auto-replies',
+  'Online payments & deposits (Stripe)',
+  'Client self-cancel portal',
+  'Waitlist management',
   'Private subdomain dashboard',
-  'Priority support',
 ]
 
 const multiBarberFeatures = [
@@ -441,7 +446,7 @@ export default function HomePage() {
               How we stack up
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-              One tool. Half the price.
+              More features. Half the price.
               <br />
               <span className="text-slate-400 font-normal">Everything the others don&apos;t have.</span>
             </h2>
@@ -554,17 +559,28 @@ export default function HomePage() {
                 <p className="text-slate-500 text-xs font-semibold tracking-widest uppercase">
                   Multi-barber
                 </p>
-                <span className="inline-flex items-center bg-slate-200 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wide uppercase">
-                  Team plan
+                <span className="inline-flex items-center bg-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wide uppercase">
+                  Launch — Save 40%
                 </span>
               </div>
 
+              {/* Crossed-out regular price */}
+              <div className="flex items-end gap-0.5 mb-1.5">
+                <span className="text-2xl font-bold text-slate-400 leading-none line-through decoration-slate-400">$49</span>
+                <span className="text-slate-400 mb-0.5 text-base font-bold line-through">.99</span>
+                <span className="text-slate-400 mb-0.5 text-sm ml-1 line-through">CAD/mo</span>
+              </div>
+
+              {/* Launch price */}
               <div className="flex items-end gap-0.5 mb-0.5">
                 <span className="text-6xl font-bold text-slate-900 leading-none">$29</span>
                 <span className="text-slate-900 mb-1.5 text-2xl font-bold">.99</span>
                 <span className="text-slate-400 mb-1.5 text-lg ml-1">CAD/mo</span>
               </div>
               <p className="text-slate-400 text-xs mb-2">+ applicable taxes</p>
+              <p className="text-indigo-600 text-sm font-semibold mb-1">
+                7 days free — no credit card required
+              </p>
               <p className="text-slate-500 text-sm font-medium mb-5">
                 Everything in Solo, plus team tools:
               </p>
