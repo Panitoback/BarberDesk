@@ -1,10 +1,9 @@
-// Generates PWA icons as PNG files using only Node.js built-ins (no extra packages).
+// Generates PWA icons — barber pole design (red/white/blue diagonal stripes).
 // Usage: node scripts/generate-icons.js
 const zlib = require('zlib');
 const fs   = require('fs');
 const path = require('path');
 
-// CRC32 table (IEEE 802.3 polynomial)
 const CRC_TABLE = new Uint32Array(256);
 for (let n = 0; n < 256; n++) {
   let c = n;
@@ -22,80 +21,105 @@ function chunk(type, data) {
   return Buffer.concat([u32be(data.length), t, data, u32be(crc32(Buffer.concat([t, data])))]);
 }
 
-// Generate a scissors icon on a dark background.
-// Colors: bg=#0f172a (Midnight slate), fg=white
 function createIcon(size) {
-  const BG = [15, 23, 42, 255];
-  const FG = [255, 255, 255, 255];
+  const BG     = [15, 23, 42];      // #0f172a Midnight background
+  const RED    = [220, 38, 38];     // #dc2626
+  const WHITE  = [248, 250, 252];   // #f8fafc
+  const BLUE   = [37, 99, 235];     // #2563eb
+  const SILVER = [226, 232, 240];   // #e2e8f0
 
-  // RGBA pixel buffer: 1 filter byte + 4 bytes/pixel per row
   const stride = 1 + size * 4;
   const raw = Buffer.alloc(size * stride, 0);
 
   // Fill background
   for (let y = 0; y < size; y++) {
-    raw[y * stride] = 0; // filter: None
+    raw[y * stride] = 0;
     for (let x = 0; x < size; x++) {
       const o = y * stride + 1 + x * 4;
-      raw[o]=BG[0]; raw[o+1]=BG[1]; raw[o+2]=BG[2]; raw[o+3]=BG[3];
+      raw[o]=BG[0]; raw[o+1]=BG[1]; raw[o+2]=BG[2]; raw[o+3]=255;
     }
   }
 
-  function px(x, y, c) {
-    x=Math.round(x); y=Math.round(y);
-    if (x<0||x>=size||y<0||y>=size) return;
-    const o = y*stride+1+x*4;
-    raw[o]=c[0]; raw[o+1]=c[1]; raw[o+2]=c[2]; raw[o+3]=c[3];
+  function setpx(x, y, r, g, b) {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || x >= size || y < 0 || y >= size) return;
+    const o = y * stride + 1 + x * 4;
+    raw[o]=r; raw[o+1]=g; raw[o+2]=b; raw[o+3]=255;
   }
 
-  function line(x0,y0,x1,y1,w,c) {
-    x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1);
-    const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0);
-    const sx=x0<x1?1:-1,sy=y0<y1?1:-1;
-    let err=dx-dy,x=x0,y=y0;
-    const t=Math.ceil(w/2);
-    for(;;){
-      for(let tx=-t;tx<=t;tx++) for(let ty=-t;ty<=t;ty++) px(x+tx,y+ty,c);
-      if(x===x1&&y===y1) break;
-      const e2=2*err;
-      if(e2>-dy){err-=dy;x+=sx;}
-      if(e2<dx){err+=dx;y+=sy;}
+  const cx    = size / 2;
+  const halfW = size * 0.17;                    // pole half-width
+  const top   = size * 0.13;                    // pole body top y
+  const bot   = size * 0.88;                    // pole body bottom y
+  const capR  = Math.max(2, size * 0.030);      // cap ellipse half-height
+  const ballR = halfW * 0.78;                   // top ball radius
+
+  // One full R→W→B stripe cycle height
+  const period = size * 0.21;
+  const sw     = period / 3;
+  const STRIPES = [RED, WHITE, BLUE];
+
+  // ── Pole body ──────────────────────────────────────────────────────────────
+  for (let y = Math.floor(top); y <= Math.ceil(bot); y++) {
+    for (let dxi = Math.floor(-halfW); dxi <= Math.ceil(halfW); dxi++) {
+      const t = Math.abs(dxi) / halfW;
+      if (t > 1) continue;
+
+      // Diagonal "\" stripes: same stripe shifts lower as you go right
+      const diag = ((y - top) + dxi * 0.7 + period * 999) % period;
+      const norm = ((diag % period) + period) % period;
+      const idx  = Math.floor(norm / sw) % 3;
+      const base = STRIPES[idx];
+
+      // Cylindrical shading: dark at edges
+      const shade = 1 - t * t * 0.62;
+      setpx(cx + dxi, y,
+        Math.round(base[0] * shade),
+        Math.round(base[1] * shade),
+        Math.round(base[2] * shade),
+      );
     }
   }
 
-  function disk(cx,cy,r,c) {
-    cx=Math.round(cx);cy=Math.round(cy);
-    for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++)
-      if(dx*dx+dy*dy<=r*r) px(cx+dx,cy+dy,c);
+  // ── Silver ellipse caps (top & bottom) ────────────────────────────────────
+  function drawCap(cy) {
+    for (let dy = Math.floor(-capR); dy <= Math.ceil(capR); dy++) {
+      for (let dxi = Math.floor(-halfW - 1); dxi <= Math.ceil(halfW + 1); dxi++) {
+        if ((dxi / halfW) ** 2 + (dy / capR) ** 2 <= 1.0) {
+          const shade = 1 - (Math.abs(dxi) / halfW) ** 2 * 0.45;
+          setpx(cx + dxi, cy + dy,
+            Math.round(SILVER[0] * shade),
+            Math.round(SILVER[1] * shade),
+            Math.round(SILVER[2] * shade),
+          );
+        }
+      }
+    }
+  }
+  drawCap(top);
+  drawCap(bot);
+
+  // ── Top ball ───────────────────────────────────────────────────────────────
+  const ballCy = top - ballR * 0.65;
+  for (let dy = Math.floor(-ballR); dy <= Math.ceil(ballR); dy++) {
+    for (let dxi = Math.floor(-ballR); dxi <= Math.ceil(ballR); dxi++) {
+      const dist = Math.sqrt(dxi * dxi + dy * dy);
+      if (dist <= ballR) {
+        const shade = 1 - (dist / ballR) ** 2 * 0.55;
+        setpx(cx + dxi, Math.round(ballCy) + dy,
+          Math.round(SILVER[0] * shade),
+          Math.round(SILVER[1] * shade),
+          Math.round(SILVER[2] * shade),
+        );
+      }
+    }
   }
 
-  const cx=size/2, cy=size/2;
-  const ext   = size * 0.29;
-  const thick = Math.max(3, Math.floor(size * 0.065));
-  const pivR  = Math.max(2, Math.floor(size * 0.085));
-  const hndR  = Math.max(2, Math.floor(size * 0.07));
-
-  // Two crossing blades (X)
-  line(cx-ext,cy-ext, cx+ext,cy+ext, thick, FG);
-  line(cx-ext,cy+ext, cx+ext,cy-ext, thick, FG);
-
-  // Pivot: bg gap then white ring then bg hole
-  disk(cx,cy, pivR+2, BG);
-  disk(cx,cy, pivR,   FG);
-  disk(cx,cy, Math.floor(pivR*0.52), BG);
-
-  // Handle loops at each blade tip
-  for (const [hx,hy] of [[cx-ext,cy-ext],[cx+ext,cy+ext],[cx-ext,cy+ext],[cx+ext,cy-ext]]) {
-    disk(hx,hy, hndR,   FG);
-    disk(hx,hy, Math.floor(hndR*0.48), BG);
-  }
-
-  // Assemble PNG
-  const sig  = Buffer.from([137,80,78,71,13,10,26,10]);
+  // ── Assemble PNG ───────────────────────────────────────────────────────────
+  const sig = Buffer.from([137,80,78,71,13,10,26,10]);
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size,0); ihdr.writeUInt32BE(size,4);
+  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
   ihdr[8]=8; ihdr[9]=6; // 8-bit RGBA
-
   return Buffer.concat([
     sig,
     chunk('IHDR', ihdr),
