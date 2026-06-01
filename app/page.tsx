@@ -94,7 +94,7 @@ const comparison = [
   { feature: 'Loyalty program',              old: 'Punch cards',     other: false,               ours: '4 tiers' },
   { feature: 'Inactive-client win-back',     old: 'Manual',          other: false,               ours: true },
   { feature: 'Google review requests',       old: false,             other: false,               ours: true },
-  { feature: 'Monthly price',                old: '—',               other: '$29–$199 CAD',      ours: '$19.99 USD' },
+  { feature: 'Monthly price',                old: '—',               other: '$29–$199 CAD',      ours: 'From $19.99 CAD' },
 ] satisfies ReadonlyArray<{
   feature: string
   old: string | boolean
@@ -117,7 +117,7 @@ const faqs = [
   },
   {
     q: 'What happens after the 7-day free trial?',
-    a: '$19.99 USD/month, billed monthly. Cancel anytime — no contracts, no penalties.',
+    a: '$19.99 CAD/month + applicable taxes, billed monthly. Cancel anytime — no contracts, no penalties.',
   },
   {
     q: 'Will my clients get spammed?',
@@ -147,6 +147,16 @@ const pricingFeatures = [
   'AI-powered auto-replies',
   'Private subdomain dashboard',
   'Priority support',
+]
+
+const multiBarberFeatures = [
+  'Unlimited barbers on your roster',
+  'Per-barber custom schedule & hours',
+  'Per-barber Instagram link on booking page',
+  'Per-barber photo & bio',
+  'Revenue & visit tracking per barber',
+  'Read-only staff schedule link (no login)',
+  'Booking email notifications per barber',
 ]
 
 const smsPreview = [
@@ -274,7 +284,7 @@ export default function HomePage() {
               </div>
 
               <p className="text-slate-600 text-sm mt-5">
-                No credit card required · $19.99/mo after trial · Cancel anytime
+                No credit card required · $19.99 CAD/mo + tax after trial · Cancel anytime
               </p>
             </div>
 
@@ -480,57 +490,43 @@ export default function HomePage() {
 
       {/* ── Pricing ── */}
       <section id="pricing" className="py-20 px-6 bg-white">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-3">
               Simple pricing
             </h2>
-            <p className="text-slate-500">One plan. Everything included. Lock in your launch rate.</p>
+            <p className="text-slate-500">Two plans. Everything included. No hidden fees.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
 
-            {/* Regular rate — reference card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-7 flex flex-col">
-              <p className="text-slate-400 text-xs font-semibold tracking-widest uppercase mb-5">
-                Regular rate
-              </p>
-              <div className="flex items-end gap-0.5 mb-2">
-                <span className="text-5xl font-bold text-slate-300 leading-none line-through decoration-slate-400">$29</span>
-                <span className="text-slate-300 mb-1.5 text-xl font-bold line-through">.99</span>
-                <span className="text-slate-300 mb-1.5 text-base ml-0.5">/mo</span>
-              </div>
-              <p className="text-slate-400 text-sm mb-7">
-                Standard pricing after the launch window closes.
-              </p>
-              <ul className="space-y-2.5 flex-1">
-                {pricingFeatures.map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm text-slate-400">
-                    <Check className="w-4 h-4 text-slate-300 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Launch price — featured card */}
+            {/* Solo barber — featured */}
             <div className="bg-slate-900 rounded-2xl p-7 relative overflow-hidden flex flex-col">
               <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-600" />
 
-              <div className="flex items-start justify-between mb-5">
+              <div className="flex items-start justify-between mb-4">
                 <p className="text-slate-400 text-xs font-semibold tracking-widest uppercase">
-                  BarberQueue
+                  Solo barber
                 </p>
                 <span className="inline-flex items-center bg-indigo-600/20 text-indigo-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-indigo-500/30 tracking-wide uppercase">
                   Launch — Save 33%
                 </span>
               </div>
 
-              <div className="flex items-end gap-0.5 mb-1">
+              {/* Crossed-out regular price */}
+              <div className="flex items-end gap-0.5 mb-1.5">
+                <span className="text-2xl font-bold text-slate-500 leading-none line-through decoration-slate-500">$29</span>
+                <span className="text-slate-500 mb-0.5 text-base font-bold line-through">.99</span>
+                <span className="text-slate-500 mb-0.5 text-sm ml-1 line-through">CAD/mo</span>
+              </div>
+
+              {/* Launch price */}
+              <div className="flex items-end gap-0.5 mb-0.5">
                 <span className="text-6xl font-bold text-white leading-none">$19</span>
                 <span className="text-white mb-1.5 text-2xl font-bold">.99</span>
-                <span className="text-slate-400 mb-1.5 text-lg ml-0.5">/mo</span>
+                <span className="text-slate-400 mb-1.5 text-lg ml-1">CAD/mo</span>
               </div>
+              <p className="text-slate-500 text-xs mb-2">+ applicable taxes</p>
               <p className="text-indigo-400 text-sm font-semibold mb-7">
                 7 days free — no credit card required
               </p>
@@ -547,6 +543,44 @@ export default function HomePage() {
               <Link
                 href="/register"
                 className="block w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-colors text-sm text-center"
+              >
+                Start 7-day free trial
+              </Link>
+            </div>
+
+            {/* Multi-barber */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-7 flex flex-col">
+              <div className="flex items-start justify-between mb-4">
+                <p className="text-slate-500 text-xs font-semibold tracking-widest uppercase">
+                  Multi-barber
+                </p>
+                <span className="inline-flex items-center bg-slate-200 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wide uppercase">
+                  Team plan
+                </span>
+              </div>
+
+              <div className="flex items-end gap-0.5 mb-0.5">
+                <span className="text-6xl font-bold text-slate-900 leading-none">$29</span>
+                <span className="text-slate-900 mb-1.5 text-2xl font-bold">.99</span>
+                <span className="text-slate-400 mb-1.5 text-lg ml-1">CAD/mo</span>
+              </div>
+              <p className="text-slate-400 text-xs mb-2">+ applicable taxes</p>
+              <p className="text-slate-500 text-sm font-medium mb-5">
+                Everything in Solo, plus team tools:
+              </p>
+
+              <ul className="space-y-2.5 flex-1 mb-7">
+                {multiBarberFeatures.map((f) => (
+                  <li key={f} className="flex items-center gap-3 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-slate-400 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/register"
+                className="block w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition-colors text-sm text-center"
               >
                 Start 7-day free trial
               </Link>
@@ -613,7 +647,7 @@ export default function HomePage() {
             Get started for free
             <ArrowRight className="w-4 h-4" />
           </Link>
-          <p className="text-slate-600 text-sm mt-5">No credit card · 7-day trial · $19.99/mo after</p>
+          <p className="text-slate-600 text-sm mt-5">No credit card · 7-day trial · $19.99 CAD/mo + tax after</p>
         </div>
       </section>
 
