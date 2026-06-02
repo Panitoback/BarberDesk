@@ -606,7 +606,7 @@ export default function SettingsForm({
                   }`}
                   title={theme.label}
                 >
-                  <div className="h-10" style={{ background: theme.preview[0] }}>
+                  <div className="relative h-10" style={{ background: theme.preview[0] }}>
                     <div
                       className="absolute bottom-0 left-0 right-0 h-3"
                       style={{ background: theme.preview[1] }}

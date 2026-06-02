@@ -6,6 +6,7 @@ import {
   ArrowRight, Check, Bot, CalendarCheck,
   X as XIcon, AlertCircle, TrendingDown, EyeOff,
   Sparkles, ChevronDown, Bell, Clock, Users, TrendingUp,
+  CreditCard, ShieldCheck,
 } from 'lucide-react'
 
 // ─── Fonts (landing-only, barbershop signage pairing) ─────────────────────────
@@ -29,14 +30,20 @@ const features = [
     icon: CalendarCheck,
     title: 'Online booking link',
     description:
-      'Every shop gets a public page at yourshop.barberqueue.pro/book. Clients pick a service and a time — you see it land in your dashboard. No phone tag.',
-    badge: 'New',
+      'Every shop gets a public page at yourshop.barberqueue.pro/book. Clients pick a service, a barber, and a time — you see it land in your dashboard. Charge a deposit or full payment right at booking.',
   },
   {
-    icon: MessageSquare,
-    title: 'No-show recovery',
+    icon: ShieldCheck,
+    title: 'No-show protection',
     description:
-      'Miss happens. The second a client no-shows, BarberQueue texts them your custom message. Most reschedule on the spot.',
+      'Three layers: collect a deposit at booking so clients have skin in the game, fire a flash-discount recovery text the moment they no-show, and auto-notify the waitlist to fill the empty slot.',
+  },
+  {
+    icon: CreditCard,
+    title: 'Deposit & full payment',
+    description:
+      'Charge a partial deposit or the full service price at booking via Stripe. No-shows plummet when clients have already paid. Works with Apple Pay, Google Pay, and all major cards.',
+    badge: 'New',
   },
   {
     icon: Gift,
@@ -57,10 +64,16 @@ const features = [
       '30 minutes after each cut, your client gets a text asking for a Google review. More stars, higher ranking, more walk-ins.',
   },
   {
+    icon: Clock,
+    title: 'Waitlist auto-fill',
+    description:
+      'Clients join the waitlist for a busy date. The moment a slot opens — cancellation, no-show, deposit cancel — BarberQueue texts the next person automatically. Your chair stays full.',
+  },
+  {
     icon: Bot,
     title: 'AI auto-replies',
     description:
-      'When clients text your shop, the AI answers in seconds — hours, pricing, booking. You step in only when you want to.',
+      'When clients text your shop, the AI answers in seconds — hours, pricing, booking link. You step in only when you want to.',
   },
 ]
 
@@ -68,17 +81,22 @@ const problems = [
   {
     icon: TrendingDown,
     pain: 'Clients miss appointments. You eat the empty chair.',
-    fix: 'Auto-text recovery the moment a no-show happens — most clients reschedule on the spot.',
+    fix: 'Three layers of protection: collect a deposit at booking so they have skin in the game, trigger a flash-discount recovery text the moment they no-show, and auto-notify the waitlist to fill the slot — all automatic.',
   },
   {
     icon: EyeOff,
     pain: 'Regulars quietly stop showing up — you notice months later.',
-    fix: 'We flag anyone inactive 30+ days and win them back with a personalized text.',
+    fix: 'We flag anyone inactive 30+ days and win them back with a personalized text. Set the window, write the message once, and let it run every week.',
   },
   {
     icon: AlertCircle,
     pain: 'Your competitor has 200 Google reviews. You have 12.',
-    fix: 'Every happy client gets an automatic review request 30 minutes after the cut.',
+    fix: 'Every happy client gets an automatic review request 30 minutes after the cut. More stars, higher ranking on Google Maps, more walk-ins — on autopilot.',
+  },
+  {
+    icon: Bot,
+    pain: "You're mid-cut and your phone won't stop — 'what time do you close?', 'do you take walk-ins?'",
+    fix: "The AI reads your shop info and answers in seconds, 24/7 — hours, pricing, your booking link. Clients get answers without interrupting your flow.",
   },
 ]
 
@@ -87,33 +105,36 @@ const steps = [
     label: '01',
     title: 'Sign up your shop',
     description:
-      'Create your account. Your shop gets its own dashboard at yourshop.barberqueue.pro — live in minutes.',
+      'Create your account, set your hours and services. Your shop gets its own dashboard and a live booking page at yourshop.barberqueue.pro — ready in under 10 minutes.',
   },
   {
     label: '02',
-    title: 'Share your link',
+    title: 'Share your booking page',
     description:
-      'Drop yourshop.barberqueue.pro/book in your Instagram bio, on your card, anywhere. Clients book themselves.',
+      'Drop yourshop.barberqueue.pro/book in your Instagram bio or Google profile. Clients see your shop gallery, pick a barber, choose a time, and pay a deposit — no phone call needed.',
   },
   {
     label: '03',
     title: 'Let it run',
     description:
-      'Log visits, track clients, and let the automations fire. The texts go out on their own. You just keep cutting.',
+      'Reminders fire 24h before. Reviews request 30 min after. No-show recovery texts send instantly. Win-back nudges go weekly. Waitlist fills every open slot. You just keep cutting.',
   },
 ]
 
 const comparison = [
-  { feature: 'Online booking page',           old: 'Pen & paper',    other: true,           ours: true },
-  { feature: 'No-show SMS recovery',          old: 'Manual',         other: false,          ours: true },
-  { feature: 'SMS automations',               old: 'Manual or none', other: 'Coming soon',  ours: true },
-  { feature: 'AI auto-replies to texts',      old: false,            other: false,          ours: true },
-  { feature: 'Loyalty program',               old: 'Punch cards',    other: false,          ours: '4 tiers' },
-  { feature: 'Inactive-client win-back',      old: 'Manual',         other: false,          ours: true },
-  { feature: 'Google review requests',        old: false,            other: false,          ours: true },
-  { feature: 'Online payments & deposits',    old: false,            other: 'Paid add-on',  ours: true },
-  { feature: 'Waitlist management',           old: false,            other: false,          ours: true },
-  { feature: 'Monthly price',                 old: '—',              other: '$29–$199 CAD', ours: 'From $19.99' },
+  { feature: 'Online booking page',                    old: 'Pen & paper',    other: true,           ours: true },
+  { feature: 'No-show SMS recovery',                   old: 'Manual',         other: false,          ours: true },
+  { feature: 'Flash discount no-show recovery',        old: false,            other: false,          ours: true },
+  { feature: 'Appointment reminders (SMS + email)',     old: false,            other: 'SMS only',     ours: 'SMS + email' },
+  { feature: 'SMS automations',                        old: 'Manual or none', other: 'Coming soon',  ours: true },
+  { feature: 'AI auto-replies to texts',               old: false,            other: false,          ours: true },
+  { feature: 'Loyalty program',                        old: 'Punch cards',    other: false,          ours: '4 tiers' },
+  { feature: 'Inactive-client win-back',               old: 'Manual',         other: false,          ours: true },
+  { feature: 'Google review requests',                 old: false,            other: false,          ours: true },
+  { feature: 'Online payments & deposits',             old: false,            other: 'Paid add-on',  ours: true },
+  { feature: 'Waitlist auto-fill',                     old: false,            other: false,          ours: true },
+  { feature: 'Staff schedule portal (no login)',        old: false,            other: false,          ours: true },
+  { feature: 'Monthly price',                          old: '—',              other: '$29–$199 CAD', ours: 'From $19.99' },
 ] satisfies ReadonlyArray<{
   feature: string
   old: string | boolean
@@ -124,15 +145,23 @@ const comparison = [
 const faqs = [
   {
     q: 'Do I need to be technical to set this up?',
-    a: 'No. Sign-up takes about 10 minutes. Everything is ready to go — no third-party accounts, no extra setup.',
+    a: 'No. Sign-up takes about 10 minutes. Set your hours, add your services, and your booking page is live. No third-party accounts, no developer, no extra setup.',
   },
   {
     q: 'Can my clients book online without calling me?',
-    a: 'Yes. Every shop gets a booking page at yourshop.barberqueue.pro/book. Share it on Instagram, on your business card, or in your Google Business profile. New bookings show up in your dashboard.',
+    a: 'Yes. Every shop gets a booking page at yourshop.barberqueue.pro/book. Clients see your shop gallery, pick a barber, choose a time, and pay a deposit if you have it enabled. Share it on Instagram, on your business card, or in your Google Business profile.',
+  },
+  {
+    q: 'How do deposits work? Do I need a Stripe account?',
+    a: 'Yes — you connect your own Stripe account (free to sign up). You enter your keys in Settings, choose a deposit amount or full-payment mode, and Stripe sends money directly to your bank. BarberQueue never touches your payouts. If a client cancels, the refund policy is yours to decide.',
+  },
+  {
+    q: 'Can my barbers see their schedule without logging in?',
+    a: 'Yes. The multi-barber plan includes a read-only staff schedule portal — a private link you share with your team. No account, no password, auto-refreshes every 2 minutes. Regenerate the link from Settings any time to revoke access.',
   },
   {
     q: 'Do I need to set up an SMS provider?',
-    a: 'No. SMS is fully included in your plan — we handle the phone number, the carrier, and the delivery. You just write your messages and we send them.',
+    a: 'No. SMS is fully included — we handle the phone number, the carrier, and the delivery. You write your messages and we send them. Email reminders are also included and go out via our own email infrastructure.',
   },
   {
     q: 'What happens after the 7-day free trial?',
@@ -140,15 +169,15 @@ const faqs = [
   },
   {
     q: 'Will my clients get spammed?',
-    a: 'No. Every automation has a clear trigger (a no-show, an inactive period, a completed visit) and you can pause any of them with one click.',
+    a: 'No. Every automation has a clear trigger — a no-show, an inactive period, a completed visit — and you can pause any of them with one click from your dashboard.',
   },
   {
     q: 'What if a no-show was actually a miscommunication?',
-    a: 'The recovery text is gentle by default — it just asks if they want to reschedule. You can customize the wording in your dashboard.',
+    a: 'The recovery text is gentle by default — it just asks if they want to reschedule. The flash-discount option is separate and only fires if you enable it. You can customize all the wording in your dashboard.',
   },
   {
-    q: 'Can I export my client data?',
-    a: 'Yes. Your data is yours. A one-click export from the dashboard is on the roadmap; in the meantime we can send it to you on request.',
+    q: 'What about walk-in clients?',
+    a: 'Instant walk-in entry from your dashboard — no booking required. BarberQueue finds or creates the client, logs the service, awards loyalty points, and marks the visit complete in one tap. No phone number required for anonymous walk-ins.',
   },
   {
     q: 'Do you support multiple shops on one account?',
@@ -157,44 +186,44 @@ const faqs = [
 ]
 
 const pricingFeatures = [
-  'Public booking page',
+  'Public booking page (yourshop.barberqueue.pro/book)',
   'Unlimited clients & visit history',
-  'No-show SMS recovery',
+  'Deposit or full payment at booking (Stripe)',
+  'Flash discount no-show recovery',
+  'Waitlist auto-fill on cancellations',
   'Loyalty program — Bronze to Platinum',
-  'Inactive client win-back',
-  'Google review requests',
+  'Inactive client win-back (30-day auto-SMS)',
+  'Google review requests after every cut',
   'AI-powered SMS auto-replies',
-  'Online payments & deposits (Stripe)',
   'Client self-cancel portal',
-  'Waitlist management',
   'Private subdomain dashboard',
 ]
 
 const multiBarberFeatures = [
   'Unlimited barbers on your roster',
+  'Barber cards with photo, bio & Instagram on booking page',
   'Per-barber custom schedule & hours',
-  'Per-barber Instagram link on booking page',
-  'Per-barber photo & bio',
-  'Revenue & visit tracking per barber',
-  'Read-only staff schedule link (no login)',
-  'Booking email notifications per barber',
+  'Least-loaded auto-assign keeps every barber busy',
+  'Revenue & visit tracking per barber — payroll-ready',
+  'Read-only staff schedule portal — no login, auto-refreshes',
+  'Booking email notification sent directly to each barber',
 ]
 
 const smsPreview = [
   {
-    label: 'No-show · 2 min ago',
-    text: "Hi Marcus, we noticed you missed your appointment at FadeKing today. Want to reschedule? Just reply and we'll sort it out.",
-    inbound: false,
-  },
-  {
-    label: 'New booking',
-    text: 'Hey Jordan — your appointment at FadeKing is booked for Mon, May 25 at 2:30 PM. Haircut + beard. See you soon.',
+    label: 'Deposit confirmed · just now',
+    text: 'Payment confirmed — your $25 deposit for a Fade at FadeKing on Tue, Jun 3 at 3:00 PM is locked in. Nothing to bring but yourself.',
     inbound: true,
   },
   {
-    label: 'Loyalty milestone',
-    text: 'You hit Silver at FadeKing! 100 points earned. Next stop: Gold. See you at your next visit.',
+    label: 'Flash recovery · no-show',
+    text: "Marcus, you missed today at FadeKing — rebook within 48 hrs and get 20% off your next cut. Just reply YES and we'll lock it in.",
     inbound: false,
+  },
+  {
+    label: 'Waitlist · slot opened',
+    text: "Good news — a spot just opened at FadeKing on Fri, Jun 6 at 4:00 PM. Book now before it fills: fadeking.barberqueue.pro/book",
+    inbound: true,
   },
 ]
 
@@ -449,8 +478,9 @@ export default function HomePage() {
               </h1>
 
               <p className="bq-rise mt-7 max-w-md text-lg leading-relaxed text-white/65" style={{ animationDelay: '.16s' }}>
-                Online booking, no-show recovery, loyalty rewards, and AI auto-replies —
-                all in one place. Your shop, on autopilot.
+                Online booking with deposit protection, flash recovery on no-shows,
+                loyalty rewards, waitlist auto-fill, and AI auto-replies — all in one place.
+                Your shop, fully on autopilot.
               </p>
 
               <div className="bq-rise mt-9 flex flex-col gap-3 sm:flex-row" style={{ animationDelay: '.24s' }}>
@@ -487,10 +517,10 @@ export default function HomePage() {
                   <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: 'var(--red)' }}>
                     <Bell className="h-2.5 w-2.5 text-white" />
                   </span>
-                  <span className="bq-mono text-[9px] font-bold uppercase tracking-wider text-black/40">No-show · just now</span>
+                  <span className="bq-mono text-[9px] font-bold uppercase tracking-wider text-black/40">New booking + deposit · just now</span>
                 </div>
                 <p className="text-[11px] leading-snug text-[#1d1814]">
-                  Hi Marcus — missed you today at FadeKing. Want to reschedule? Reply and we&apos;ll sort it out.
+                  Jordan booked a Fade at 3:00 PM — $25 deposit paid. Confirmed.
                 </p>
               </div>
             </div>
@@ -505,8 +535,9 @@ export default function HomePage() {
           {[0, 1].map((dup) => (
             <div key={dup} className="flex shrink-0" aria-hidden={dup === 1}>
               {[
-                'Online booking included', 'SMS sent automatically', 'Set up in under 10 minutes',
-                'No tech skills required', 'Loyalty built in', 'AI answers your texts', 'Reviews on autopilot',
+                'Online booking included', 'Deposit & full payment built in', 'SMS sent automatically',
+                'Flash recovery on no-shows', 'Set up in under 10 minutes', 'Loyalty built in',
+                'Waitlist auto-fill', 'AI answers your texts', 'Reviews on autopilot',
               ].map((item) => (
                 <span key={item} className="bq-mono flex items-center gap-3 px-6 text-sm font-bold uppercase tracking-wide text-white">
                   {item}
@@ -526,8 +557,8 @@ export default function HomePage() {
               Why barbers switch
             </p>
             <h2 className="bq-display text-4xl leading-none text-[var(--ink)] sm:text-5xl">
-              THE 3 LEAKS EVERY SHOP HAS.<br />
-              <span style={{ color: 'var(--blue)' }}>WE CLOSE THEM.</span>
+              THE LEAKS KILLING YOUR SHOP.<br />
+              <span style={{ color: 'var(--blue)' }}>WE CLOSE EVERY ONE.</span>
             </h2>
           </div>
 
@@ -564,7 +595,7 @@ export default function HomePage() {
               <span className="text-white/35">NOTHING IT DOESN&apos;T.</span>
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-white/50">
-              Six tools that run while you work. No setup headaches, no monthly surprises.
+              Eight tools that run while you cut. Booking, payments, recovery, loyalty, reviews, and AI — all wired together, no setup headaches.
             </p>
           </div>
 
@@ -605,13 +636,12 @@ export default function HomePage() {
                 <span style={{ color: 'var(--blue)' }}>MAKING YOU MONEY.</span>
               </h2>
               <p className="mt-5 max-w-md leading-relaxed text-black/65">
-                A live dashboard tracks revenue week by week, your busiest hours, your
-                top services, and your no-show rate — so you know when to staff up and what to push.
+                A live dashboard tracks revenue week by week, top services, busiest hours, no-show rate, and appointment status breakdown — so you know exactly where money is leaking and when to staff up.
               </p>
               <div className="mt-7 grid grid-cols-3 gap-3">
                 {[
                   { icon: TrendingUp, l: 'Revenue this month', v: '$4,820' },
-                  { icon: Clock, l: 'Busiest hour', v: '6 PM' },
+                  { icon: ShieldCheck, l: 'No-show rate', v: '3.8%' },
                   { icon: Users, l: 'Registered clients', v: '214' },
                 ].map((s) => (
                   <div key={s.l} className="rounded-xl border-2 border-[var(--ink)] bg-[var(--paper-2)] p-3" style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
@@ -714,9 +744,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 text-center">
             <p className="bq-mono mb-3 text-xs font-bold uppercase tracking-[0.25em]" style={{ color: 'var(--gold)' }}>
-              The texts write themselves
+              Every message fires automatically
             </p>
-            <h2 className="bq-display text-4xl leading-none text-[var(--paper)] sm:text-5xl">YOUR SHOP, TALKING FOR YOU.</h2>
+            <h2 className="bq-display text-4xl leading-none text-[var(--paper)] sm:text-5xl">YOUR SHOP, TALKING FOR YOU.<br /><span className="text-white/35">BEFORE YOU EVEN NOTICE.</span></h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -908,8 +938,20 @@ export default function HomePage() {
             YOUR CLIENTS ARE WAITING.<br />
             <span className="text-[var(--ink)]">DON&apos;T LET THEM FORGET YOU.</span>
           </h2>
-          <p className="mx-auto mt-6 max-w-md text-lg text-white/85">
-            Join barbershops across Toronto running their business on autopilot.
+          <div className="mx-auto mt-8 mb-2 grid max-w-sm grid-cols-3 gap-4">
+            {[
+              { v: '8', l: 'tools included' },
+              { v: '< 10', l: 'min to set up' },
+              { v: '$19.99', l: 'CAD / month' },
+            ].map((s) => (
+              <div key={s.l} className="rounded-xl bg-white/10 px-3 py-3 text-center">
+                <p className="bq-display text-2xl leading-none text-white">{s.v}</p>
+                <p className="bq-mono mt-1 text-[9px] uppercase tracking-wide text-white/60">{s.l}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-5 max-w-md text-lg text-white/85">
+            From the first booking to the fifth rebook — BarberQueue handles the follow-up so you can focus on the cut.
           </p>
           <Link
             href="/register"
