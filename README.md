@@ -101,10 +101,14 @@ All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOO
 - Branded HTML emails for appointment reminders and reactivation campaigns. Sent via Resend from `noreply@barberqueue.pro`.
 - Supabase auth emails (password reset) also route through Resend.
 
+### Analytics
+- **`/analytics` page** — 4 stat cards (revenue this month, avg per visit, no-show rate, registered clients) + 4 charts: Revenue trend (8-week bars), Top services (horizontal bars by revenue), Busiest times (hour heatmap 8am–9pm), Appointment status breakdown (stacked bar + legend). Pure server component — no external chart library. Tooltips via CSS `group-hover`.
+
+### PWA
+- Installable from browser on both dashboard and booking page (no App Store required). `public/sw.js` (cache-first for static assets, network-only for pages/API) + dynamic `app/manifest.ts` per tenant (name + theme colors) + barber-pole icons (192, 512, apple-touch-icon).
+
 ### Planned (not yet built)
 - **Automated tenant billing** — Stripe Subscriptions for $19.99/$29.99 CAD plans with trial enforcement. Currently billed manually.
-- **Analytics dashboard** — revenue trends, top services, busiest hours, client retention.
-- **PWA** — installable dashboard and booking page (no App Store required).
 - **Google Calendar sync** — OAuth2 per barber, auto-sync appointments.
 - **Commission tracking** — per-barber payroll breakdown (data already exists).
 
