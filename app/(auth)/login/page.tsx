@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
+import AuthBrand from '@/components/auth/AuthBrand'
 
 type Mode = 'magic' | 'password'
 
@@ -94,12 +94,12 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md text-center space-y-3">
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md space-y-3 rounded-2xl border-2 border-[var(--ink)] bg-white p-6 text-center sm:p-10" style={{ boxShadow: '6px 6px 0 var(--ink)' }}>
           <div className="text-4xl">✉️</div>
-          <h1 className="text-xl font-semibold text-slate-900">Check your email</h1>
-          <p className="text-slate-500 text-sm">
-            We sent a link to <span className="font-medium text-slate-800">{email}</span>.
+          <h1 className="bq-display text-2xl text-[var(--ink)]">Check your email</h1>
+          <p className="text-sm text-black/55">
+            We sent a link to <span className="font-semibold text-[var(--ink)]">{email}</span>.
             Click the link to sign in.
           </p>
         </div>
@@ -108,10 +108,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border-2 border-[var(--ink)] bg-white p-6 sm:p-10" style={{ boxShadow: '6px 6px 0 var(--ink)' }}>
+        <AuthBrand />
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-slate-900">Sign in to BarberQueue</h1>
+          <h1 className="bq-display text-3xl text-[var(--ink)]">Sign in</h1>
         </div>
 
         {resetDone && (
@@ -121,14 +122,14 @@ export default function LoginPage() {
         )}
 
         {/* Mode toggle */}
-        <div className="flex rounded-lg border border-slate-200 p-1 gap-1">
+        <div className="flex gap-1 rounded-lg border-2 border-[var(--ink)]/15 p-1">
           <button
             type="button"
             onClick={() => { setMode('password'); setError(null) }}
-            className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
+            className={`flex-1 rounded-md py-1.5 text-sm transition-colors ${
               mode === 'password'
-                ? 'bg-slate-900 text-white font-medium'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-[var(--ink)] font-semibold text-white'
+                : 'text-black/50 hover:text-[var(--ink)]'
             }`}
           >
             Password
@@ -136,10 +137,10 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => { setMode('magic'); setError(null) }}
-            className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
+            className={`flex-1 rounded-md py-1.5 text-sm transition-colors ${
               mode === 'magic'
-                ? 'bg-slate-900 text-white font-medium'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-[var(--ink)] font-semibold text-white'
+                : 'text-black/50 hover:text-[var(--ink)]'
             }`}
           >
             Magic link
@@ -148,7 +149,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+            <label htmlFor="email" className="text-sm font-semibold text-[var(--ink)]">
               Email address
             </label>
             <input
@@ -158,19 +159,19 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@email.com"
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
             />
           </div>
 
           {mode === 'password' && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                <label htmlFor="password" className="text-sm font-semibold text-[var(--ink)]">
                   Password
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-slate-500 hover:text-slate-900 transition-colors"
+                  className="text-xs font-semibold text-[var(--red)] transition-colors hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -182,7 +183,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
               />
             </div>
           )}
@@ -191,11 +192,16 @@ export default function LoginPage() {
             <p className="text-sm text-red-600">{error}</p>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg py-2.5 text-sm font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: 'var(--red)' }}
+          >
             {loading
               ? 'Loading...'
               : mode === 'password' ? 'Sign in' : 'Send access link'}
-          </Button>
+          </button>
         </form>
       </div>
     </div>

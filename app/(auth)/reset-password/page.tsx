@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Scissors } from 'lucide-react'
+import AuthBrand from '@/components/auth/AuthBrand'
 
 type Status = 'checking' | 'ready' | 'invalid'
 
@@ -52,28 +52,25 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border-2 border-[var(--ink)] bg-white p-6 sm:p-10" style={{ boxShadow: '6px 6px 0 var(--ink)' }}>
 
-        <div className="flex items-center gap-2">
-          <Scissors className="w-5 h-5 text-indigo-400" />
-          <span className="font-bold text-slate-900 tracking-tight">BarberQueue</span>
-        </div>
+        <AuthBrand />
 
         {status === 'checking' && (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <p className="text-sm text-black/45">Loading...</p>
         )}
 
         {status === 'invalid' && (
           <div className="space-y-3">
-            <h1 className="text-xl font-bold text-slate-900">Link expired</h1>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <h1 className="bq-display text-2xl text-[var(--ink)]">Link expired</h1>
+            <p className="text-sm leading-relaxed text-black/55">
               This password reset link is invalid or has expired. Request a new one
               to continue.
             </p>
             <Link
               href="/forgot-password"
-              className="inline-block text-sm text-slate-700 font-semibold hover:underline"
+              className="inline-block text-sm font-semibold text-[var(--red)] hover:underline"
             >
               Request a new link
             </Link>
@@ -83,15 +80,15 @@ export default function ResetPasswordPage() {
         {status === 'ready' && (
           <>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Set a new password</h1>
-              <p className="text-slate-500 text-sm mt-1">
+              <h1 className="bq-display text-3xl text-[var(--ink)]">Set a new password</h1>
+              <p className="mt-1 text-sm text-black/55">
                 Choose a new password for your account.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                <label htmlFor="password" className="text-sm font-semibold text-[var(--ink)]">
                   New password
                 </label>
                 <input
@@ -101,12 +98,12 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="confirm" className="text-sm font-medium text-slate-700">
+                <label htmlFor="confirm" className="text-sm font-semibold text-[var(--ink)]">
                   Confirm password
                 </label>
                 <input
@@ -116,7 +113,7 @@ export default function ResetPasswordPage() {
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
                 />
               </div>
 
@@ -125,7 +122,8 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !password || !confirm}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors text-sm"
+                className="w-full rounded-lg py-2.5 text-sm font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ background: 'var(--red)' }}
               >
                 {loading ? 'Updating...' : 'Update password'}
               </button>

@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { SLUG_RE } from '@/lib/slug'
-import { Scissors, Check, X, Loader2 } from 'lucide-react'
+import { Check, X, Loader2 } from 'lucide-react'
+import AuthBrand from '@/components/auth/AuthBrand'
 
 function slugify(name: string): string {
   return name
@@ -173,24 +174,21 @@ function RegisterForm() {
     password.length < MIN_PASSWORD_LEN
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border-2 border-[var(--ink)] bg-white p-6 sm:p-10" style={{ boxShadow: '6px 6px 0 var(--ink)' }}>
 
-        <div className="flex items-center gap-2">
-          <Scissors className="w-5 h-5 text-indigo-400" />
-          <span className="font-bold text-slate-900 tracking-tight">BarberQueue</span>
-        </div>
+        <AuthBrand />
 
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Set up your shop</h1>
-          <p className="text-slate-500 text-sm mt-1">7 days free. No credit card required.</p>
+          <h1 className="bq-display text-3xl text-[var(--ink)]">Set up your shop</h1>
+          <p className="mt-1 text-sm text-black/55">7 days free. No credit card required.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
           {/* Shop name */}
           <div className="space-y-1.5">
-            <label htmlFor="shopName" className="text-sm font-medium text-slate-700">
+            <label htmlFor="shopName" className="text-sm font-semibold text-[var(--ink)]">
               Shop name
             </label>
             <input
@@ -200,13 +198,13 @@ function RegisterForm() {
               value={shopName}
               onChange={e => setShopName(e.target.value)}
               placeholder="FadeKing Barbershop"
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
             />
           </div>
 
           {/* Subdomain */}
           <div className="space-y-1.5">
-            <label htmlFor="slug" className="text-sm font-medium text-slate-700">
+            <label htmlFor="slug" className="text-sm font-semibold text-[var(--ink)]">
               Your subdomain
             </label>
             <div className="flex items-stretch">
@@ -217,9 +215,9 @@ function RegisterForm() {
                 value={slug}
                 onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                 placeholder="fadeking"
-                className="flex-1 rounded-l-lg border border-r-0 border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                className="flex-1 rounded-l-lg border border-r-0 border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--red)]"
               />
-              <span className="flex items-center bg-slate-50 border border-slate-300 rounded-r-lg px-3 text-sm text-slate-400 whitespace-nowrap select-none">
+              <span className="flex select-none items-center whitespace-nowrap rounded-r-lg border border-[var(--ink)]/20 bg-[var(--paper-2)] px-3 text-sm text-black/50">
                 .barberqueue.pro
               </span>
             </div>
@@ -236,7 +234,7 @@ function RegisterForm() {
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+            <label htmlFor="email" className="text-sm font-semibold text-[var(--ink)]">
               Email address
             </label>
             <input
@@ -246,13 +244,13 @@ function RegisterForm() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="you@email.com"
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
             />
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-slate-700">
+            <label htmlFor="password" className="text-sm font-semibold text-[var(--ink)]">
               Password
             </label>
             <input
@@ -263,9 +261,9 @@ function RegisterForm() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="At least 8 characters"
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-[var(--red)]"
             />
-            <p className="text-xs text-slate-400">Minimum 8 characters.</p>
+            <p className="text-xs text-black/45">Minimum 8 characters.</p>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -273,15 +271,16 @@ function RegisterForm() {
           <button
             type="submit"
             disabled={submitDisabled}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors text-sm"
+            className="w-full rounded-lg py-2.5 text-sm font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: 'var(--red)' }}
           >
             {loading ? 'Creating your shop...' : 'Create my shop'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-slate-400">
+        <p className="text-center text-sm text-black/55">
           Already have an account?{' '}
-          <Link href="/login" className="text-slate-700 font-semibold hover:underline">
+          <Link href="/login" className="font-semibold text-[var(--red)] hover:underline">
             Sign in
           </Link>
         </p>

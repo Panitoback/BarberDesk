@@ -1,4 +1,5 @@
 export const THEME_IDS = [
+  'barbershop',
   'midnight',
   'obsidian-gold',
   'forest',
@@ -20,6 +21,15 @@ export type ThemePalette = {
 }
 
 export const THEMES: ThemePalette[] = [
+  {
+    id:          'barbershop',
+    label:       'Barbershop',
+    bg:          '#16110d',
+    accent:      '#d8232a',
+    accentHover: '#b81d23',
+    accentText:  '#ffffff',
+    preview:     ['#16110d', '#d8232a'],
+  },
   {
     id:          'midnight',
     label:       'Midnight',
@@ -76,7 +86,7 @@ export const THEMES: ThemePalette[] = [
   },
 ]
 
-export const DEFAULT_THEME: ThemeId = 'midnight'
+export const DEFAULT_THEME: ThemeId = 'barbershop'
 
 export function getTheme(id: string | undefined): ThemePalette {
   return THEMES.find(t => t.id === id) ?? THEMES[0]
