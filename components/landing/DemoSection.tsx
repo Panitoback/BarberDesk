@@ -84,7 +84,7 @@ export default function DemoSection() {
       {/* Desktop: phone centrado con burbujas a los lados */}
       <div
         className="hidden md:grid pb-20"
-        style={{ gridTemplateColumns: '1fr 280px 1fr', alignItems: 'center', gap: '2rem' }}
+        style={{ gridTemplateColumns: '1fr 300px 1fr', alignItems: 'center', gap: '2rem' }}
       >
         <div className="flex flex-col gap-6 items-end">
           <Bubble slot={0} />

@@ -5,9 +5,9 @@ import { useRef, useState } from 'react'
 const VIDEO_URL =
   'https://gjefeiwsvcjroklvkbuk.supabase.co/storage/v1/object/public/landing-assets/demo.mp4'
 
-// Phone dimensions: 280px wide, 9:19.5 ratio → 607px tall
-const W = 280
-const H = Math.round(W * 19.5 / 9) // 607
+// Frame matches the video's aspect ratio (720×1280 → 9:16) so nothing is cropped
+const W = 300
+const H = Math.round(W * 1280 / 720) // 533
 
 export default function DemoVideo() {
   const videoRef = useRef<HTMLVideoElement>(null)
