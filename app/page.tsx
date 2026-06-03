@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Anton, Space_Mono, Hanken_Grotesk } from 'next/font/google'
+import DemoSection from '@/components/landing/DemoSection'
 import {
   Scissors, MessageSquare, Gift, RotateCcw, Star,
   ArrowRight, Check, Bot, CalendarCheck,
@@ -620,6 +621,26 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── App demo — phone mockup ── */}
+      <section className="px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-14 text-center">
+            <p className="bq-mono mb-3 text-xs font-bold uppercase tracking-[0.25em]" style={{ color: 'var(--red)' }}>
+              See it in action
+            </p>
+            <h2 className="bq-display text-4xl leading-none text-[var(--ink)] sm:text-5xl">
+              YOUR SHOP.<br />
+              <span className="text-[var(--ink)]/30">IN YOUR POCKET.</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-[var(--ink)]/50">
+              Manage appointments, track clients, and run automations — all from your phone.
+            </p>
+          </div>
+
+          <DemoSection />
         </div>
       </section>
 

@@ -11,7 +11,7 @@
 The core product works: booking, automations, multi-barber, SMS, Stripe deposits, waitlist, branding. A barbershop using it today has a better tool than most competitors at this price. Three things to be aware of before pitching:
 
 - **No automated billing yet** — collect payment manually via e-transfer or cash for first clients. Track renewals in a spreadsheet or Notion.
-- **No onboarding wizard** — you are the onboarding. Leave the setup checklist (below) after every visit.
+- **Onboarding wizard included** — on first login, the owner sees a 5-step wizard (Hours → Services → Logo → Reminders → Done). Still, offer to sit with them during the first setup — personal support is a differentiator.
 - **Stripe setup needed for deposits** — walk them through it in person. Takes 10 minutes.
 
 **Launch pricing:** $15/month for first clients (launch discount from $19.99). Multi-barber shops: $25/month (from $29.99). No contracts. Cancel anytime.
@@ -108,7 +108,7 @@ Only bring up price after the demo. Let them ask, or introduce it naturally:
 Then stop talking. Let them respond.
 
 If they ask about competitors:
-> *"Square charges you 2.6% of every transaction. If you're doing $5,000 a month in card payments, that's $133 going to Square every month — on top of whatever their plan costs. With BarberQueue, $15 flat. We don't touch your money."*
+> *"Square is a payment terminal — it's not built for barbershops. It has no no-show protection, no waitlist, no loyalty program, no AI auto-reply. You'd be paying for a booking bolt-on on top of a payments tool. BarberQueue is $15 flat and built specifically for how barbershops work."*
 
 ---
 
@@ -157,9 +157,9 @@ Study these. Use them naturally, not as a script.
 > *"The AI handles your DMs and texts after hours. It knows your hours, your services, your prices — and it sends them your booking link."*
 > *"It's like having a receptionist, but it costs nothing extra."*
 
-**Zero commission:**
-> *"We don't take a cut of your payments. Not a percentage, not a fee. Flat $15 a month and that's it."*
-> *"Square takes 2.6% of every haircut. That adds up to hundreds of dollars a month for a busy shop."*
+**Flat monthly price:**
+> *"$15 a month, flat. No setup fees, no hidden charges, no percentage on anything. You know exactly what you're paying."*
+> *"SQUIRE starts at $50 a month for a single location. You're paying three times more for features you'll never use."*
 
 **Your own branded link:**
 > *"Your booking page is your link — `yourshop.barberqueue.pro`. Put it on Instagram, Google Maps, WhatsApp. It's yours."*
@@ -234,7 +234,7 @@ These are phrases used naturally in B2B conversations in Toronto. Study them so 
 > *"It's not an app — it's a webpage. Any phone, any browser. Your client gets a text with the link and books in 30 seconds. No download, no account, nothing."*
 
 ### "I already use Square."
-> *"Square is great for payments, but think about what you're paying them. 2.6% of every transaction — that's hundreds of dollars a month for a busy shop. BarberQueue is $15 flat and you keep 100% of every payment."*
+> *"Keep using Square for in-person payments — that doesn't change. What BarberQueue adds is everything Square doesn't have: online booking, no-show protection, automatic reminders, loyalty points, AI auto-replies, a waitlist. Square is a payment terminal. This is your shop's management system. They do different jobs."*
 
 ### "I just take walk-ins, I don't do appointments."
 > *"Walk-ins are still your bread and butter — this doesn't change that. But a booking system fills your slow hours. The clients who would've walked by come in because they reserved a slot."*
@@ -304,7 +304,7 @@ Questions? WhatsApp: [your number]
 
 - No contracts. Cancel anytime.
 - 7-day free trial, no credit card required.
-- Zero percentage cut on any payment.
+- Flat monthly price — no hidden fees, no per-booking charges.
 - Payment: e-transfer or cash for first clients. Monthly.
 
 ---

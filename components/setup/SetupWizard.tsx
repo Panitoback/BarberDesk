@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronRight, X, Clock, Scissors, ImageIcon, Bell, Copy } from 'lucide-react'
+import { Check, ChevronRight, X, Clock, Scissors, ImageIcon, Bell, Copy, CheckCheck } from 'lucide-react'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
@@ -53,6 +53,7 @@ export default function SetupWizard({
   const [step,   setStep]   = useState(0)
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // Step 0: Hours
   const [hours, setHours] = useState<HoursMap>(
@@ -123,13 +124,20 @@ export default function SetupWizard({
 
   async function finish() {
     setSaving(true)
-    await postSettings({ config: { onboarding_done: true } })
+    const ok = await postSettings({ config: { onboarding_done: true } })
+    if (!ok) { setSaving(false); return }
     router.push('/')
   }
 
   async function skipAll() {
-    await postSettings({ config: { onboarding_done: true } })
-    router.push('/')
+    const ok = await postSettings({ config: { onboarding_done: true } })
+    if (ok) router.push('/')
+  }
+
+  function copyBookingUrl() {
+    void navigator.clipboard.writeText(bookingUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   // ── Hours helpers ───────────────────────────────────────────────────────────
@@ -400,11 +408,11 @@ export default function SetupWizard({
                   <span className="flex-1 text-sm text-indigo-300 font-mono truncate">{bookingUrl}</span>
                   <button
                     type="button"
-                    onClick={() => { void navigator.clipboard.writeText(bookingUrl) }}
-                    className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
-                    title="Copy link"
+                    onClick={copyBookingUrl}
+                    className={`p-2 rounded-lg transition-colors shrink-0 ${copied ? 'text-emerald-400 bg-emerald-950' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                    title={copied ? 'Copied!' : 'Copy link'}
                   >
-                    <Copy className="w-4 h-4" />
+                    {copied ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
