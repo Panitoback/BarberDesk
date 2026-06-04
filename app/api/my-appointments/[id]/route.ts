@@ -23,7 +23,7 @@ export async function DELETE(
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name')
+    .select('id, name, twilio_number')
     .eq('subdomain', subdomain)
     .single()
 
@@ -70,7 +70,7 @@ export async function DELETE(
   const firstName = client.name.split(' ')[0]
   const smsBody = `Hi ${firstName}, your appointment at ${tenant.name} on ${formatDateTimeForSms(appointment.date, appointment.time)} has been cancelled. Book again at https://${subdomain}.barberqueue.pro/book`
   try {
-    const sid = await sendSms(phone, smsBody)
+    const sid = await sendSms(phone, smsBody, tenant.twilio_number ?? undefined)
     await supabase.from('messages').insert({
       tenant_id: tenant.id,
       client_id: client.id,
@@ -90,7 +90,7 @@ export async function DELETE(
   }
 
   after(async () => {
-    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service)
+    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service, tenant.twilio_number ?? undefined)
   })
 
   return NextResponse.json({ ok: true })

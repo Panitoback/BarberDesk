@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   // Look up tenant and their Stripe credentials
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, config')
+    .select('id, twilio_number, config')
     .eq('subdomain', subdomain)
     .single()
 
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       : `Hi ${firstName}, your deposit is confirmed! Your ${service}${barberSuffix} at ${shopName} is booked for ${formatDateTimeForSms(date, time)}.`
     const resolvedClientId = clientId && clientId.length > 0 ? clientId : null
     try {
-      const sid = await sendSms(phone, smsBody)
+      const sid = await sendSms(phone, smsBody, tenant.twilio_number ?? undefined)
       await supabase.from('messages').insert({
         tenant_id:  tenantId,
         client_id:  resolvedClientId,

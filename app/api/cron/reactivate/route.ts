@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
   const { data: tenants } = await supabase
     .from('tenants')
-    .select('id, name, automations_config(reactivation_active, reactivation_days)')
+    .select('id, name, twilio_number, automations_config(reactivation_active, reactivation_days)')
     .neq('plan', 'suspended')
 
   if (!tenants?.length) return NextResponse.json({ ok: true, processed: 0 })
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       let smsStatus: 'queued' | 'failed' = 'queued'
 
       try {
-        if (client.phone) twilioSid = await sendSms(client.phone, smsBody)
+        if (client.phone) twilioSid = await sendSms(client.phone, smsBody, tenant.twilio_number ?? undefined)
         else smsStatus = 'failed'
       } catch {
         smsStatus = 'failed'

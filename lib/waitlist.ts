@@ -13,11 +13,12 @@ function formatDateSms(iso: string): string {
  * them an SMS. Called via after() from all three cancellation paths.
  */
 export async function notifyWaitlist(
-  tenantId:   string,
-  subdomain:  string,
-  tenantName: string,
-  date:       string,   // YYYY-MM-DD
-  service:    string,
+  tenantId:    string,
+  subdomain:   string,
+  tenantName:  string,
+  date:        string,   // YYYY-MM-DD
+  service:     string,
+  fromNumber?: string,   // tenant's own Twilio number; falls back to platform default
 ): Promise<void> {
   const supabase = createAdminClient()
 
@@ -45,7 +46,7 @@ export async function notifyWaitlist(
   const smsBody    = `Hi ${firstName}, a spot just opened up for ${service} at ${tenantName} on ${formatDateSms(date)}! Book now: ${bookingUrl}`
 
   try {
-    await sendSms(entry.phone, smsBody)
+    await sendSms(entry.phone, smsBody, fromNumber)
   } catch {
     // Best-effort — loss of one SMS notification is acceptable.
   }

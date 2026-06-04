@@ -21,7 +21,7 @@ export const getTenant = cache(async () => {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, subdomain, config')
+    .select('id, name, subdomain, twilio_number, config')
     .eq('subdomain', subdomain)
     .single()
 
@@ -34,6 +34,7 @@ export const getTenant = cache(async () => {
     id:             tenant.id,
     name:           tenant.name,
     subdomain:      tenant.subdomain,
+    twilioNumber:   tenant.twilio_number,
     brandTheme:     config.brand_theme,
     logoUrl:        logoUrl(config.logo_path, config.logo_updated_at),
     onboardingDone: config.onboarding_done === true,

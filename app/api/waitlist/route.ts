@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, config')
+    .select('id, name, twilio_number, config')
     .eq('subdomain', subdomain)
     .single()
 
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   const firstName  = name.split(' ')[0]
   const smsBody    = `Hi ${firstName}, you're on the waitlist for ${service} at ${tenant.name} on ${formatDateSms(date)}. We'll text you as soon as a spot opens up.`
   try {
-    await sendSms(phone, smsBody)
+    await sendSms(phone, smsBody, tenant.twilio_number ?? undefined)
   } catch {
     // non-critical
   }

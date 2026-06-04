@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, config')
+    .select('id, name, twilio_number, config')
     .eq('subdomain', subdomain)
     .single()
 
@@ -299,7 +299,7 @@ export async function POST(request: Request) {
     const barberSuffix = assignedBarber ? ` with ${assignedBarber.name}` : ''
     const smsBody = `Hi ${firstName}, your ${service}${barberSuffix} at ${tenant.name} is confirmed for ${formatDateTimeForSms(date, time)}.`
     try {
-      const sid = await sendSms(phone, smsBody)
+      const sid = await sendSms(phone, smsBody, tenant.twilio_number ?? undefined)
       await supabase.from('messages').insert({
         tenant_id:  tenant.id,
         client_id:  clientId,

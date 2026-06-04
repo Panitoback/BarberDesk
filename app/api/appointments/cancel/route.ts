@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name')
+    .select('id, name, twilio_number')
     .eq('subdomain', subdomain)
     .single()
 
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       `Reply if you'd like to rebook.`
 
     try {
-      const sid = await sendSms(client.phone, smsBody)
+      const sid = await sendSms(client.phone, smsBody, tenant.twilio_number ?? undefined)
       await supabase.from('messages').insert({
         tenant_id:  tenant.id,
         client_id:  appointment.client_id,
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   }
 
   after(async () => {
-    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service)
+    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service, tenant.twilio_number ?? undefined)
   })
 
   return NextResponse.json({ ok: true })

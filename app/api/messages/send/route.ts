@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id')
+    .select('id, twilio_number')
     .eq('subdomain', subdomain)
     .single()
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   let smsStatus: 'queued' | 'failed' = 'queued'
 
   try {
-    twilioSid = await sendSms(phone, message)
+    twilioSid = await sendSms(phone, message, tenant.twilio_number ?? undefined)
   } catch {
     smsStatus = 'failed'
   }
