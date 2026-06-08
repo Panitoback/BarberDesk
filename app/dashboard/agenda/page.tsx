@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import { todayInToronto } from '@/lib/dates'
+import { validateTenantConfig } from '@/lib/tenant-config'
 import WeeklyAgenda from '@/components/dashboard/WeeklyAgenda'
 import BlockTimeButton from '@/components/dashboard/BlockTimeButton'
 
@@ -43,7 +44,7 @@ export default async function AgendaPage({
   ] = await Promise.all([
     supabase
       .from('appointments')
-      .select('id, date, time, service, status, client_note, barber_id, clients(name)')
+      .select('id, date, time, service, status, price, deposit_paid, client_note, barber_id, clients(name)')
       .eq('tenant_id', tenant.id)
       .gte('date', monday)
       .lte('date', sunday)
@@ -62,12 +63,16 @@ export default async function AgendaPage({
       .order('date', { ascending: true })
       .order('start_time', { ascending: true })
       .limit(10),
-    supabase.from('tenants').select('multi_barber').eq('id', tenant.id).single(),
+    supabase.from('tenants').select('multi_barber, config').eq('id', tenant.id).single(),
     supabase.from('barbers').select('id, name, display_order').eq('tenant_id', tenant.id).eq('active', true).order('display_order'),
   ])
 
-  const multiBarber = tenantRow?.multi_barber ?? false
-  const barberList  = multiBarber ? (barbers ?? []) : []
+  const multiBarber       = tenantRow?.multi_barber ?? false
+  const barberList        = multiBarber ? (barbers ?? []) : []
+  const cfgResult         = validateTenantConfig(tenantRow?.config ?? {})
+  const services          = cfgResult.ok ? (cfgResult.config.services          ?? []) : []
+  const fullPaymentActive = cfgResult.ok ? (cfgResult.config.full_payment_active ?? false) : false
+  const depositAmountCad  = cfgResult.ok ? (cfgResult.config.deposit_amount_cad  ?? 0)     : 0
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const dateISO = addDays(monday, i)
@@ -78,13 +83,15 @@ export default async function AgendaPage({
       appointments: (appointments ?? [])
         .filter(a => a.date === dateISO)
         .map(a => ({
-          id:          a.id,
-          time:        a.time,
-          service:     a.service,
-          status:      a.status,
-          client_note: a.client_note,
-          barber_id:   a.barber_id,
-          clients:     Array.isArray(a.clients) ? (a.clients[0] ?? null) : a.clients,
+          id:           a.id,
+          time:         a.time,
+          service:      a.service,
+          status:       a.status,
+          price:        a.price ?? null,
+          deposit_paid: a.deposit_paid ?? null,
+          client_note:  a.client_note,
+          barber_id:    a.barber_id,
+          clients:      Array.isArray(a.clients) ? (a.clients[0] ?? null) : a.clients,
         })),
       blocks: (weekBlocks ?? [])
         .filter(b => b.date === dateISO)
@@ -102,7 +109,14 @@ export default async function AgendaPage({
       <div className="flex justify-end mb-3">
         <BlockTimeButton upcomingBlocks={upcomingBlocks ?? []} barbers={barberList} />
       </div>
-      <WeeklyAgenda days={days} monday={monday} barbers={barberList} />
+      <WeeklyAgenda
+        days={days}
+        monday={monday}
+        barbers={barberList}
+        services={services}
+        depositAmountCad={depositAmountCad}
+        fullPaymentActive={fullPaymentActive}
+      />
     </div>
   )
 }

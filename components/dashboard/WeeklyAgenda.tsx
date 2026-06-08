@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { barberColor } from '@/lib/barbers'
+import CompleteModal from '@/components/dashboard/CompleteModal'
+import type { Service } from '@/lib/tenant-config'
 
 function NoteButton({ note }: { note: string }) {
   const [open, setOpen] = useState(false)
@@ -35,13 +37,24 @@ function NoteButton({ note }: { note: string }) {
 type BarberOption = { id: string; name: string; display_order: number }
 
 type Appointment = {
-  id:          string
-  time:        string
-  service:     string
-  status:      string
-  client_note: string | null
-  barber_id:   string | null
-  clients:     { name: string } | null
+  id:           string
+  time:         string
+  service:      string
+  status:       string
+  price:        number | null
+  deposit_paid: boolean | null
+  client_note:  string | null
+  barber_id:    string | null
+  clients:      { name: string } | null
+}
+
+type ModalState = {
+  appointmentId:    string
+  service:          string
+  basePrice:        number | null
+  depositPaid:      boolean
+  depositAmount:    number
+  fullPaymentActive: boolean
 }
 
 type Block = {
@@ -117,13 +130,91 @@ export default function WeeklyAgenda({
   days,
   monday,
   barbers = [],
+  services = [],
+  depositAmountCad = 0,
+  fullPaymentActive = false,
 }: {
-  days:     DayData[]
-  monday:   string
-  barbers?: BarberOption[]
+  days:               DayData[]
+  monday:             string
+  barbers?:           BarberOption[]
+  services?:          Service[]
+  depositAmountCad?:  number
+  fullPaymentActive?: boolean
 }) {
   const router = useRouter()
+  const [, startTransition] = useTransition()
   const [filterBarberId, setFilterBarberId] = useState<string>('all')
+  const [modal, setModal]         = useState<ModalState | null>(null)
+  const [actionOpen, setActionOpen] = useState<string | null>(null)
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({})
+  const [completing, setCompleting] = useState(false)
+  const [marking, setMarking]     = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!actionOpen) return
+    function close() { setActionOpen(null) }
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [actionOpen])
+
+  function openModal(appt: Appointment) {
+    setModal({
+      appointmentId:    appt.id,
+      service:          appt.service,
+      basePrice:        appt.price,
+      depositPaid:      appt.deposit_paid ?? false,
+      depositAmount:    depositAmountCad,
+      fullPaymentActive,
+    })
+    setActionOpen(null)
+  }
+
+  async function handleComplete(finalPrice: number | null, extras: import('@/lib/extras').VisitExtra[]) {
+    if (!modal) return
+    setCompleting(true)
+    const body: Record<string, unknown> = { appointment_id: modal.appointmentId }
+    if (finalPrice !== null) body.final_price = finalPrice
+    if (extras.length > 0)   body.extras      = extras
+    const res = await fetch('/api/appointments/complete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      setStatusOverrides(prev => ({ ...prev, [modal.appointmentId]: 'completed' }))
+      setModal(null)
+      startTransition(() => router.refresh())
+    }
+    setCompleting(false)
+  }
+
+  async function markNoShow(appointmentId: string) {
+    setMarking(appointmentId)
+    setActionOpen(null)
+    const res = await fetch('/api/noshow', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointment_id: appointmentId }),
+    })
+    if (res.ok || res.status === 502) {
+      setStatusOverrides(prev => ({ ...prev, [appointmentId]: 'no_show' }))
+      startTransition(() => router.refresh())
+    }
+    setMarking(null)
+  }
+
+  async function cancelAppointment(appointmentId: string) {
+    if (!window.confirm('Cancel this appointment? The client will get an SMS notification.')) return
+    setCancelling(appointmentId)
+    setActionOpen(null)
+    const res = await fetch('/api/appointments/cancel', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointment_id: appointmentId }),
+    })
+    if (res.ok) {
+      setStatusOverrides(prev => ({ ...prev, [appointmentId]: 'cancelled' }))
+      startTransition(() => router.refresh())
+    }
+    setCancelling(null)
+  }
 
   const showBarbers    = barbers.length > 0
   const barberIndexMap = new Map(barbers.map((b, i) => [b.id, i]))
@@ -147,6 +238,19 @@ export default function WeeklyAgenda({
 
   return (
     <div className="space-y-4">
+      {modal && (
+        <CompleteModal
+          service={modal.service}
+          basePrice={modal.basePrice}
+          services={services}
+          onClose={() => setModal(null)}
+          onConfirm={handleComplete}
+          loading={completing}
+          depositPaid={modal.depositPaid}
+          depositAmount={modal.depositAmount}
+          fullPaymentActive={modal.fullPaymentActive}
+        />
+      )}
       {/* Week navigation */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Agenda</h1>
@@ -226,18 +330,57 @@ export default function WeeklyAgenda({
                         : day.isToday ? 'bg-indigo-50/30' : ''
                     }`}>
                     {appts.map(appt => {
-                      const bIdx   = appt.barber_id ? barberIndexMap.get(appt.barber_id) : undefined
-                      const bColor = bIdx !== undefined ? barberColor(bIdx) : null
+                      const bIdx          = appt.barber_id ? barberIndexMap.get(appt.barber_id) : undefined
+                      const bColor        = bIdx !== undefined ? barberColor(bIdx) : null
+                      const effectiveStatus = statusOverrides[appt.id] ?? appt.status
+                      const isPending     = effectiveStatus === 'pending'
+                      const isActionOpen  = actionOpen === appt.id
+                      const isBusy        = marking === appt.id || cancelling === appt.id
                       return (
                         <div key={appt.id}
+                          onClick={e => {
+                            if (!isPending) return
+                            e.stopPropagation()
+                            setActionOpen(o => o === appt.id ? null : appt.id)
+                          }}
                           className={`text-[11px] font-medium rounded px-1.5 py-1 border mb-0.5 leading-tight border-l-4 ${
-                            statusColors[appt.status] ?? statusColors.pending
-                          } ${bColor ? bColor.border : 'border-l-slate-300'}`}>
+                            statusColors[effectiveStatus] ?? statusColors.pending
+                          } ${bColor ? bColor.border : 'border-l-slate-300'} ${
+                            isPending ? 'cursor-pointer hover:brightness-95 select-none' : ''
+                          }`}>
                           <div className="flex items-center gap-1 font-semibold">
                             <span className="truncate">{appt.clients?.name ?? 'Walk-in'}</span>
                             {appt.client_note && <NoteButton note={appt.client_note} />}
                           </div>
                           <div className="opacity-75 truncate">{appt.service}</div>
+                          {isActionOpen && (
+                            <div
+                              className="flex gap-0.5 mt-1 pt-1 border-t border-current/20"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => openModal(appt)}
+                                disabled={isBusy}
+                                className="flex-1 text-[9px] font-bold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded px-0.5 py-0.5 transition-colors disabled:opacity-50"
+                              >
+                                Done
+                              </button>
+                              <button
+                                onClick={() => markNoShow(appt.id)}
+                                disabled={isBusy}
+                                className="flex-1 text-[9px] font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded px-0.5 py-0.5 transition-colors disabled:opacity-50"
+                              >
+                                {marking === appt.id ? '…' : 'No-show'}
+                              </button>
+                              <button
+                                onClick={() => cancelAppointment(appt.id)}
+                                disabled={isBusy}
+                                className="flex-1 text-[9px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded px-0.5 py-0.5 transition-colors disabled:opacity-50"
+                              >
+                                {cancelling === appt.id ? '…' : 'Cancel'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )
                     })}
