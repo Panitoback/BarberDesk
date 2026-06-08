@@ -5,6 +5,7 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 import type { Database } from '@/lib/supabase/types'
 
 type AutomationsUpdate = Database['public']['Tables']['automations_config']['Update']
+type TenantsUpdate    = Database['public']['Tables']['tenants']['Update']
 
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
     flash_discount_pct:      rawFlashDiscountPct,
     stripe_secret_key:       rawStripeKey,
     stripe_webhook_secret:   rawStripeWebhook,
+    shop_name:               rawShopName,
+    new_subdomain:           rawNewSubdomain,
   } = body as {
     config?:                 unknown
     review_link?:            unknown
@@ -36,6 +39,8 @@ export async function POST(request: Request) {
     flash_discount_pct?:     unknown
     stripe_secret_key?:      unknown
     stripe_webhook_secret?:  unknown
+    shop_name?:              unknown
+    new_subdomain?:          unknown
   }
 
   const result = validateTenantConfig(rawConfig ?? {})
@@ -79,6 +84,42 @@ export async function POST(request: Request) {
     .single()
 
   if (!tenant) return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+
+  // Validate and apply shop_name / new_subdomain
+  const tenantUpdate: TenantsUpdate = {}
+
+  if (rawShopName !== undefined) {
+    if (typeof rawShopName !== 'string' || rawShopName.trim().length === 0) {
+      return NextResponse.json({ error: 'Shop name cannot be empty' }, { status: 400 })
+    }
+    tenantUpdate.name = rawShopName.trim().slice(0, 100)
+  }
+
+  let resolvedNewSubdomain: string | null = null
+  if (rawNewSubdomain !== undefined && rawNewSubdomain !== subdomain) {
+    if (typeof rawNewSubdomain !== 'string') {
+      return NextResponse.json({ error: 'subdomain must be a string' }, { status: 400 })
+    }
+    const slug = rawNewSubdomain.toLowerCase().trim()
+    if (!/^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/.test(slug)) {
+      return NextResponse.json({ error: 'Subdomain must be 3–30 chars: lowercase letters, numbers, or hyphens' }, { status: 400 })
+    }
+    const RESERVED = ['www', 'api', 'admin', 'app', 'mail', 'blog', 'book', 'staff']
+    if (RESERVED.includes(slug)) {
+      return NextResponse.json({ error: 'That subdomain is reserved' }, { status: 400 })
+    }
+    const { data: existing } = await supabase.from('tenants').select('id').eq('subdomain', slug).single()
+    if (existing) {
+      return NextResponse.json({ error: 'That subdomain is already taken' }, { status: 409 })
+    }
+    tenantUpdate.subdomain = slug
+    resolvedNewSubdomain = slug
+  }
+
+  if (Object.keys(tenantUpdate).length > 0) {
+    const { error: tenantErr } = await supabase.from('tenants').update(tenantUpdate).eq('id', tenant.id)
+    if (tenantErr) return NextResponse.json({ error: 'Could not save shop info' }, { status: 500 })
+  }
 
   // Read existing config to preserve stripe keys if not being updated
   const { data: existingTenant } = await supabase
@@ -146,5 +187,5 @@ export async function POST(request: Request) {
     if (autoErr) return NextResponse.json({ error: 'Could not save automation settings' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, ...(resolvedNewSubdomain ? { new_subdomain: resolvedNewSubdomain } : {}) })
 }

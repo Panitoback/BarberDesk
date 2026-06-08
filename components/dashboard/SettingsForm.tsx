@@ -46,6 +46,7 @@ export default function SettingsForm({
   hasStripeWebhookSecret  = false,
   initialGallery          = [],
   initialLogoUrl          = null,
+  initialShopName         = '',
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -60,6 +61,7 @@ export default function SettingsForm({
   hasStripeWebhookSecret?: boolean
   initialGallery?:         GalleryPhoto[]
   initialLogoUrl?:         string | null
+  initialShopName?:        string
 }) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -67,6 +69,8 @@ export default function SettingsForm({
   const tabs = ALL_TABS.filter(t => !('requiresMultiBarber' in t) || multiBarber)
   const activeTab = (params.get('tab') ?? 'general') as TabId
 
+  const [shopName,          setShopName]          = useState(initialShopName)
+  const [subdomainInput,    setSubdomainInput]    = useState(subdomain)
   const [hours,             setHours]             = useState<HoursMap>(initialConfig.hours ?? {})
   const [services,          setServices]          = useState<Service[]>(initialConfig.services ?? [])
   const [address,           setAddress]           = useState(initialConfig.address ?? '')
@@ -239,15 +243,25 @@ export default function SettingsForm({
       }
       if (stripeKey.trim())     body.stripe_secret_key     = stripeKey.trim()
       if (stripeWebhook.trim()) body.stripe_webhook_secret = stripeWebhook.trim()
+      if (shopName.trim())      body.shop_name             = shopName.trim()
+      const cleanSlug = subdomainInput.toLowerCase().trim()
+      if (cleanSlug && cleanSlug !== subdomain) body.new_subdomain = cleanSlug
 
       const res = await fetch('/api/settings', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
       })
-      const json = await res.json() as { ok?: boolean; error?: string }
+      const json = await res.json() as { ok?: boolean; error?: string; new_subdomain?: string }
       if (!res.ok) throw new Error(json.error ?? 'Failed to save')
 
+      if (json.new_subdomain) {
+        const host = isProduction
+          ? `${json.new_subdomain}.barberqueue.pro`
+          : `${json.new_subdomain}.localhost:3000`
+        window.location.href = `${protocol}://${host}/settings`
+        return
+      }
       setFeedback({ type: 'success', text: 'Settings saved.' })
       router.refresh()
     } catch (err) {
@@ -339,6 +353,47 @@ export default function SettingsForm({
       {/* General tab */}
       {activeTab === 'general' && (
         <>
+          {/* Shop identity */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Shop identity</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">Name and URL shown to clients when they book online.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Shop name</label>
+                <input
+                  type="text"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  placeholder="King Cuts Barbershop"
+                  maxLength={100}
+                  aria-label="Shop name"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 min-h-[40px]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Shop URL</label>
+                <div className="flex items-stretch">
+                  <input
+                    type="text"
+                    value={subdomainInput}
+                    onChange={(e) => setSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    maxLength={30}
+                    aria-label="Subdomain"
+                    className="text-sm border border-slate-300 rounded-l-lg px-3 py-2 min-h-[40px] w-36"
+                  />
+                  <span className="flex items-center text-sm border border-l-0 border-slate-300 rounded-r-lg px-3 bg-slate-50 text-slate-500 whitespace-nowrap">
+                    .barberqueue.pro
+                  </span>
+                </div>
+                {subdomainInput !== subdomain && subdomainInput.length >= 3 && (
+                  <p className="text-xs text-amber-600 mt-1.5">
+                    After saving you&apos;ll be redirected to {subdomainInput}.barberqueue.pro — update any bookmarks.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Opening hours */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-slate-900">Opening hours</h2>

@@ -19,7 +19,7 @@ export default async function SettingsPage() {
     { data: barbers },
     { data: galleryRows },
   ] = await Promise.all([
-    supabase.from('tenants').select('config, multi_barber, staff_token').eq('id', tenant.id).single(),
+    supabase.from('tenants').select('config, multi_barber, staff_token, name').eq('id', tenant.id).single(),
     supabase.from('automations_config').select('review_link, reminder_active, reminder_hours, flash_discount_pct').eq('tenant_id', tenant.id).single(),
     supabase.from('barbers').select('*').eq('tenant_id', tenant.id).order('display_order').order('created_at'),
     supabase.from('shop_gallery').select('id, photo_path, caption, display_order').eq('tenant_id', tenant.id).order('display_order').order('created_at'),
@@ -72,6 +72,7 @@ export default async function SettingsPage() {
           hasStripeWebhookSecret={hasStripeWebhookSecret}
           initialGallery={initialGallery}
           initialLogoUrl={initialLogoUrl}
+          initialShopName={tenantRow?.name ?? ''}
         />
       </Suspense>
       <BookingQRCode subdomain={tenant.subdomain} />
