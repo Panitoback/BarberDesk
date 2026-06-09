@@ -65,12 +65,16 @@ export default function LoginPage() {
       }
 
       // Send the owner to their shop's subdomain dashboard
-      const { data: tenant } = await supabase
+      // Use limit(1) instead of maybeSingle() — maybeSingle() silently returns null
+      // when the user owns multiple tenants, causing a false redirect to /register.
+      const { data: tenants } = await supabase
         .from('tenants')
         .select('subdomain')
         .eq('owner_id', data.user.id)
-        .maybeSingle()
+        .order('created_at', { ascending: false })
+        .limit(1)
 
+      const tenant = tenants?.[0]
       if (tenant?.subdomain) {
         window.location.href = `${tenantOrigin(tenant.subdomain)}/`
       } else {

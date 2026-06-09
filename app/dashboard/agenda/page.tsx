@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import { todayInToronto } from '@/lib/dates'
@@ -24,12 +25,12 @@ function addDays(dateISO: string, n: number): string {
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>
+  searchParams: Promise<{ week?: string; view?: string }>
 }) {
   const tenant = await getTenant()
   if (!tenant) redirect('/login')
 
-  const { week } = await searchParams
+  const { week, view } = await searchParams
   const anchor = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : todayInToronto()
   const monday = getMondayOfWeek(anchor)
   const sunday = addDays(monday, 6)
@@ -76,6 +77,8 @@ export default async function AgendaPage({
   const depositAmountCad   = cfgResult.ok ? (cfgResult.config.deposit_amount_cad  ?? 0)     : 0
   const hasGoogleCalendar  = cfgResult.ok ? !!cfgResult.config.google_calendar_refresh_token : false
 
+  const activeView = hasGoogleCalendar && view === 'calendar' ? 'calendar' : 'appointments'
+
   const days = Array.from({ length: 7 }, (_, i) => {
     const dateISO = addDays(monday, i)
     return {
@@ -106,20 +109,54 @@ export default async function AgendaPage({
     }
   })
 
+  const weekParam = week ? `week=${week}` : ''
+
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="flex justify-end mb-3">
-        <BlockTimeButton upcomingBlocks={upcomingBlocks ?? []} barbers={barberList} />
+      {/* Tab bar */}
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+          <Link
+            href={weekParam ? `?${weekParam}&view=appointments` : '?view=appointments'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeView === 'appointments'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <span>Appointments</span>
+          </Link>
+          {hasGoogleCalendar && (
+            <Link
+              href={weekParam ? `?${weekParam}&view=calendar` : '?view=calendar'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeView === 'calendar'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <span>My Google Calendar</span>
+            </Link>
+          )}
+        </div>
+
+        {activeView === 'appointments' && (
+          <BlockTimeButton upcomingBlocks={upcomingBlocks ?? []} barbers={barberList} />
+        )}
       </div>
-      <WeeklyAgenda
-        days={days}
-        monday={monday}
-        barbers={barberList}
-        services={services}
-        depositAmountCad={depositAmountCad}
-        fullPaymentActive={fullPaymentActive}
-      />
-      {hasGoogleCalendar && <GoogleCalendarSection monday={monday} />}
+
+      {activeView === 'appointments' ? (
+        <WeeklyAgenda
+          days={days}
+          monday={monday}
+          barbers={barberList}
+          services={services}
+          depositAmountCad={depositAmountCad}
+          fullPaymentActive={fullPaymentActive}
+        />
+      ) : (
+        <GoogleCalendarSection monday={monday} fullView />
+      )}
     </div>
   )
 }
