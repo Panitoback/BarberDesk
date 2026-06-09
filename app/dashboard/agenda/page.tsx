@@ -5,6 +5,7 @@ import { todayInToronto } from '@/lib/dates'
 import { validateTenantConfig } from '@/lib/tenant-config'
 import WeeklyAgenda from '@/components/dashboard/WeeklyAgenda'
 import BlockTimeButton from '@/components/dashboard/BlockTimeButton'
+import GoogleCalendarSection from '@/components/dashboard/GoogleCalendarSection'
 
 function getMondayOfWeek(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
@@ -67,12 +68,13 @@ export default async function AgendaPage({
     supabase.from('barbers').select('id, name, display_order').eq('tenant_id', tenant.id).eq('active', true).order('display_order'),
   ])
 
-  const multiBarber       = tenantRow?.multi_barber ?? false
-  const barberList        = multiBarber ? (barbers ?? []) : []
-  const cfgResult         = validateTenantConfig(tenantRow?.config ?? {})
-  const services          = cfgResult.ok ? (cfgResult.config.services          ?? []) : []
-  const fullPaymentActive = cfgResult.ok ? (cfgResult.config.full_payment_active ?? false) : false
-  const depositAmountCad  = cfgResult.ok ? (cfgResult.config.deposit_amount_cad  ?? 0)     : 0
+  const multiBarber        = tenantRow?.multi_barber ?? false
+  const barberList         = multiBarber ? (barbers ?? []) : []
+  const cfgResult          = validateTenantConfig(tenantRow?.config ?? {})
+  const services           = cfgResult.ok ? (cfgResult.config.services           ?? []) : []
+  const fullPaymentActive  = cfgResult.ok ? (cfgResult.config.full_payment_active ?? false) : false
+  const depositAmountCad   = cfgResult.ok ? (cfgResult.config.deposit_amount_cad  ?? 0)     : 0
+  const hasGoogleCalendar  = cfgResult.ok ? !!cfgResult.config.google_calendar_refresh_token : false
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const dateISO = addDays(monday, i)
@@ -117,6 +119,7 @@ export default async function AgendaPage({
         depositAmountCad={depositAmountCad}
         fullPaymentActive={fullPaymentActive}
       />
+      {hasGoogleCalendar && <GoogleCalendarSection monday={monday} />}
     </div>
   )
 }

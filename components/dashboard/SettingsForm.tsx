@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Plus, Trash2, Copy, RefreshCw, Menu, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Copy, RefreshCw, Menu, ChevronDown, CalendarDays, CheckCircle2, Loader2 } from 'lucide-react'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
@@ -47,6 +47,7 @@ export default function SettingsForm({
   initialGallery          = [],
   initialLogoUrl          = null,
   initialShopName         = '',
+  hasGoogleCalendar       = false,
 }: {
   initialConfig:           TenantConfig
   initialReviewLink:       string
@@ -62,12 +63,33 @@ export default function SettingsForm({
   initialGallery?:         GalleryPhoto[]
   initialLogoUrl?:         string | null
   initialShopName?:        string
+  hasGoogleCalendar?:      boolean
 }) {
   const router   = useRouter()
   const pathname = usePathname()
   const params   = useSearchParams()
   const tabs = ALL_TABS.filter(t => !('requiresMultiBarber' in t) || multiBarber)
-  const activeTab = (params.get('tab') ?? 'general') as TabId
+  const activeTab    = (params.get('tab') ?? 'general') as TabId
+  const calendarParam = params.get('calendar')
+
+  useEffect(() => {
+    if (!calendarParam) return
+    if (calendarParam === 'connected') {
+      setGoogleConnected(true)
+      setFeedback({ type: 'success', text: 'Google Calendar connected.' })
+    } else if (calendarParam === 'denied') {
+      setFeedback({ type: 'error', text: 'Google Calendar access was denied.' })
+    } else if (calendarParam === 'no_refresh_token') {
+      setFeedback({ type: 'error', text: 'Could not get refresh token. Revoke access in your Google account and try again.' })
+    } else if (calendarParam === 'error') {
+      setFeedback({ type: 'error', text: 'Google Calendar connection failed. Try again.' })
+    }
+    // Remove the ?calendar= param so a page refresh doesn't re-trigger the toast
+    const url = new URL(window.location.href)
+    url.searchParams.delete('calendar')
+    router.replace(url.pathname + url.search, { scroll: false })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calendarParam])
 
   const [shopName,          setShopName]          = useState(initialShopName)
   const [subdomainInput,    setSubdomainInput]    = useState(subdomain)
@@ -94,13 +116,31 @@ export default function SettingsForm({
   const [feedback,       setFeedback]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [currentToken,   setCurrentToken]   = useState(staffToken)
   const [regenerating,   setRegenerating]   = useState(false)
-  const [copied,         setCopied]         = useState(false)
+  const [copied,           setCopied]           = useState(false)
+  const [googleConnected,  setGoogleConnected]  = useState(hasGoogleCalendar ?? false)
+  const [googleBusy,       setGoogleBusy]       = useState(false)
 
   const isProduction = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
   const protocol     = isProduction ? 'https' : 'http'
   const staffUrl     = currentToken
     ? `${protocol}://${subdomain}.${isProduction ? 'barberqueue.pro' : 'localhost:3000'}/staff/${currentToken}`
     : null
+
+  async function handleGoogleDisconnect() {
+    if (!confirm('Disconnect Google Calendar? Your events will no longer appear in the agenda.')) return
+    setGoogleBusy(true)
+    try {
+      const res = await fetch('/api/calendar/disconnect', { method: 'DELETE' })
+      if (res.ok) {
+        setGoogleConnected(false)
+        setFeedback({ type: 'success', text: 'Google Calendar disconnected.' })
+      } else {
+        setFeedback({ type: 'error', text: 'Could not disconnect. Try again.' })
+      }
+    } finally {
+      setGoogleBusy(false)
+    }
+  }
 
   async function handleCopy() {
     if (!staffUrl) return
@@ -681,6 +721,45 @@ export default function SettingsForm({
                   )}
                 </button>
               ))}
+            </div>
+          </section>
+
+          {/* Integrations */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">Integrations</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">Connect external calendars to view alongside your appointments.</p>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                  <CalendarDays className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-900">Google Calendar</p>
+                  <p className="text-xs text-slate-400">Personal events appear in your agenda — read only, no overlap with bookings.</p>
+                </div>
+              </div>
+              {googleConnected ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="hidden sm:flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Connected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGoogleDisconnect}
+                    disabled={googleBusy}
+                    className="text-xs text-slate-500 hover:text-red-600 border border-slate-300 hover:border-red-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 min-h-[36px]"
+                  >
+                    {googleBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Disconnect'}
+                  </button>
+                </div>
+              ) : (
+                <a
+                  href="/api/calendar/auth"
+                  className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors min-h-[36px]"
+                >
+                  <CalendarDays className="w-3.5 h-3.5" /> Connect
+                </a>
+              )}
             </div>
           </section>
 

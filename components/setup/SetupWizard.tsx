@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronRight, X, Clock, Scissors, ImageIcon, Bell, Copy, CheckCheck } from 'lucide-react'
+import { Check, ChevronRight, X, Clock, Scissors, ImageIcon, Bell, Copy, CheckCheck, Share2 } from 'lucide-react'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
@@ -392,18 +392,20 @@ export default function SetupWizard({
 
           {/* ── Step 4: Done ── */}
           {step === 4 && (
-            <div className="space-y-6 pt-4">
+            <div className="space-y-5 pt-4">
               <div className="flex flex-col items-center text-center gap-3">
                 <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center">
                   <Check className="w-8 h-8 text-white" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-white">You&apos;re all set!</h2>
-                  <p className="text-sm text-slate-400 mt-1">Share this link with your clients.</p>
+                  <p className="text-sm text-slate-400 mt-1">Share your booking link wherever your clients find you.</p>
                 </div>
               </div>
+
+              {/* Booking URL */}
               <div className="bg-slate-900 rounded-2xl p-4">
-                <p className="text-xs text-slate-500 mb-3">Your booking link</p>
+                <p className="text-xs text-slate-500 mb-2">Your booking link</p>
                 <div className="flex items-center gap-3">
                   <span className="flex-1 text-sm text-indigo-300 font-mono truncate">{bookingUrl}</span>
                   <button
@@ -416,8 +418,60 @@ export default function SetupWizard({
                   </button>
                 </div>
               </div>
+
+              {/* Share channels */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5" /> Where to share it
+                </p>
+
+                {/* Instagram */}
+                <div className="bg-slate-900 rounded-xl p-4 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">IG</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">Instagram bio</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Profile → Edit profile → <span className="text-slate-300">Website</span> → paste your link. Clients tap &quot;Book now&quot; straight from your page.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Google Maps / Google Business */}
+                <div className="bg-slate-900 rounded-xl p-4 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-base">📍</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">Google Maps listing</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Google Business → <span className="text-slate-300">Edit profile → Contact → Website</span> → paste your link. Clients book directly from your map pin.
+                    </p>
+                  </div>
+                </div>
+
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Book your next cut at ${shopName}: ${bookingUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-slate-900 rounded-xl p-4 flex items-start gap-3 hover:bg-slate-800 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">WA</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">WhatsApp</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Tap to share a pre-written message with your link to existing clients or WhatsApp groups.
+                    </p>
+                  </div>
+                </a>
+              </div>
+
               <p className="text-xs text-center text-slate-500">
-                You can always update hours, services and more from <strong className="text-slate-400">Settings</strong>.
+                Update hours, services and more anytime from <strong className="text-slate-400">Settings</strong>.
               </p>
             </div>
           )}

@@ -37,10 +37,11 @@ export default async function SettingsPage() {
   const fullConfig: TenantConfig = result.ok ? result.config : {}
 
   // Strip secret keys before sending to the client component
-  const { stripe_secret_key, stripe_webhook_secret, ...safeConfig } = fullConfig
+  const { stripe_secret_key, stripe_webhook_secret, google_calendar_refresh_token, ...safeConfig } = fullConfig
   const initialConfig: TenantConfig = safeConfig
   const hasStripeKey            = !!stripe_secret_key
   const hasStripeWebhookSecret  = !!stripe_webhook_secret
+  const hasGoogleCalendar       = !!google_calendar_refresh_token
   const initialLogoUrl          = logoUrl(fullConfig.logo_path, fullConfig.logo_updated_at)
 
   const initialReviewLink       = automationsRow?.review_link       ?? ''
@@ -73,6 +74,7 @@ export default async function SettingsPage() {
           initialGallery={initialGallery}
           initialLogoUrl={initialLogoUrl}
           initialShopName={tenantRow?.name ?? ''}
+          hasGoogleCalendar={hasGoogleCalendar}
         />
       </Suspense>
       <BookingQRCode subdomain={tenant.subdomain} />

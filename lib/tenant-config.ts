@@ -31,9 +31,10 @@ export type TenantConfig = {
   stripe_secret_key?:      string
   stripe_webhook_secret?:  string
   brand_theme?:            string
-  logo_path?:              string
-  logo_updated_at?:        number
-  onboarding_done?:        boolean
+  logo_path?:                     string
+  logo_updated_at?:               number
+  onboarding_done?:               boolean
+  google_calendar_refresh_token?: string
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -168,6 +169,12 @@ export function validateTenantConfig(input: unknown): ValidationResult {
   if (c.onboarding_done !== undefined) {
     if (typeof c.onboarding_done === 'boolean') {
       config.onboarding_done = c.onboarding_done
+    }
+  }
+
+  if (c.google_calendar_refresh_token !== undefined) {
+    if (typeof c.google_calendar_refresh_token === 'string' && c.google_calendar_refresh_token.trim().length > 0) {
+      config.google_calendar_refresh_token = c.google_calendar_refresh_token.trim()
     }
   }
 
