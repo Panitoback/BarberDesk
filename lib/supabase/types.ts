@@ -141,6 +141,8 @@ export type Database = {
           flash_discount_pct: number
           id: string
           loyalty_active: boolean
+          loyalty_dollars_per_star: number
+          loyalty_mode: string
           noshow_active: boolean
           noshow_message: string | null
           reactivation_active: boolean
@@ -157,6 +159,8 @@ export type Database = {
           flash_discount_pct?: number
           id?: string
           loyalty_active?: boolean
+          loyalty_dollars_per_star?: number
+          loyalty_mode?: string
           noshow_active?: boolean
           noshow_message?: string | null
           reactivation_active?: boolean
@@ -173,6 +177,8 @@ export type Database = {
           flash_discount_pct?: number
           id?: string
           loyalty_active?: boolean
+          loyalty_dollars_per_star?: number
+          loyalty_mode?: string
           noshow_active?: boolean
           noshow_message?: string | null
           reactivation_active?: boolean
@@ -395,6 +401,99 @@ export type Database = {
           },
           {
             foreignKeyName: "loyalty_points_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_redemptions: {
+        Row: {
+          client_id: string
+          id: string
+          notes: string | null
+          redeemed_at: string
+          reward_id: string
+          stars_spent: number
+          tenant_id: string
+        }
+        Insert: {
+          client_id: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string
+          reward_id: string
+          stars_spent: number
+          tenant_id: string
+        }
+        Update: {
+          client_id?: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string
+          reward_id?: string
+          stars_spent?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_redemptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_redemptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_rewards: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name: string
+          stars_required: number
+          tenant_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          stars_required: number
+          tenant_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          stars_required?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -688,11 +787,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      complete_appointment: {
+      complete_appointment:
+        | {
+            Args: {
+              p_appointment_id: string
+              p_price_override?: number
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_appointment_id: string
+              p_extras?: Json
+              p_price_override?: number
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+      redeem_loyalty_reward: {
         Args: {
-          p_appointment_id: string
-          p_extras?: Json
-          p_price_override?: number
+          p_client_id: string
+          p_notes?: string
+          p_reward_id: string
           p_tenant_id: string
         }
         Returns: Json

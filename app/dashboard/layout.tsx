@@ -9,7 +9,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div
-      className="min-h-screen bg-slate-50 md:flex md:h-screen"
+      className="min-h-screen bg-slate-50 md:flex md:h-screen overflow-x-hidden"
       style={themeStyle(tenant.brandTheme)}
     >
       <SidebarNav

@@ -3,10 +3,11 @@ import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'
-import type { LoyaltyLevel } from '@/lib/loyalty'
+import type { LoyaltyLevel, LoyaltyReward } from '@/lib/loyalty'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
 import ClientNotes from '@/components/dashboard/ClientNotes'
 import SmsThread from '@/components/dashboard/SmsThread'
+import LoyaltyStarsPanel from '@/components/dashboard/LoyaltyStarsPanel'
 import { parseExtras } from '@/lib/extras'
 
 const levelStyles: Record<LoyaltyLevel, string> = {
@@ -36,23 +37,29 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { data: loyalty },
     { data: visits },
     { data: messages },
+    { data: automations },
+    { data: rewardsData },
   ] = await Promise.all([
     supabase.from('clients').select('id, name, phone, email, no_show_count, is_anonymous, notes').eq('id', id).eq('tenant_id', tenant.id).single(),
     supabase.from('loyalty_points').select('points, level').eq('client_id', id).eq('tenant_id', tenant.id).single(),
     supabase.from('visits').select('id, date, service, price, points_earned, extras').eq('client_id', id).eq('tenant_id', tenant.id).order('date', { ascending: false }),
     supabase.from('messages').select('id, direction, body, status, created_at').eq('client_id', id).eq('tenant_id', tenant.id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('automations_config').select('loyalty_mode').eq('tenant_id', tenant.id).single(),
+    supabase.from('loyalty_rewards').select('id, name, description, stars_required, active, display_order').eq('tenant_id', tenant.id).order('display_order').order('created_at'),
   ])
 
   if (!client || client.is_anonymous) notFound()
 
-  const level = (loyalty?.level ?? 'bronze') as LoyaltyLevel
+  const loyaltyMode  = (automations?.loyalty_mode ?? 'levels') as 'levels' | 'stars'
+  const level        = (loyalty?.level ?? 'bronze') as LoyaltyLevel
   const totalRevenue = visits?.reduce((sum, v) => sum + (v.price ?? 0), 0) ?? 0
+  const rewards      = (rewardsData ?? []) as LoyaltyReward[]
 
   const stats = [
-    { label: 'Total visits',   value: visits?.length ?? 0,                  danger: false },
-    { label: 'Points',         value: loyalty?.points ?? 0,                  danger: false },
-    { label: 'Total revenue',  value: `$${totalRevenue.toFixed(2)} CAD`,     danger: false },
-    { label: 'No-shows',       value: client.no_show_count,                  danger: client.no_show_count > 0 },
+    { label: 'Total visits',                                    value: visits?.length ?? 0,              danger: false },
+    { label: loyaltyMode === 'stars' ? 'Stars' : 'Points',     value: loyalty?.points ?? 0,             danger: false },
+    { label: 'Total revenue',                                   value: `$${totalRevenue.toFixed(2)} CAD`, danger: false },
+    { label: 'No-shows',                                        value: client.no_show_count,             danger: client.no_show_count > 0 },
   ]
 
   return (
@@ -84,9 +91,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               )}
             </div>
           </div>
-          <span className={`shrink-0 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${levelStyles[level]}`}>
-            {level.charAt(0).toUpperCase() + level.slice(1)}
-          </span>
+          {loyaltyMode === 'stars' ? (
+            <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-200">
+              ⭐ {loyalty?.points ?? 0}
+            </span>
+          ) : (
+            <span className={`shrink-0 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${levelStyles[level]}`}>
+              {level.charAt(0).toUpperCase() + level.slice(1)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -101,6 +114,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
         ))}
       </div>
+
+      {/* Stars loyalty panel */}
+      {loyaltyMode === 'stars' && (
+        <LoyaltyStarsPanel
+          clientId={client.id}
+          initialStars={loyalty?.points ?? 0}
+          rewards={rewards}
+        />
+      )}
 
       {/* Private notes */}
       <ClientNotes clientId={client.id} initialNotes={client.notes ?? null} />
@@ -155,7 +177,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Service</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Price</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Points</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">{loyaltyMode === 'stars' ? 'Stars' : 'Points'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">

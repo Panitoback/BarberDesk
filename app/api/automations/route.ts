@@ -3,12 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { getSubdomain } from '@/lib/subdomain'
 
 type AutomationsPayload = {
-  noshow_active?:       boolean
-  loyalty_active?:      boolean
-  review_active?:       boolean
-  reactivation_active?: boolean
-  reactivation_days?:   number
-  flash_active?:        boolean
+  noshow_active?:            boolean
+  loyalty_active?:           boolean
+  loyalty_mode?:             string
+  loyalty_dollars_per_star?: number
+  review_active?:            boolean
+  reactivation_active?:      boolean
+  reactivation_days?:        number
+  flash_active?:             boolean
 }
 
 export async function POST(request: Request) {
@@ -36,6 +38,21 @@ export async function POST(request: Request) {
       }
       update[key] = b[key] as boolean
     }
+  }
+
+  if (b.loyalty_mode !== undefined) {
+    if (b.loyalty_mode !== 'levels' && b.loyalty_mode !== 'stars') {
+      return NextResponse.json({ error: 'loyalty_mode must be levels or stars' }, { status: 400 })
+    }
+    update.loyalty_mode = b.loyalty_mode
+  }
+
+  if (b.loyalty_dollars_per_star !== undefined) {
+    const n = b.loyalty_dollars_per_star
+    if (typeof n !== 'number' || n < 1) {
+      return NextResponse.json({ error: 'loyalty_dollars_per_star must be >= 1' }, { status: 400 })
+    }
+    update.loyalty_dollars_per_star = n
   }
 
   if (b.reactivation_days !== undefined) {

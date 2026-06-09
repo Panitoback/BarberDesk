@@ -406,20 +406,22 @@ export default function SettingsForm({
                 const mode: 'unset' | 'open' | 'closed' =
                   dh === undefined ? 'unset' : dh === null ? 'closed' : 'open'
                 return (
-                  <div key={day} className="flex items-center gap-1.5">
-                    <span className="w-[4.5rem] shrink-0 text-sm font-medium text-slate-700">{WEEKDAY_LABELS[day]}</span>
-                    <select
-                      value={mode}
-                      onChange={(e) => changeDayMode(day, e.target.value as 'unset' | 'open' | 'closed')}
-                      aria-label={`${WEEKDAY_LABELS[day]} status`}
-                      className="text-sm border border-slate-300 rounded-lg px-2 py-2 bg-white min-h-[40px] w-[5.5rem] shrink-0"
-                    >
-                      <option value="unset">Not set</option>
-                      <option value="open">Open</option>
-                      <option value="closed">Closed</option>
-                    </select>
+                  <div key={day} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-[4.5rem] shrink-0 text-sm font-medium text-slate-700">{WEEKDAY_LABELS[day]}</span>
+                      <select
+                        value={mode}
+                        onChange={(e) => changeDayMode(day, e.target.value as 'unset' | 'open' | 'closed')}
+                        aria-label={`${WEEKDAY_LABELS[day]} status`}
+                        className="text-sm border border-slate-300 rounded-lg px-2 py-2 bg-white min-h-[40px] w-[5.5rem] shrink-0"
+                      >
+                        <option value="unset">Not set</option>
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
                     {mode === 'open' && dh && (
-                      <>
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         <input
                           type="time"
                           value={dh.open}
@@ -435,7 +437,7 @@ export default function SettingsForm({
                           aria-label={`${WEEKDAY_LABELS[day]} closing time`}
                           className="text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px] flex-1 min-w-0"
                         />
-                      </>
+                      </div>
                     )}
                   </div>
                 )

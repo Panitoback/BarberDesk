@@ -3,17 +3,21 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarX, Star, Sparkles, MessageCircleHeart, Zap, type LucideIcon } from 'lucide-react'
+import LoyaltyStarsConfig from './LoyaltyStarsConfig'
+import type { LoyaltyMode, LoyaltyReward } from '@/lib/loyalty'
 
 export type AutomationsState = {
-  noshow_active:       boolean
-  loyalty_active:      boolean
-  review_active:       boolean
-  reactivation_active: boolean
-  reactivation_days:   number
-  flash_active:        boolean
+  noshow_active:            boolean
+  loyalty_active:           boolean
+  loyalty_mode:             LoyaltyMode
+  loyalty_dollars_per_star: number
+  review_active:            boolean
+  reactivation_active:      boolean
+  reactivation_days:        number
+  flash_active:             boolean
 }
 
-type AutomationKey = Exclude<keyof AutomationsState, 'reactivation_days'>
+type AutomationKey = Exclude<keyof AutomationsState, 'reactivation_days' | 'loyalty_mode' | 'loyalty_dollars_per_star'>
 
 type AutomationCard = {
   key:         AutomationKey
@@ -32,8 +36,8 @@ const CARDS: AutomationCard[] = [
   {
     key:         'loyalty_active',
     icon:        Sparkles,
-    title:       'Loyalty points',
-    description: 'Award points on completed visits and move clients up tiers (Bronze to Platinum).',
+    title:       'Loyalty program',
+    description: 'Reward clients for every visit — choose between levels (Bronze → Platinum) or a stars system with custom rewards.',
   },
   {
     key:         'review_active',
@@ -55,7 +59,13 @@ const CARDS: AutomationCard[] = [
   },
 ]
 
-export default function AutomationsForm({ initial }: { initial: AutomationsState }) {
+export default function AutomationsForm({
+  initial,
+  initialRewards = [],
+}: {
+  initial:         AutomationsState
+  initialRewards?: LoyaltyReward[]
+}) {
   const router = useRouter()
   const [state,    setState]    = useState<AutomationsState>(initial)
   const [saving,   setSaving]   = useState(false)
@@ -124,6 +134,7 @@ export default function AutomationsForm({ initial }: { initial: AutomationsState
                 />
               </button>
             </div>
+
             {key === 'reactivation_active' && active && (
               <div className="mt-4 pl-[52px]">
                 <label className="text-sm text-slate-700 flex items-center gap-2 flex-wrap">
@@ -142,6 +153,16 @@ export default function AutomationsForm({ initial }: { initial: AutomationsState
                   days of no visit
                 </label>
               </div>
+            )}
+
+            {key === 'loyalty_active' && active && (
+              <LoyaltyStarsConfig
+                mode={state.loyalty_mode}
+                dollarsPerStar={state.loyalty_dollars_per_star}
+                onModeChange={m => setState(s => ({ ...s, loyalty_mode: m }))}
+                onDollarsChange={n => setState(s => ({ ...s, loyalty_dollars_per_star: n }))}
+                initialRewards={initialRewards}
+              />
             )}
           </section>
         )
