@@ -9,8 +9,10 @@ function formatDateSms(iso: string): string {
 }
 
 /**
- * Finds the first unnotified waitlist entry for the given slot and sends
- * them an SMS. Called via after() from all three cancellation paths.
+ * Notifies ALL unnotified waitlist entries for the given slot.
+ * All entries are marked notified before any SMS is sent (prevents double-send
+ * on concurrent calls). First client to book wins the slot — the partial
+ * unique index on appointments(tenant_id, date, time) handles the race.
  */
 export async function notifyWaitlist(
   tenantId:    string,
@@ -22,7 +24,7 @@ export async function notifyWaitlist(
 ): Promise<void> {
   const supabase = createAdminClient()
 
-  const { data: entry } = await supabase
+  const { data: entries } = await supabase
     .from('waitlist')
     .select('id, name, phone')
     .eq('tenant_id', tenantId)
@@ -30,24 +32,24 @@ export async function notifyWaitlist(
     .eq('service', service)
     .is('notified_at', null)
     .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
 
-  if (!entry) return
+  if (!entries || entries.length === 0) return
 
-  // Mark notified before sending — prevents double-send on concurrent calls.
+  // Mark all notified before sending — prevents double-send on concurrent calls.
+  const ids = entries.map(e => e.id)
   await supabase
     .from('waitlist')
     .update({ notified_at: new Date().toISOString() })
-    .eq('id', entry.id)
+    .in('id', ids)
 
-  const firstName  = entry.name.split(' ')[0]
   const bookingUrl = `https://${subdomain}.barberqueue.pro/book`
-  const smsBody    = `Hi ${firstName}, a spot just opened up for ${service} at ${tenantName} on ${formatDateSms(date)}! Book now: ${bookingUrl}`
 
-  try {
-    await sendSms(entry.phone, smsBody, fromNumber)
-  } catch {
-    // Best-effort — loss of one SMS notification is acceptable.
-  }
+  // Send all SMS in parallel — best-effort, failure of one doesn't block others.
+  await Promise.allSettled(
+    entries.map(entry => {
+      const firstName = entry.name.split(' ')[0]
+      const smsBody   = `Hi ${firstName}, a spot just opened up for ${service} at ${tenantName} on ${formatDateSms(date)}! Book now (first come first served): ${bookingUrl}`
+      return sendSms(entry.phone, smsBody, fromNumber)
+    })
+  )
 }
