@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { Info, Camera } from 'lucide-react'
 import { barberColor } from '@/lib/barbers'
 import CompleteModal from '@/components/dashboard/CompleteModal'
 import type { Service } from '@/lib/tenant-config'
@@ -34,18 +34,49 @@ function NoteButton({ note }: { note: string }) {
   )
 }
 
+function PhotoButton({ url }: { url: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); setOpen(true) }}
+        aria-label="View haircut reference photo"
+        className="inline-flex items-center"
+      >
+        <Camera className="w-3 h-3 shrink-0 text-indigo-500" />
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={e => { e.stopPropagation(); setOpen(false) }}
+        >
+          <div className="relative max-w-xs w-full rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <img src={url} alt="Haircut reference" className="w-full object-contain max-h-[70vh]" />
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 text-xs"
+            >✕</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 type BarberOption = { id: string; name: string; display_order: number }
 
 type Appointment = {
-  id:           string
-  time:         string
-  service:      string
-  status:       string
-  price:        number | null
-  deposit_paid: boolean | null
-  client_note:  string | null
-  barber_id:    string | null
-  clients:      { name: string } | null
+  id:                string
+  time:              string
+  service:           string
+  status:            string
+  price:             number | null
+  deposit_paid:      boolean | null
+  client_note:       string | null
+  haircut_photo_url: string | null
+  barber_id:         string | null
+  clients:           { name: string } | null
 }
 
 type ModalState = {
@@ -120,11 +151,6 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-slate-50 border-slate-300 text-slate-500',
 }
 
-function shiftWeek(monday: string, delta: number): string {
-  const d = new Date(monday + 'T12:00:00')
-  d.setDate(d.getDate() + delta * 7)
-  return d.toISOString().slice(0, 10)
-}
 
 export default function WeeklyAgenda({
   days,
@@ -219,17 +245,6 @@ export default function WeeklyAgenda({
   const showBarbers    = barbers.length > 0
   const barberIndexMap = new Map(barbers.map((b, i) => [b.id, i]))
 
-  function navigate(delta: number) {
-    router.push(`/agenda?week=${shiftWeek(monday, delta)}`)
-  }
-
-  const weekLabel = (() => {
-    const start = new Date(days[0].dateISO + 'T12:00:00')
-    const end   = new Date(days[6].dateISO + 'T12:00:00')
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-    return `${start.toLocaleDateString('en-CA', opts)} – ${end.toLocaleDateString('en-CA', { ...opts, year: 'numeric' })}`
-  })()
-
   function filterAppts(appts: Appointment[]): Appointment[] {
     if (!showBarbers || filterBarberId === 'all') return appts
     if (filterBarberId === 'unassigned') return appts.filter(a => !a.barber_id)
@@ -251,22 +266,6 @@ export default function WeeklyAgenda({
           fullPaymentActive={modal.fullPaymentActive}
         />
       )}
-      {/* Week navigation */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Agenda</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate(-1)} type="button"
-            className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-sm font-medium text-slate-700 min-w-[180px] text-center">{weekLabel}</span>
-          <button onClick={() => navigate(1)} type="button"
-            className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
       {/* Barber filter pills */}
       {showBarbers && (
         <div className="flex flex-wrap gap-2">
@@ -351,6 +350,7 @@ export default function WeeklyAgenda({
                           <div className="flex items-center gap-1 font-semibold">
                             <span className="truncate">{appt.clients?.name ?? 'Walk-in'}</span>
                             {appt.client_note && <NoteButton note={appt.client_note} />}
+                            {appt.haircut_photo_url && <PhotoButton url={appt.haircut_photo_url} />}
                           </div>
                           <div className="opacity-75 truncate">{appt.service}</div>
                           {isActionOpen && (

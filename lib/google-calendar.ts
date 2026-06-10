@@ -2,12 +2,15 @@ const TOKEN_URL  = 'https://oauth2.googleapis.com/token'
 const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
 
 export type CalendarEvent = {
-  id:      string
-  summary: string
-  start:   string   // HH:MM for timed, YYYY-MM-DD for all-day
-  end:     string
-  allDay:  boolean
-  date:    string   // YYYY-MM-DD for grouping by day
+  id:           string
+  summary:      string
+  start:        string   // HH:MM for timed, YYYY-MM-DD for all-day
+  end:          string
+  allDay:       boolean
+  date:         string   // YYYY-MM-DD for grouping by day
+  description?: string
+  location?:    string
+  htmlLink?:    string
 }
 
 export async function signOAuthState(data: Record<string, unknown>): Promise<string> {
@@ -81,10 +84,13 @@ export async function fetchCalendarEvents(
 
   const data = await res.json() as {
     items?: Array<{
-      id:       string
-      summary?: string
-      start:    { dateTime?: string; date?: string }
-      end:      { dateTime?: string; date?: string }
+      id:           string
+      summary?:     string
+      description?: string
+      location?:    string
+      htmlLink?:    string
+      start:        { dateTime?: string; date?: string }
+      end:          { dateTime?: string; date?: string }
     }>
   }
 
@@ -93,12 +99,15 @@ export async function fetchCalendarEvents(
     const startStr = allDay ? (item.start.date ?? '') : (item.start.dateTime ?? '')
     const endStr   = allDay ? (item.end.date   ?? '') : (item.end.dateTime   ?? '')
     return {
-      id:      item.id,
-      summary: item.summary ?? '(No title)',
-      start:   allDay ? startStr        : startStr.substring(11, 16),
-      end:     allDay ? endStr          : endStr.substring(11, 16),
+      id:          item.id,
+      summary:     item.summary ?? '(No title)',
+      start:       allDay ? startStr : startStr.substring(11, 16),
+      end:         allDay ? endStr   : endStr.substring(11, 16),
       allDay,
-      date:    startStr.substring(0, 10),
+      date:        startStr.substring(0, 10),
+      description: item.description,
+      location:    item.location,
+      htmlLink:    item.htmlLink,
     }
   })
 }

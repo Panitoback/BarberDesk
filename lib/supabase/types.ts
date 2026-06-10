@@ -65,6 +65,7 @@ export type Database = {
           date: string
           deposit_paid: boolean
           duration_min: number
+          haircut_photo_url: string | null
           id: string
           price: number | null
           reminder_sent_at: string | null
@@ -83,6 +84,7 @@ export type Database = {
           date: string
           deposit_paid?: boolean
           duration_min?: number
+          haircut_photo_url?: string | null
           id?: string
           price?: number | null
           reminder_sent_at?: string | null
@@ -101,6 +103,7 @@ export type Database = {
           date?: string
           deposit_paid?: boolean
           duration_min?: number
+          haircut_photo_url?: string | null
           id?: string
           price?: number | null
           reminder_sent_at?: string | null

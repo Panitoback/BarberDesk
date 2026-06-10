@@ -8,7 +8,7 @@ import type { VisitExtra } from '@/lib/extras'
 import { parseExtras } from '@/lib/extras'
 import CompleteModal from '@/components/dashboard/CompleteModal'
 import ServiceBreakdown from '@/components/dashboard/ServiceBreakdown'
-import { Info, ChevronDown, BadgeCheck } from 'lucide-react'
+import { Info, ChevronDown, BadgeCheck, Camera } from 'lucide-react'
 import { barberColor } from '@/lib/barbers'
 
 function DepositBadge({ paid, amount }: { paid: boolean | null; amount: number }) {
@@ -30,12 +30,45 @@ function FullPaymentBadge() {
   )
 }
 
-function ClientNoteRow({ note }: { note: string | null }) {
-  if (!note) return null
+function ClientNoteRow({ note, photoUrl }: { note: string | null; photoUrl?: string | null }) {
+  const [photoOpen, setPhotoOpen] = useState(false)
+  if (!note && !photoUrl) return null
   return (
-    <div className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-      <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" aria-hidden />
-      <span className="break-words">{note}</span>
+    <div className="mt-1.5 space-y-1">
+      {note && (
+        <div className="flex items-start gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+          <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" aria-hidden />
+          <span className="break-words">{note}</span>
+        </div>
+      )}
+      {photoUrl && (
+        <>
+          <button
+            type="button"
+            onClick={() => setPhotoOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md px-2 py-1.5 hover:bg-indigo-100 transition-colors"
+          >
+            <Camera className="w-3.5 h-3.5 shrink-0" />
+            <span>View haircut reference photo</span>
+          </button>
+          {photoOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+              onClick={() => setPhotoOpen(false)}
+            >
+              <div className="relative max-w-sm w-full rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                <img src={photoUrl} alt="Haircut reference" className="w-full object-contain max-h-[70vh]" />
+                <button
+                  onClick={() => setPhotoOpen(false)}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -298,7 +331,7 @@ export default function AppointmentsTodayTable({
                   />
                 </div>
               )}
-              <ClientNoteRow note={appointment.client_note} />
+              <ClientNoteRow note={appointment.client_note} photoUrl={appointment.haircut_photo_url} />
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <p className="text-sm text-slate-600">{appointment.service}</p>
@@ -350,7 +383,7 @@ export default function AppointmentsTodayTable({
                 <td className="px-6 py-4">
                   <p className="font-medium text-slate-900">{appointment.clients?.name ?? '—'}</p>
                   <p className="text-xs text-slate-400">{appointment.clients?.phone}</p>
-                  <ClientNoteRow note={appointment.client_note} />
+                  <ClientNoteRow note={appointment.client_note} photoUrl={appointment.haircut_photo_url} />
                 </td>
                 {showBarbers && (
                   <td className="px-6 py-4">

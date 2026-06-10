@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock } from 'lucide-react'
+import { Clock, Camera } from 'lucide-react'
 
 const statusLabel: Record<string, string> = {
   pending:   'Pending',
@@ -18,6 +18,36 @@ const statusStyles: Record<string, string> = {
   cancelled: 'bg-slate-100 text-slate-500 ring-1 ring-slate-200',
 }
 
+function PhotoButton({ url }: { url: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); setOpen(true) }}
+        aria-label="View haircut reference photo"
+        className="inline-flex items-center shrink-0 text-indigo-500"
+      >
+        <Camera className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div className="relative max-w-xs w-full rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <img src={url} alt="Haircut reference" className="w-full object-contain max-h-[70vh]" />
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 text-xs"
+            >✕</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 type Barber = {
   id: string
   name: string
@@ -30,6 +60,7 @@ type Appointment = {
   service: string
   status: string
   client_note: string | null
+  haircut_photo_url: string | null
   barber_id: string | null
   duration_min: number | null
   clients: { name: string } | { name: string }[] | null
@@ -188,10 +219,17 @@ export default function StaffView({
                       <p className="text-xs text-slate-400 truncate">{a.service}</p>
                       <DurationBadge minutes={a.duration_min} />
                     </div>
-                    {a.client_note && (
-                      <p className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 mt-1 truncate">
-                        {a.client_note}
-                      </p>
+                    {(a.client_note || a.haircut_photo_url) && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {a.client_note && (
+                          <p className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 truncate flex-1 min-w-0">
+                            {a.client_note}
+                          </p>
+                        )}
+                        {a.haircut_photo_url && (
+                          <PhotoButton url={a.haircut_photo_url} />
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

@@ -34,7 +34,7 @@ export default async function StaffPage({ params }: { params: Promise<{ token: s
   ] = await Promise.all([
     supabase
       .from('appointments')
-      .select('id, time, service, status, client_note, barber_id, duration_min, clients(name)')
+      .select('id, time, service, status, client_note, haircut_photo_url, barber_id, duration_min, clients(name)')
       .eq('tenant_id', tenant.id)
       .eq('date', today)
       .order('time'),

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { CalendarDays } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { CalendarDays, X, MapPin, AlignLeft, ExternalLink } from 'lucide-react'
 import { todayInToronto } from '@/lib/dates'
 import type { CalendarEvent } from '@/lib/google-calendar'
 
@@ -22,6 +22,76 @@ function fmt12(time24: string): string {
   return `${h % 12 === 0 ? 12 : h % 12}:${m}${h >= 12 ? 'pm' : 'am'}`
 }
 
+function EventDetailModal({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const timeLabel = event.allDay
+    ? 'All day'
+    : `${fmt12(event.start)} – ${fmt12(event.end)}`
+
+  const dateLabel = new Date(event.date + 'T12:00:00').toLocaleDateString('en-CA', {
+    weekday: 'long', month: 'long', day: 'numeric',
+  })
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div ref={ref} className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-base font-semibold text-slate-900 leading-snug">{event.summary}</p>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0 mt-0.5">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-2.5 text-sm text-slate-600">
+          <div className="flex items-start gap-2.5">
+            <CalendarDays className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+            <div>
+              <p>{dateLabel}</p>
+              <p className="text-slate-500">{timeLabel}</p>
+            </div>
+          </div>
+
+          {event.location && (
+            <div className="flex items-start gap-2.5">
+              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+              <p>{event.location}</p>
+            </div>
+          )}
+
+          {event.description && (
+            <div className="flex items-start gap-2.5">
+              <AlignLeft className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+              <p className="whitespace-pre-wrap text-slate-600 line-clamp-5">{event.description}</p>
+            </div>
+          )}
+        </div>
+
+        {event.htmlLink && (
+          <a
+            href={event.htmlLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 rounded-xl py-2 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Open in Google Calendar
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function GoogleCalendarSection({
   monday,
   fullView = false,
@@ -29,9 +99,10 @@ export default function GoogleCalendarSection({
   monday: string
   fullView?: boolean
 }) {
-  const [events,  setEvents]  = useState<CalendarEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [expired, setExpired] = useState(false)
+  const [events,       setEvents]       = useState<CalendarEvent[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [expired,      setExpired]      = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   const days: DayCol[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday + 'T12:00:00')
@@ -101,9 +172,11 @@ export default function GoogleCalendarSection({
                     <p className={`text-center ${fullView ? 'text-xs text-slate-300 pt-2' : 'text-[10px] text-slate-300 pt-1'}`}>—</p>
                   ) : (
                     dayEvents.map(ev => (
-                      <div
+                      <button
                         key={ev.id}
-                        className={`bg-blue-50 border border-blue-100 rounded ${fullView ? 'px-2 py-1.5' : 'px-1.5 py-1'}`}
+                        type="button"
+                        onClick={() => setSelectedEvent(ev)}
+                        className={`w-full text-left bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 hover:border-blue-200 transition-colors ${fullView ? 'px-2 py-1.5' : 'px-1.5 py-1'}`}
                         title={ev.summary}
                       >
                         <p className={`font-medium text-blue-800 truncate ${fullView ? 'text-xs' : 'text-[10px]'}`}>{ev.summary}</p>
@@ -113,7 +186,7 @@ export default function GoogleCalendarSection({
                         {ev.allDay && (
                           <p className={`text-blue-400 italic ${fullView ? 'text-[11px]' : 'text-[9px]'}`}>All day</p>
                         )}
-                      </div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -127,30 +200,36 @@ export default function GoogleCalendarSection({
 
   if (fullView) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        {!loading && !expired && events.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <CalendarDays className="w-10 h-10 text-slate-300" />
-            <p className="text-sm font-medium text-slate-500">No events this week</p>
-            <p className="text-xs text-slate-400">Your Google Calendar is synced and up to date</p>
-          </div>
-        ) : (
-          <div className="p-4">{gridContent}</div>
-        )}
-      </div>
+      <>
+        {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {!loading && !expired && events.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-center">
+              <CalendarDays className="w-10 h-10 text-slate-300" />
+              <p className="text-sm font-medium text-slate-500">No events this week</p>
+              <p className="text-xs text-slate-400">Your Google Calendar is synced and up to date</p>
+            </div>
+          ) : (
+            <div className="p-4">{gridContent}</div>
+          )}
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="mt-4 border border-blue-100 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 bg-blue-50">
-        <CalendarDays className="w-4 h-4 text-blue-600" />
-        <span className="text-sm font-semibold text-blue-800">My Google Calendar</span>
-        {!loading && events.length > 0 && (
-          <span className="text-xs text-blue-500">{events.length} event{events.length !== 1 ? 's' : ''}</span>
-        )}
+    <>
+      {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+      <div className="mt-4 border border-blue-100 rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 bg-blue-50">
+          <CalendarDays className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-semibold text-blue-800">My Google Calendar</span>
+          {!loading && events.length > 0 && (
+            <span className="text-xs text-blue-500">{events.length} event{events.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+        <div className="bg-white p-3">{gridContent}</div>
       </div>
-      <div className="bg-white p-3">{gridContent}</div>
-    </div>
+    </>
   )
 }

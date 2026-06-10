@@ -38,7 +38,7 @@ export default async function DashboardPage() {
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('is_anonymous', false),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('tenant_id', tenant.id).eq('date', today),
     supabase.from('appointments')
-      .select('id, time, service, price, status, client_note, barber_id, deposit_paid, clients(name, phone), visits(price, extras)')
+      .select('id, time, service, price, status, client_note, haircut_photo_url, barber_id, deposit_paid, clients(name, phone), visits(price, extras)')
       .eq('tenant_id', tenant.id).eq('date', today).order('time'),
     supabase.from('appointments')
       .select('id, date, time, service, clients(name, phone)')
