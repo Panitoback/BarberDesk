@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server'
 import { getSubdomain } from '@/lib/subdomain'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Database } from '@/lib/supabase/types'
 import { sendSms } from '@/lib/twilio'
 import {
   todayInToronto,
@@ -410,21 +411,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not create your record. Try again.' }, { status: 500 })
   }
 
+  const apptPayload: Database['public']['Tables']['appointments']['Insert'] = {
+    tenant_id:         tenant.id,
+    client_id:         clientId,
+    date,
+    time,
+    service,
+    price:             finalPrice,
+    duration_min:      serviceDuration,
+    client_note:       clientNote,
+    barber_id:         assignedBarber?.id ?? null,
+    haircut_photo_url: haircutPhotoUrl,
+    status:            'pending',
+  }
+
   const { data: insertedAppt, error: apptErr } = await supabase
     .from('appointments')
-    .insert({
-      tenant_id:   tenant.id,
-      client_id:   clientId,
-      date,
-      time,
-      service,
-      price:       finalPrice,
-      duration_min: serviceDuration,
-      client_note:       clientNote,
-      barber_id:         assignedBarber?.id ?? null,
-      haircut_photo_url: haircutPhotoUrl,
-      status:            'pending',
-    })
+    .insert(apptPayload)
     .select('id')
     .single()
 
