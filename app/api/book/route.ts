@@ -406,6 +406,10 @@ export async function POST(request: Request) {
     clientId = created.id
   }
 
+  if (!clientId) {
+    return NextResponse.json({ error: 'Could not create your record. Try again.' }, { status: 500 })
+  }
+
   const { data: insertedAppt, error: apptErr } = await supabase
     .from('appointments')
     .insert({
