@@ -578,6 +578,7 @@ export default function BookingForm({ services, shopName, depositActive = false,
 
         {step < TOTAL_STEPS ? (
           <button
+            key="continue"
             type="button" onClick={handleNext}
             className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-3 rounded-xl transition-colors text-sm"
           >
@@ -585,6 +586,7 @@ export default function BookingForm({ services, shopName, depositActive = false,
           </button>
         ) : (
           <button
+            key="submit"
             type="submit"
             disabled={submitting || loadingSlots || noSlots}
             className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold px-6 py-3 rounded-xl transition-colors text-sm"
