@@ -127,8 +127,9 @@ export async function POST(request: Request) {
     service?:     string
     date?:        string
     time?:        string
-    client_note?: string
-    barber_id?:   string
+    client_note?:       string
+    barber_id?:         string
+    haircut_photo_url?: string
   }
   try {
     body = await request.json()
@@ -147,6 +148,12 @@ export async function POST(request: Request) {
     const raw = (body.client_note ?? '').trim()
     if (raw.length === 0) return null
     return raw.slice(0, 500)
+  })()
+  const haircutPhotoUrl = (() => {
+    const raw = (body.haircut_photo_url ?? '').trim()
+    if (!raw) return null
+    try { new URL(raw) } catch { return null }
+    return raw
   })()
 
   if (name.length < NAME_MIN || name.length > NAME_MAX) {
@@ -409,9 +416,10 @@ export async function POST(request: Request) {
       service,
       price:       finalPrice,
       duration_min: serviceDuration,
-      client_note: clientNote,
-      barber_id:   assignedBarber?.id ?? null,
-      status:      'pending',
+      client_note:       clientNote,
+      barber_id:         assignedBarber?.id ?? null,
+      haircut_photo_url: haircutPhotoUrl,
+      status:            'pending',
     })
     .select('id')
     .single()
