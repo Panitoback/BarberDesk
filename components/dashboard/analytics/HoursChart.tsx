@@ -36,8 +36,8 @@ export default function HoursChart({ data }: { data: HourBucket[] }) {
                 </div>
               )}
               <div
-                className={`w-full rounded-t cursor-default ${isPeak ? 'bg-indigo-600' : 'bg-indigo-400'}`}
-                style={{ height: `${pct}%` }}
+                className="w-full rounded-t cursor-default"
+                style={{ height: `${pct}%`, backgroundColor: 'var(--theme-accent, #6366f1)', opacity: isPeak ? 1 : 0.65 }}
               />
             </div>
           )

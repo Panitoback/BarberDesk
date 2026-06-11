@@ -20,8 +20,8 @@ export default function BarberRevenueChart({ data }: { data: BarberBucket[] }) {
           </p>
           <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full bg-emerald-500"
-              style={{ width: `${(b.revenue / max) * 100}%` }}
+              className="h-full rounded-full"
+              style={{ width: `${(b.revenue / max) * 100}%`, backgroundColor: 'var(--theme-accent, #6366f1)' }}
             />
           </div>
           <div className="text-right shrink-0 w-24">

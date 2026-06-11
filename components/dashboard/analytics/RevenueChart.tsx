@@ -28,8 +28,10 @@ export default function RevenueChart({ data }: { data: RevenueBucket[] }) {
                 </div>
               )}
               <div
-                className={`w-full rounded-t cursor-default ${d.revenue > 0 ? 'bg-indigo-500' : 'bg-slate-200'}`}
-                style={d.revenue > 0 ? { height: `${pct}%` } : { height: '3px' }}
+                className={`w-full rounded-t cursor-default ${d.revenue > 0 ? '' : 'bg-slate-200'}`}
+                style={d.revenue > 0
+                  ? { height: `${pct}%`, backgroundColor: 'var(--theme-accent, #6366f1)' }
+                  : { height: '3px' }}
               />
             </div>
           )
