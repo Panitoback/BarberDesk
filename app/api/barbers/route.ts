@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { name: rawName, email: rawEmail, bio: rawBio, instagram_handle: rawIg, price_modifier: rawMod } = body as Record<string, unknown>
+  const { name: rawName, email: rawEmail, bio: rawBio, instagram_handle: rawIg, price_modifier: rawMod, commission_pct: rawCommission } = body as Record<string, unknown>
 
   const name = typeof rawName === 'string' ? rawName.trim() : ''
   if (name.length < 1 || name.length > 80) {
@@ -65,6 +65,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Price modifier must be between 0 and 5.' }, { status: 400 })
   }
 
+  const commissionPct = typeof rawCommission === 'number' ? rawCommission : 50
+  if (commissionPct < 0 || commissionPct > 100) {
+    return NextResponse.json({ error: 'Commission % must be between 0 and 100.' }, { status: 400 })
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -81,7 +86,7 @@ export async function POST(request: Request) {
 
   const { data: barber, error } = await supabase
     .from('barbers')
-    .insert({ tenant_id: tenant.id, name, email, bio, instagram_handle: instagramHandle, price_modifier: priceModifier })
+    .insert({ tenant_id: tenant.id, name, email, bio, instagram_handle: instagramHandle, price_modifier: priceModifier, commission_pct: commissionPct })
     .select()
     .single()
 

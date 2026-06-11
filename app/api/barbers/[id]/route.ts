@@ -75,6 +75,14 @@ export async function PATCH(
     updates.display_order = typeof b.display_order === 'number' ? b.display_order : 0
   }
 
+  if ('commission_pct' in b) {
+    const pct = typeof b.commission_pct === 'number' ? b.commission_pct : 50
+    if (pct < 0 || pct > 100) {
+      return NextResponse.json({ error: 'Commission % must be between 0 and 100.' }, { status: 400 })
+    }
+    updates.commission_pct = pct
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No fields to update.' }, { status: 400 })
   }

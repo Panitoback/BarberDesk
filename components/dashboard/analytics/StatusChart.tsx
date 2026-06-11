@@ -17,7 +17,7 @@ export default function StatusChart({ data, total }: { data: StatusBucket[]; tot
   if (total === 0) {
     return (
       <p className="text-sm text-slate-400 py-6 text-center">
-        No appointments this month yet.
+        No appointments in this period.
       </p>
     )
   }

@@ -1,222 +1,183 @@
-import { redirect } from 'next/navigation'
-import { getTenant } from '@/lib/session'
-import { createClient } from '@/lib/supabase/server'
-import { todayInToronto, addDaysISO } from '@/lib/dates'
-import { TrendingUp, DollarSign, AlertCircle, Users } from 'lucide-react'
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { TrendingUp, DollarSign, AlertCircle, Users, UserPlus, Repeat2 } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
 import RevenueChart from '@/components/dashboard/analytics/RevenueChart'
 import TopServicesChart from '@/components/dashboard/analytics/TopServicesChart'
 import HoursChart from '@/components/dashboard/analytics/HoursChart'
 import StatusChart from '@/components/dashboard/analytics/StatusChart'
+import BarberRevenueChart from '@/components/dashboard/analytics/BarberRevenueChart'
 
-// Returns the ISO date of the Monday of the week containing dateISO (UTC-stable).
-function weekStartISO(dateISO: string): string {
-  const d = new Date(dateISO + 'T00:00:00Z')
-  const day = d.getUTCDay() // 0 = Sun
-  d.setUTCDate(d.getUTCDate() - (day === 0 ? 6 : day - 1))
-  return d.toISOString().slice(0, 10)
+type Period = '1m' | '3m' | '6m' | '1y'
+
+const PERIOD_LABELS: Record<Period, string> = {
+  '1m': '1M', '3m': '3M', '6m': '6M', '1y': '1Y',
 }
 
-function weekLabel(iso: string, isCurrent: boolean): string {
-  if (isCurrent) return 'This wk'
-  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-CA', {
-    month: 'short', day: 'numeric', timeZone: 'UTC',
-  })
+type AnalyticsData = {
+  revenueBuckets: { label: string; revenue: number; visits: number }[]
+  topServices:    { name: string; count: number; revenue: number }[]
+  hoursData:      { hour: number; count: number }[]
+  statusData:     { key: string; label: string; count: number; pct: number }[]
+  barberRevenue:  { name: string; revenue: number; count: number }[]
+  totalAppts:     number
+  summary: {
+    totalRevenue:          number
+    avgPerVisit:           number
+    noShowRate:            number
+    totalClients:          number
+    newClients:            number
+    retentionRate:         number
+    uniqueClientsInPeriod: number
+  }
 }
 
-// Largest-remainder normalization — ensures percentages sum to exactly 100.
-function normalizePcts(counts: number[], total: number): number[] {
-  if (total === 0) return counts.map(() => 0)
-  const floats  = counts.map(c => (c / total) * 100)
-  const floors  = floats.map(Math.floor)
-  const deficit = 100 - floors.reduce((s, n) => s + n, 0)
-  floats.map((f, i) => ({ i, rem: f - floors[i] }))
-        .sort((a, b) => b.rem - a.rem)
-        .slice(0, deficit)
-        .forEach(({ i }) => { floors[i]++ })
-  return floors
+const PERIOD_DESCRIPTIONS: Record<Period, string> = {
+  '1m': 'Last 30 days',
+  '3m': 'Last 3 months',
+  '6m': 'Last 6 months',
+  '1y': 'Last 12 months',
 }
 
-export default async function AnalyticsPage() {
-  const tenant = await getTenant()
-  if (!tenant) redirect('/login')
-  if (!tenant.onboardingDone) redirect('/setup')
+export default function AnalyticsPage() {
+  const [period, setPeriod] = useState<Period>('1m')
+  const [data, setData]     = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]   = useState<string | null>(null)
 
-  const supabase = await createClient()
-
-  const today         = todayInToronto()
-  const firstOfMonth  = `${today.slice(0, 7)}-01`
-  const eightWeeksAgo = addDaysISO(today, -56)
-  const thirtyDaysAgo = addDaysISO(today, -30)
-
-  const [
-    { data: visitRows },
-    { data: apptStatusRows },
-    { data: apptHourRows },
-    { count: totalClients },
-  ] = await Promise.all([
-    supabase
-      .from('visits')
-      .select('date, price, service')
-      .eq('tenant_id', tenant.id)
-      .gte('date', eightWeeksAgo)
-      .limit(5000),
-    supabase
-      .from('appointments')
-      .select('status')
-      .eq('tenant_id', tenant.id)
-      .gte('date', firstOfMonth)
-      .limit(2000),
-    supabase
-      .from('appointments')
-      .select('time')
-      .eq('tenant_id', tenant.id)
-      .neq('status', 'cancelled')
-      .not('time', 'is', null)
-      .gte('date', thirtyDaysAgo)
-      .limit(2000),
-    supabase
-      .from('clients')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenant.id)
-      .eq('is_anonymous', false),
-  ])
-
-  // ── Weekly revenue — 8 week buckets, oldest first ─────────────
-  const currentWeekISO = weekStartISO(today)
-  const weekMap = new Map<string, { label: string; revenue: number; visits: number }>()
-  for (let i = 7; i >= 0; i--) {
-    const iso = weekStartISO(addDaysISO(today, -i * 7))
-    if (!weekMap.has(iso)) {
-      weekMap.set(iso, { label: weekLabel(iso, iso === currentWeekISO), revenue: 0, visits: 0 })
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res  = await fetch(`/api/analytics?period=${period}`)
+      const json = await res.json() as AnalyticsData & { error?: string }
+      if (!res.ok) throw new Error(json.error ?? 'Failed to load analytics')
+      setData(json)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error loading analytics')
+    } finally {
+      setLoading(false)
     }
-  }
-  for (const v of visitRows ?? []) {
-    const b = weekMap.get(weekStartISO(v.date))
-    if (b) { b.revenue += v.price ?? 0; b.visits += 1 }
-  }
-  const weeklyData = Array.from(weekMap.values())
+  }, [period])
 
-  // ── Top services — last 30 days, by revenue ───────────────────
-  const svcMap = new Map<string, { count: number; revenue: number }>()
-  for (const v of visitRows ?? []) {
-    if (v.date < thirtyDaysAgo) continue
-    const key = v.service ?? 'Other'
-    const cur = svcMap.get(key) ?? { count: 0, revenue: 0 }
-    svcMap.set(key, { count: cur.count + 1, revenue: cur.revenue + (v.price ?? 0) })
-  }
-  const topServices = Array.from(svcMap.entries())
-    .map(([name, s]) => ({ name, ...s }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 7)
+  useEffect(() => { void load() }, [load])
 
-  // ── Busiest hours — last 30 days, 8 am–9 pm ──────────────────
-  const hourMap = new Map<number, number>()
-  for (const a of apptHourRows ?? []) {
-    const h = parseInt(a.time.split(':')[0], 10)
-    hourMap.set(h, (hourMap.get(h) ?? 0) + 1)
-  }
-  const hoursData = Array.from({ length: 14 }, (_, i) => ({
-    hour: 8 + i,
-    count: hourMap.get(8 + i) ?? 0,
-  }))
-
-  // ── Status breakdown — this month ─────────────────────────────
-  const statusMap = new Map<string, number>()
-  for (const a of apptStatusRows ?? []) {
-    statusMap.set(a.status, (statusMap.get(a.status) ?? 0) + 1)
-  }
-  const totalAppts = Array.from(statusMap.values()).reduce((s, n) => s + n, 0)
-  const STATUS_META = [
-    { key: 'completed', label: 'Completed' },
-    { key: 'pending',   label: 'Upcoming'  },
-    { key: 'no_show',   label: 'No-show'   },
-    { key: 'cancelled', label: 'Cancelled' },
-  ]
-  const rawCounts = STATUS_META.map(s => statusMap.get(s.key) ?? 0)
-  const pcts      = normalizePcts(rawCounts, totalAppts)
-  const statusData = STATUS_META.map((s, i) => ({
-    key:   s.key,
-    label: s.label,
-    count: rawCounts[i],
-    pct:   pcts[i],
-  }))
-
-  // ── Summary stats ──────────────────────────────────────────────
-  const monthVisits  = visitRows?.filter(v => v.date >= firstOfMonth) ?? []
-  const monthRevenue = monthVisits.reduce((s, v) => s + (v.price ?? 0), 0)
-  const avgPerVisit  = monthVisits.length > 0 ? monthRevenue / monthVisits.length : 0
-  const completed    = statusMap.get('completed') ?? 0
-  const noShows      = statusMap.get('no_show')   ?? 0
-  const closedBase   = completed + noShows
-  const noShowRate   = closedBase > 0 ? Math.round((noShows / closedBase) * 100) : 0
-
-  const monthLabel = new Date(firstOfMonth + 'T12:00:00Z').toLocaleDateString('en-CA', {
-    month: 'long', year: 'numeric', timeZone: 'UTC',
-  })
+  const s = data?.summary
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
-        <p className="text-sm text-slate-400 mt-1">{monthLabel}</p>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header + period picker */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
+          <p className="text-sm text-slate-400 mt-0.5">{PERIOD_DESCRIPTIONS[period]}</p>
+        </div>
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm font-medium">
+          {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 transition-colors ${period === p ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+            >
+              {PERIOD_LABELS[p]}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {error && (
+        <div className="bg-red-50 text-red-700 text-sm rounded-xl px-5 py-3 border border-red-100">
+          {error}
+        </div>
+      )}
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard
-          label="Revenue this month"
-          value={`$${monthRevenue.toFixed(2)}`}
+          label="Revenue"
+          value={s ? `$${s.totalRevenue.toFixed(2)}` : '—'}
           icon={TrendingUp}
-          description="CAD"
+          description="CAD · completed visits"
         />
         <StatsCard
           label="Avg per visit"
-          value={`$${avgPerVisit.toFixed(2)}`}
+          value={s ? `$${s.avgPerVisit.toFixed(2)}` : '—'}
           icon={DollarSign}
-          description="This month"
+          description="This period"
         />
         <StatsCard
           label="No-show rate"
-          value={`${noShowRate}%`}
+          value={s ? `${s.noShowRate}%` : '—'}
           icon={AlertCircle}
           description="Of completed + no-shows"
         />
         <StatsCard
-          label="Registered clients"
-          value={totalClients ?? 0}
+          label="Total clients"
+          value={s ? s.totalClients : '—'}
           icon={Users}
+          description="Registered (all time)"
+        />
+        <StatsCard
+          label="New clients"
+          value={s ? s.newClients : '—'}
+          icon={UserPlus}
+          description="Joined this period"
+        />
+        <StatsCard
+          label="Retention"
+          value={s ? `${s.retentionRate}%` : '—'}
+          icon={Repeat2}
+          description={s ? `${s.uniqueClientsInPeriod} unique visitors` : 'Clients with 2+ visits'}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue trend */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2">
-          <h2 className="text-base font-semibold text-slate-900 mb-1">Revenue · last 8 weeks</h2>
-          <p className="text-xs text-slate-400 mb-5">Week-by-week from completed visits · hover for details</p>
-          <RevenueChart data={weeklyData} />
-        </div>
+      {loading && (
+        <div className="text-center text-sm text-slate-400 py-8">Loading…</div>
+      )}
 
-        {/* Top services */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h2 className="text-base font-semibold text-slate-900 mb-1">Top services · last 30 days</h2>
-          <p className="text-xs text-slate-400 mb-5">Ranked by revenue</p>
-          <TopServicesChart data={topServices} />
-        </div>
+      {!loading && data && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue trend */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2">
+            <h2 className="text-base font-semibold text-slate-900 mb-1">Revenue trend</h2>
+            <p className="text-xs text-slate-400 mb-5">
+              {period === '6m' || period === '1y' ? 'Monthly' : 'Weekly'} · completed visits · hover for details
+            </p>
+            <RevenueChart data={data.revenueBuckets} />
+          </div>
 
-        {/* Busiest times */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h2 className="text-base font-semibold text-slate-900 mb-1">Busiest times · last 30 days</h2>
-          <p className="text-xs text-slate-400 mb-5">8 am – 9 pm · non-cancelled · hover for details</p>
-          <HoursChart data={hoursData} />
-        </div>
+          {/* Top services */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h2 className="text-base font-semibold text-slate-900 mb-1">Top services</h2>
+            <p className="text-xs text-slate-400 mb-5">Ranked by revenue · this period</p>
+            <TopServicesChart data={data.topServices} />
+          </div>
 
-        {/* Status breakdown */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2">
-          <h2 className="text-base font-semibold text-slate-900 mb-1">Appointments · this month</h2>
-          <p className="text-xs text-slate-400 mb-5">{totalAppts} total</p>
-          <StatusChart data={statusData} total={totalAppts} />
+          {/* Busiest times */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h2 className="text-base font-semibold text-slate-900 mb-1">Busiest times</h2>
+            <p className="text-xs text-slate-400 mb-5">8 am – 9 pm · non-cancelled · hover for details</p>
+            <HoursChart data={data.hoursData} />
+          </div>
+
+          {/* Revenue by barber — only shown in multi-barber setups */}
+          {data.barberRevenue.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <h2 className="text-base font-semibold text-slate-900 mb-1">Revenue by barber</h2>
+              <p className="text-xs text-slate-400 mb-5">Completed appointments · this period</p>
+              <BarberRevenueChart data={data.barberRevenue} />
+            </div>
+          )}
+
+          {/* Status breakdown */}
+          <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 ${data.barberRevenue.length > 0 ? '' : 'lg:col-span-2'}`}>
+            <h2 className="text-base font-semibold text-slate-900 mb-1">Appointment status</h2>
+            <p className="text-xs text-slate-400 mb-5">{data.totalAppts} total · this period</p>
+            <StatusChart data={data.statusData} total={data.totalAppts} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

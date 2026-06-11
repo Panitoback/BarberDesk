@@ -4,7 +4,7 @@ export default function TopServicesChart({ data }: { data: ServiceBucket[] }) {
   if (data.length === 0) {
     return (
       <p className="text-sm text-slate-400 py-10 text-center">
-        No visits in the last 30 days.
+        No visits in this period.
       </p>
     )
   }

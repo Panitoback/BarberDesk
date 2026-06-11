@@ -207,6 +207,7 @@ export type Database = {
         Row: {
           active: boolean
           bio: string | null
+          commission_pct: number | null
           created_at: string
           display_order: number
           email: string | null
@@ -221,6 +222,7 @@ export type Database = {
         Insert: {
           active?: boolean
           bio?: string | null
+          commission_pct?: number | null
           created_at?: string
           display_order?: number
           email?: string | null
@@ -235,6 +237,7 @@ export type Database = {
         Update: {
           active?: boolean
           bio?: string | null
+          commission_pct?: number | null
           created_at?: string
           display_order?: number
           email?: string | null

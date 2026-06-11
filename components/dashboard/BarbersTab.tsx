@@ -16,6 +16,7 @@ type BarberDraft = {
   bio:              string
   instagram_handle: string
   price_modifier:   number
+  commission_pct:   number
   active:           boolean
   photo_path:       string | null
   hours:            BarberHours
@@ -67,6 +68,7 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
       bio:              b.bio ?? '',
       instagram_handle: b.instagram_handle ?? '',
       price_modifier:   b.price_modifier,
+      commission_pct:   b.commission_pct ?? 50,
       active:           b.active,
       photo_path:       b.photo_path,
       hours:            parseHours(b.hours),
@@ -109,7 +111,7 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
   function addBarber() {
     setBarbers(bs => [...bs, {
       id: null, name: '', email: '', bio: '', instagram_handle: '',
-      price_modifier: 1.0, active: true, photo_path: null,
+      price_modifier: 1.0, commission_pct: 50, active: true, photo_path: null,
       hours: {}, showHours: false, isNew: true,
     }])
   }
@@ -127,6 +129,7 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
       bio:              b.bio.trim() || null,
       instagram_handle: b.instagram_handle.trim() || null,
       price_modifier:   b.price_modifier,
+      commission_pct:   b.commission_pct,
       active:           b.active,
       hours:            hoursPayload,
     }
@@ -283,19 +286,30 @@ export default function BarbersTab({ initialBarbers }: { initialBarbers: BarberR
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-slate-500 whitespace-nowrap">Price adjustment</label>
-                  <input
-                    type="number" value={pct} min={-80} max={400} step={5}
-                    onChange={e => update(idx, { price_modifier: pctToModifier(Number(e.target.value) || 0) })}
-                    className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px] text-center"
-                  />
-                  <span className="text-sm text-slate-500">%</span>
-                  {pct !== 0 && (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${pct > 0 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
-                      {formatPriceModifier(b.price_modifier)} vs service price
-                    </span>
-                  )}
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-slate-500 whitespace-nowrap">Price adjustment</label>
+                    <input
+                      type="number" value={pct} min={-80} max={400} step={5}
+                      onChange={e => update(idx, { price_modifier: pctToModifier(Number(e.target.value) || 0) })}
+                      className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px] text-center"
+                    />
+                    <span className="text-sm text-slate-500">%</span>
+                    {pct !== 0 && (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${pct > 0 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
+                        {formatPriceModifier(b.price_modifier)} vs service price
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-slate-500 whitespace-nowrap">Commission</label>
+                    <input
+                      type="number" value={b.commission_pct} min={0} max={100} step={5}
+                      onChange={e => update(idx, { commission_pct: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                      className="w-20 text-sm border border-slate-300 rounded-lg px-2 py-2 min-h-[40px] text-center"
+                    />
+                    <span className="text-sm text-slate-500">% to barber</span>
+                  </div>
                 </div>
 
                 <textarea

@@ -14,7 +14,7 @@ export default function HoursChart({ data }: { data: HourBucket[] }) {
   if (!hasAny) {
     return (
       <p className="text-sm text-slate-400 py-10 text-center">
-        No appointments in the last 30 days.
+        No appointments in this period.
       </p>
     )
   }
