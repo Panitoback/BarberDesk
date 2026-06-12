@@ -259,10 +259,55 @@ export type Database = {
           },
         ]
       }
+      campaigns: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          recipient_count: number
+          segment: string
+          sent_at: string
+          subject: string
+          tenant_id: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          segment: string
+          sent_at?: string
+          subject: string
+          tenant_id: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          segment?: string
+          sent_at?: string
+          subject?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           created_at: string
           email: string | null
+          email_unsubscribed: boolean
           id: string
           is_anonymous: boolean
           last_visit: string | null
@@ -276,6 +321,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          email_unsubscribed?: boolean
           id?: string
           is_anonymous?: boolean
           last_visit?: string | null
@@ -289,6 +335,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          email_unsubscribed?: boolean
           id?: string
           is_anonymous?: boolean
           last_visit?: string | null

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays, BarChart2, Wallet } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, LogOut, Scissors, Menu, X, Zap, CalendarDays, BarChart2, Wallet, Megaphone } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 
@@ -14,16 +14,18 @@ const navItems = [
   { href: '/analytics',   label: 'Analytics',   icon: BarChart2,       exact: false },
   { href: '/payroll',     label: 'Payroll',     icon: Wallet,          exact: false },
   { href: '/clients',     label: 'Clients',     icon: Users,           exact: false },
+  { href: '/campaigns',   label: 'Campaigns',   icon: Megaphone,       exact: false },
   { href: '/automations', label: 'Automations', icon: Zap,             exact: false },
   { href: '/settings',    label: 'Settings',    icon: Settings,        exact: false },
 ]
 
 type Props = {
-  shopName: string
-  logoUrl:  string | null
+  shopName:    string
+  logoUrl:     string | null
+  multiBarber: boolean
 }
 
-export default function SidebarNav({ shopName, logoUrl }: Props) {
+export default function SidebarNav({ shopName, logoUrl, multiBarber }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -121,7 +123,7 @@ export default function SidebarNav({ shopName, logoUrl }: Props) {
 
         {/* Nav links */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon, exact }) => {
+          {navItems.filter(item => item.href !== '/payroll' || multiBarber).map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href)
             return (
               <Link

@@ -15,6 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <SidebarNav
         shopName={tenant.name}
         logoUrl={tenant.logoUrl}
+        multiBarber={tenant.multiBarber}
       />
       <main className="flex-1 md:overflow-y-auto p-4 pt-20 sm:p-6 sm:pt-20 md:p-8">
         {children}
