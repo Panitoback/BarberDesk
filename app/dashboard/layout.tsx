@@ -1,7 +1,21 @@
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { getTenant } from '@/lib/session'
 import SidebarNav from '@/components/dashboard/SidebarNav'
 import { themeStyle } from '@/lib/theme'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await getTenant()
+  if (!tenant) return {}
+  return {
+    title: tenant.name,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: tenant.name,
+    },
+  }
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const tenant = await getTenant()

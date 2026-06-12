@@ -8,6 +8,7 @@ import TopServicesChart from '@/components/dashboard/analytics/TopServicesChart'
 import HoursChart from '@/components/dashboard/analytics/HoursChart'
 import StatusChart from '@/components/dashboard/analytics/StatusChart'
 import BarberRevenueChart from '@/components/dashboard/analytics/BarberRevenueChart'
+import PricingInsightCard from '@/components/dashboard/analytics/PricingInsightCard'
 
 type Period = '1m' | '3m' | '6m' | '1y'
 
@@ -178,6 +179,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
+
+      <PricingInsightCard />
     </div>
   )
 }

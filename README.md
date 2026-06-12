@@ -79,6 +79,7 @@ All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOO
 
 ### Multi-barber (gated by `tenants.multi_barber`)
 - Manage multiple barbers per shop. Includes per-barber booking picker, least-loaded auto-assign, price modifiers, custom schedules, photo uploads, Instagram handle link on booking page, barber notification emails, and revenue-by-barber dashboard card.
+- **Payroll tab** — per-barber commission breakdown with period picker (this week / last week / this month / last month). Shows revenue and commission earned per barber based on `barbers.commission_pct`. Gated at nav + page + API level.
 
 ### Branding (per tenant)
 - **6 color palettes** — Midnight, Obsidian Gold, Forest, Ocean, Crimson, Mocha. Applied via CSS vars to the dashboard sidebar and booking page.
@@ -102,15 +103,15 @@ All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOO
 - Supabase auth emails (password reset) also route through Resend.
 
 ### Analytics
-- **`/analytics` page** — 4 stat cards (revenue this month, avg per visit, no-show rate, registered clients) + 4 charts: Revenue trend (8-week bars), Top services (horizontal bars by revenue), Busiest times (hour heatmap 8am–9pm), Appointment status breakdown (stacked bar + legend). Pure server component — no external chart library. Tooltips via CSS `group-hover`.
+- **`/analytics` page** — client-side with period picker (this week / last week / this month / last month / last 3 months). 4 stat cards (revenue, avg per visit, no-show rate, registered clients) + 4 charts: Revenue trend (weekly bars), Top services (horizontal bars by revenue), Busiest times (hour heatmap 8am–9pm), Appointment status breakdown (stacked bar + legend). No external chart library — pure CSS. All chart colors use `var(--theme-accent)` for dynamic theme support. Revenue by barber chart shown only when `multi_barber=true`.
 
 ### PWA
 - Installable from browser on both dashboard and booking page (no App Store required). `public/sw.js` (cache-first for static assets, network-only for pages/API) + dynamic `app/manifest.ts` per tenant (name + theme colors) + barber-pole icons (192, 512, apple-touch-icon).
 
 ### Planned (not yet built)
 - **Automated tenant billing** — Stripe Subscriptions for $19.99/$29.99 CAD plans with trial enforcement. Currently billed manually.
-- **Google Calendar sync** — OAuth2 per barber, auto-sync appointments.
-- **Commission tracking** — per-barber payroll breakdown (data already exists).
+- **Google Calendar write sync** — auto-sync create/cancel/complete TO Google Calendar (read-only integration already live).
+- **Barber portfolio** — before/after photo gallery per barber on booking page. Deferred in favour of Instagram handle link.
 
 ---
 
