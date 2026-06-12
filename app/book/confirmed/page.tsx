@@ -55,7 +55,7 @@ export default async function ConfirmedPage({ searchParams }: { searchParams: Se
 
       <main className="flex-1 max-w-xl w-full mx-auto px-6 py-16 sm:py-24 flex flex-col items-center text-center">
         <div className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center mb-6">
-          <Check className="w-7 h-7 text-slate-900" strokeWidth={3} />
+          <Check className="w-7 h-7 text-white" strokeWidth={3} />
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-3">
