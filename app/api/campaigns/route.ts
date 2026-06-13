@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getTenant } from '@/lib/session'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { makeUnsubscribeToken } from '@/lib/unsubscribe-token'
 
 export type CampaignSegment = 'all' | 'active_30' | 'inactive_60' | 'vip'
 
@@ -28,7 +29,7 @@ function buildEmailHtml(opts: {
   body:     string
   clientId: string
 }): string {
-  const unsubUrl = `https://barberqueue.pro/api/unsubscribe?c=${opts.clientId}`
+  const unsubUrl = `https://barberqueue.pro/api/unsubscribe?c=${makeUnsubscribeToken(opts.clientId)}`
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>

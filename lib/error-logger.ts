@@ -8,6 +8,8 @@ import type { TablesInsert } from '@/lib/supabase/types'
 const SENSITIVE_KEYS = new Set([
   'password', 'pass', 'token', 'secret', 'authorization',
   'api_key', 'apikey', 'access_token', 'refresh_token',
+  // PII — CASL/PIPEDA: never persist client contact details in error logs.
+  'phone', 'email', 'phone_number',
 ])
 
 const MAX_STRING_LENGTH = 2000
