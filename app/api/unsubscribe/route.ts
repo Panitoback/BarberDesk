@@ -1,11 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { verifyUnsubscribeToken } from '@/lib/unsubscribe-token'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const clientId = searchParams.get('c')
+  const token = searchParams.get('c')
 
+  const clientId = token ? verifyUnsubscribeToken(token) : null
   if (!clientId) {
-    return new Response('Invalid unsubscribe link.', {
+    return new Response('Invalid or expired unsubscribe link.', {
       status: 400,
       headers: { 'Content-Type': 'text/plain' },
     })
