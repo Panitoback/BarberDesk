@@ -14,10 +14,16 @@ import { logError } from '@/lib/error-logger'
 import { applyPriceModifier, effectiveHoursForBarber, type BarberHours } from '@/lib/barbers'
 import { getStripeForKey } from '@/lib/stripe'
 import { normalizePhone } from '@/lib/phone'
+import { getClientIp, rateLimit } from '@/lib/rate-limit'
 
 const NAME_MIN = 2
 const NAME_MAX = 80
 
+// Per-IP cap closes the vector the per-phone guard can't: a new phone number on
+// every request never trips PHONE_DAILY_LIMIT (no client row exists yet), so an
+// attacker could iterate numbers to spam real people / burn Twilio credit.
+const IP_BURST_LIMIT = 5
+const IP_BURST_WINDOW_MS = 60_000
 const TENANT_BURST_LIMIT = 10
 const TENANT_BURST_WINDOW_MS = 60_000
 const PHONE_DAILY_LIMIT = 3
@@ -341,6 +347,15 @@ export async function POST(request: Request) {
   const finalPrice = assignedBarber
     ? applyPriceModifier(serviceBasePrice, assignedBarber.price_modifier)
     : serviceBasePrice
+
+  // Per-IP burst guard — first line of defence before the DB-backed counters.
+  const ip = getClientIp(request)
+  if (!rateLimit(`book:${ip}`, IP_BURST_LIMIT, IP_BURST_WINDOW_MS)) {
+    return NextResponse.json(
+      { error: 'Too many bookings right now. Please try again in a minute.' },
+      { status: 429 }
+    )
+  }
 
   // Burst guard
   const burstWindowStart = new Date(Date.now() - TENANT_BURST_WINDOW_MS).toISOString()

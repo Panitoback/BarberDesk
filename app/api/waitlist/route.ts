@@ -5,8 +5,16 @@ import { validateTenantConfig } from '@/lib/tenant-config'
 import { sendSms } from '@/lib/twilio'
 import { normalizePhone } from '@/lib/phone'
 import { todayInToronto } from '@/lib/dates'
+import { getClientIp, rateLimit } from '@/lib/rate-limit'
 
 const WAITLIST_MAX = 10
+
+// Anti-abuse: each join fires an SMS on the shop's Twilio account, so cap how
+// many a single IP or phone can trigger before the per-slot capacity guard.
+const IP_LIMIT = 8
+const IP_WINDOW_MS = 60 * 60_000          // 8 joins / hour / IP
+const PHONE_DAILY_LIMIT = 5
+const PHONE_DAILY_WINDOW_MS = 24 * 60 * 60_000  // 5 joins / day / phone
 
 function formatDateSms(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-CA', {
@@ -18,6 +26,14 @@ function formatDateSms(iso: string): string {
 export async function POST(request: Request) {
   const subdomain = await getSubdomain()
   if (!subdomain) return NextResponse.json({ error: 'Invalid link.' }, { status: 400 })
+
+  const ip = getClientIp(request)
+  if (!rateLimit(`waitlist:${ip}`, IP_LIMIT, IP_WINDOW_MS)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again shortly.' },
+      { status: 429 },
+    )
+  }
 
   let body: { name?: string; phone?: string; service?: string; date?: string }
   try {
@@ -65,6 +81,23 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   if (existing) return NextResponse.json({ ok: true })
+
+  // Per-phone throttle — caps SMS to a single number across any service/date,
+  // blocking the "vary date/service to keep texting one victim" vector.
+  const phoneWindowStart = new Date(Date.now() - PHONE_DAILY_WINDOW_MS).toISOString()
+  const { count: phoneRecent } = await supabase
+    .from('waitlist')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenant.id)
+    .eq('phone', phone)
+    .gte('created_at', phoneWindowStart)
+
+  if ((phoneRecent ?? 0) >= PHONE_DAILY_LIMIT) {
+    return NextResponse.json(
+      { error: 'You’ve joined the waitlist several times recently. Please contact the shop directly.' },
+      { status: 429 },
+    )
+  }
 
   // Capacity guard — prevents unbounded lists per slot.
   const { count } = await supabase

@@ -18,15 +18,20 @@ export async function POST(request: Request) {
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
+  // Fail closed: without the auth token we cannot verify the signature, so a
+  // missing env var must never become an open door for forged inbound SMS.
+  if (!authToken) {
+    console.error('[twilio webhook] TWILIO_AUTH_TOKEN not set — refusing unverified request')
+    return new Response('Service unavailable', { status: 503 })
+  }
+
   const text   = await request.text()
   const params = Object.fromEntries(new URLSearchParams(text))
 
-  if (authToken) {
-    const signature = request.headers.get('x-twilio-signature') ?? ''
-    const url = `${appUrl}/api/webhooks/twilio`
-    if (!verifyTwilioSignature(authToken, url, params, signature)) {
-      return new Response('Forbidden', { status: 403 })
-    }
+  const signature = request.headers.get('x-twilio-signature') ?? ''
+  const url = `${appUrl}/api/webhooks/twilio`
+  if (!verifyTwilioSignature(authToken, url, params, signature)) {
+    return new Response('Forbidden', { status: 403 })
   }
 
   const to  = params['To']         ?? ''
