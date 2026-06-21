@@ -30,51 +30,43 @@ const features = [
   {
     icon: CalendarCheck,
     title: 'Online booking link',
-    description:
-      'Every shop gets a public page at yourshop.barberqueue.pro/book. Clients pick a service, a barber, and a time — you see it land in your dashboard. Charge a deposit or full payment right at booking.',
+    description: 'Your own page at yourshop.barberqueue.pro/book — clients pick, pay a deposit, and you see it in your dashboard.',
   },
   {
     icon: ShieldCheck,
     title: 'No-show protection',
-    description:
-      'Three layers: collect a deposit at booking so clients have skin in the game, fire a flash-discount recovery text the moment they no-show, and auto-notify the waitlist to fill the empty slot.',
+    description: 'Deposit upfront + flash-discount recovery text + waitlist auto-fill. Three layers, zero effort from you.',
   },
   {
     icon: CreditCard,
     title: 'Deposit & full payment',
-    description:
-      'Charge a partial deposit or the full service price at booking via Stripe. No-shows plummet when clients have already paid. Works with Apple Pay, Google Pay, and all major cards.',
+    description: 'Charge a deposit or the full price via Stripe. Works with Apple Pay, Google Pay, and all cards.',
     badge: 'New',
   },
   {
     icon: Gift,
     title: 'Loyalty program',
-    description:
-      'Clients earn points every visit and climb Bronze → Platinum. Rewards that pull them back to your chair, not the shop down the block.',
+    description: 'Bronze to Platinum — clients earn points every visit. Keeps them coming back to your chair, not the shop down the block.',
   },
   {
     icon: RotateCcw,
     title: 'Client win-back',
-    description:
-      "Every week we spot anyone you haven't seen in 30+ days and send a personal nudge. Automated reactivation while you keep cutting.",
+    description: 'Flags anyone inactive 30+ days and sends a personal nudge. Runs automatically every week.',
   },
   {
     icon: Star,
     title: 'Google review requests',
-    description:
-      '30 minutes after each cut, your client gets a text asking for a Google review. More stars, higher ranking, more walk-ins.',
+    description: '30 minutes after the cut, your client gets a review request. More stars, higher ranking, more walk-ins.',
   },
   {
     icon: Clock,
     title: 'Waitlist auto-fill',
-    description:
-      'Clients join the waitlist for a busy date. The moment a slot opens — cancellation, no-show, deposit cancel — BarberQueue texts the next person automatically. Your chair stays full.',
+    description: 'The moment a slot opens, BarberQueue texts the next person on the list. Your chair stays full.',
   },
   {
     icon: Bot,
     title: 'AI auto-replies',
-    description:
-      'When clients text your shop, the AI answers in seconds — hours, pricing, booking link. You step in only when you want to.',
+    description: "Clients text your shop — the AI answers in seconds. Hours, pricing, booking link. You step in when you want.",
   },
 ]
 
@@ -82,22 +74,22 @@ const problems = [
   {
     icon: TrendingDown,
     pain: 'Clients miss appointments. You eat the empty chair.',
-    fix: 'Three layers of protection: collect a deposit at booking so they have skin in the game, trigger a flash-discount recovery text the moment they no-show, and auto-notify the waitlist to fill the slot — all automatic.',
+    fix: 'Deposit at booking + flash-discount recovery text + waitlist auto-fill. All fires automatically the moment they no-show.',
   },
   {
     icon: EyeOff,
     pain: 'Regulars quietly stop showing up — you notice months later.',
-    fix: 'We flag anyone inactive 30+ days and win them back with a personalized text. Set the window, write the message once, and let it run every week.',
+    fix: 'We flag anyone inactive 30+ days and send a personal nudge. Write the message once. Runs every week on its own.',
   },
   {
     icon: AlertCircle,
     pain: 'Your competitor has 200 Google reviews. You have 12.',
-    fix: 'Every happy client gets an automatic review request 30 minutes after the cut. More stars, higher ranking on Google Maps, more walk-ins — on autopilot.',
+    fix: 'Every client gets an automatic review request 30 minutes after the cut. More stars, higher on Google Maps, more walk-ins.',
   },
   {
     icon: Bot,
     pain: "You're mid-cut and your phone won't stop — 'what time do you close?', 'do you take walk-ins?'",
-    fix: "The AI reads your shop info and answers in seconds, 24/7 — hours, pricing, your booking link. Clients get answers without interrupting your flow.",
+    fix: "The AI reads your shop info and answers 24/7 — hours, pricing, booking link. Clients get answers, you stay focused.",
   },
 ]
 
@@ -550,6 +542,22 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* ── App demo — video ── */}
+      <section className="px-6 pt-20 pb-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <p className="bq-mono mb-2 text-xs font-bold uppercase tracking-[0.25em]" style={{ color: 'var(--red)' }}>
+              See it in action
+            </p>
+            <h2 className="bq-display text-4xl leading-none text-[var(--ink)] sm:text-5xl">
+              90 SECONDS.<br />
+              <span className="text-[var(--ink)]/30">THAT&apos;S ALL IT TAKES.</span>
+            </h2>
+          </div>
+          <DemoSection />
+        </div>
+      </section>
+
       {/* ── Problem → Solution ── */}
       <section className="px-6 py-24">
         <div className="mx-auto max-w-5xl">
@@ -596,7 +604,7 @@ export default function HomePage() {
               <span className="text-white/35">NOTHING IT DOESN&apos;T.</span>
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-white/50">
-              Eight tools that run while you cut. Booking, payments, recovery, loyalty, reviews, and AI — all wired together, no setup headaches.
+              Eight tools that run while you cut — no extra apps, no setup headaches.
             </p>
           </div>
 
@@ -621,26 +629,6 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── App demo — phone mockup ── */}
-      <section className="px-6 py-24">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
-            <p className="bq-mono mb-3 text-xs font-bold uppercase tracking-[0.25em]" style={{ color: 'var(--red)' }}>
-              See it in action
-            </p>
-            <h2 className="bq-display text-4xl leading-none text-[var(--ink)] sm:text-5xl">
-              YOUR SHOP.<br />
-              <span className="text-[var(--ink)]/30">IN YOUR POCKET.</span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-[var(--ink)]/50">
-              Manage appointments, track clients, and run automations — all from your phone.
-            </p>
-          </div>
-
-          <DemoSection />
         </div>
       </section>
 
@@ -797,10 +785,14 @@ export default function HomePage() {
       <section className="px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
-            <p className="bq-mono mb-3 text-xs font-bold uppercase tracking-[0.25em]" style={{ color: 'var(--red)' }}>How we stack up</p>
-            <h2 className="bq-display text-4xl leading-none text-[var(--ink)] sm:text-5xl">
-              MORE FEATURES. HALF THE PRICE.
+            <p className="bq-mono mb-3 text-xs font-bold uppercase tracking-[0.25em]" style={{ color: 'var(--red)' }}>What makes us different</p>
+            <h2 className="bq-display text-5xl leading-none text-[var(--ink)] sm:text-6xl">
+              MORE FEATURES.<br />
+              <span style={{ color: 'var(--red)' }}>HALF THE PRICE.</span>
             </h2>
+            <p className="mx-auto mt-4 max-w-md text-black/50">
+              vs. Square, Fresh, GetSquire, and the rest.
+            </p>
           </div>
 
           <div className="overflow-x-auto rounded-2xl border-2 border-[var(--ink)] bg-white" style={{ boxShadow: '7px 7px 0 var(--ink)' }}>
@@ -809,7 +801,10 @@ export default function HomePage() {
                 <tr className="border-b-2 border-[var(--ink)]">
                   <th className="w-2/5 px-6 py-5 text-left" />
                   <th className="bq-mono px-6 py-5 text-center text-[11px] font-bold uppercase tracking-wide text-black/40">Old way</th>
-                  <th className="bq-mono px-6 py-5 text-center text-[11px] font-bold uppercase tracking-wide text-black/40">Other apps</th>
+                  <th className="bq-mono px-6 py-5 text-center text-[11px] font-bold uppercase tracking-wide text-black/40">
+                    Other apps<br />
+                    <span className="text-[9px] normal-case font-normal tracking-normal text-black/30">Square · Fresh · GetSquire</span>
+                  </th>
                   <th className="bq-mono border-x-2 border-[var(--ink)] px-6 py-5 text-center text-[11px] font-bold uppercase tracking-wide text-white" style={{ background: 'var(--ink)' }}>
                     BarberQueue
                   </th>
