@@ -181,7 +181,7 @@ function RegisterForm() {
 
         <div>
           <h1 className="bq-display text-3xl text-[var(--ink)]">Set up your shop</h1>
-          <p className="mt-1 text-sm text-black/55">7 days free. No credit card required.</p>
+          <p className="mt-1 text-sm text-black/55">14 days free. No credit card required.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

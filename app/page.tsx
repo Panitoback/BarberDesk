@@ -157,7 +157,7 @@ const faqs = [
     a: 'No. SMS is fully included — we handle the phone number, the carrier, and the delivery. You write your messages and we send them. Email reminders are also included and go out via our own email infrastructure.',
   },
   {
-    q: 'What happens after the 7-day free trial?',
+    q: 'What happens after the 14-day free trial?',
     a: '$19.99 CAD/month + applicable taxes, billed monthly. Cancel anytime — no contracts, no penalties.',
   },
   {
@@ -482,7 +482,7 @@ export default function HomePage() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-transform hover:-translate-y-0.5"
                   style={{ background: 'var(--red)' }}
                 >
-                  Start your 7-day free trial
+                  Start your 14-day free trial
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
@@ -557,6 +557,15 @@ export default function HomePage() {
           <DemoSection />
         </div>
       </section>
+
+      {/* ── Divisor ── */}
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="flex items-center gap-4">
+          <div className="h-px flex-1" style={{ background: 'var(--ink)', opacity: 0.12 }} />
+          <Scissors className="h-4 w-4 shrink-0" style={{ color: 'var(--red)', opacity: 0.5 }} />
+          <div className="h-px flex-1" style={{ background: 'var(--ink)', opacity: 0.12 }} />
+        </div>
+      </div>
 
       {/* ── Problem → Solution ── */}
       <section className="px-6 py-24">
@@ -861,7 +870,7 @@ export default function HomePage() {
                 <span className="mb-2 ml-1 text-base text-black/50">CAD/mo</span>
               </div>
               <p className="mb-1 text-xs text-black/45">+ applicable taxes</p>
-              <p className="mb-7 text-sm font-bold" style={{ color: 'var(--red)' }}>7 days free — no credit card</p>
+              <p className="mb-7 text-sm font-bold" style={{ color: 'var(--red)' }}>14 days free — no credit card</p>
 
               <ul className="mb-7 flex-1 space-y-2.5">
                 {pricingFeatures.map((f) => (
@@ -873,7 +882,7 @@ export default function HomePage() {
               </ul>
 
               <Link href="/register" className="block w-full rounded-xl py-3.5 text-center text-sm font-bold text-white transition-transform hover:-translate-y-0.5" style={{ background: 'var(--red)' }}>
-                Start 7-day free trial
+                Start 14-day free trial
               </Link>
             </div>
 
@@ -896,7 +905,7 @@ export default function HomePage() {
                 <span className="mb-2 ml-1 text-base text-white/45">CAD/mo</span>
               </div>
               <p className="mb-1 text-xs text-white/40">+ applicable taxes</p>
-              <p className="mb-1 text-sm font-bold" style={{ color: 'var(--gold)' }}>7 days free — no credit card</p>
+              <p className="mb-1 text-sm font-bold" style={{ color: 'var(--gold)' }}>14 days free — no credit card</p>
               <p className="mb-5 text-sm text-white/55">Everything in Solo, plus team tools:</p>
 
               <ul className="mb-7 flex-1 space-y-2.5">
@@ -909,7 +918,7 @@ export default function HomePage() {
               </ul>
 
               <Link href="/register" className="block w-full rounded-xl border border-white/20 bg-white/5 py-3.5 text-center text-sm font-bold text-white transition-colors hover:bg-white/10">
-                Start 7-day free trial
+                Start 14-day free trial
               </Link>
             </div>
 
@@ -976,7 +985,7 @@ export default function HomePage() {
             Get started for free
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <p className="bq-mono mt-5 text-xs text-white/70">No credit card · 7-day trial · $19.99 CAD/mo + tax after</p>
+          <p className="bq-mono mt-5 text-xs text-white/70">No credit card · 14-day trial · $19.99 CAD/mo + tax after</p>
         </div>
       </section>
 
