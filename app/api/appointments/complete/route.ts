@@ -43,8 +43,8 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.rpc('complete_appointment', {
     p_appointment_id: appointmentId,
     p_tenant_id:      tenant.id,
+    p_extras:         extras,
     ...(finalPrice !== null ? { p_price_override: finalPrice } : {}),
-    ...(extras.length > 0 ? { p_extras: extras } : {}),
   })
 
   if (error) {
