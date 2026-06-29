@@ -24,6 +24,16 @@ export async function getSubdomain(): Promise<string | null> {
   return h.get('x-subdomain') ?? extractSubdomainFromHost(h.get('host') ?? '')
 }
 
+export function cookieOptionsForHost(host: string): { domain: string } | undefined {
+  if (process.env.NODE_ENV !== 'production') return undefined
+  const h = host.split(':')[0]
+  if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) {
+    return { domain: '.salonqueue.pro' }
+  }
+  return { domain: '.barberqueue.pro' }
+}
+
+// Kept for backward compatibility — prefer cookieOptionsForHost() in new code
 export const COOKIE_DOMAIN =
   process.env.NODE_ENV === 'production' ? '.barberqueue.pro' : undefined
 

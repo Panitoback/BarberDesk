@@ -53,6 +53,16 @@ function RegisterForm() {
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
+  const [market, setMarket]         = useState<'barber' | 'salon'>('barber')
+  const [baseDomain, setBaseDomain] = useState('barberqueue.pro')
+
+  useEffect(() => {
+    const h = window.location.hostname
+    if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) {
+      setBaseDomain('salonqueue.pro')
+      setMarket('salon')
+    }
+  }, [])
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchParams = useSearchParams()
 
@@ -137,7 +147,7 @@ function RegisterForm() {
     const res = await fetch('/api/register/create-tenant', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ shop: shopName.trim(), slug }),
+      body:    JSON.stringify({ shop: shopName.trim(), slug, market }),
     })
 
     if (!res.ok) {
@@ -218,14 +228,14 @@ function RegisterForm() {
                 className="flex-1 rounded-l-lg border border-r-0 border-[var(--ink)]/20 bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-black/35 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--red)]"
               />
               <span className="flex select-none items-center whitespace-nowrap rounded-r-lg border border-[var(--ink)]/20 bg-[var(--paper-2)] px-3 text-sm text-black/50">
-                .barberqueue.pro
+                .{baseDomain}
               </span>
             </div>
             {slug && (
               <p className={`text-xs flex items-center gap-1.5 ${slugColor[slugStatus]}`}>
                 {slugIcon[slugStatus]}
                 {slugStatus === 'available'
-                  ? <><span className="font-medium">{slug}.barberqueue.pro</span> is available</>
+                  ? <><span className="font-medium">{slug}.{baseDomain}</span> is available</>
                   : slugHelp[slugStatus]
                 }
               </p>

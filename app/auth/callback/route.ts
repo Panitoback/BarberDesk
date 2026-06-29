@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { validateSlug } from '@/lib/slug'
-import { SUPABASE_COOKIE_OPTIONS } from '@/lib/subdomain'
+import { cookieOptionsForHost } from '@/lib/subdomain'
 
 // On a subdomain the dashboard lives at the root path — the proxy rewrites
 // `/` → `/dashboard`, `/clients` → `/dashboard/clients`, etc.
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookieOptions: SUPABASE_COOKIE_OPTIONS,
+      cookieOptions: cookieOptionsForHost(new URL(request.url).hostname),
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {

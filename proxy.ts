@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { extractSubdomainFromHost, SUPABASE_COOKIE_OPTIONS } from './lib/subdomain'
+import { extractSubdomainFromHost, cookieOptionsForHost } from './lib/subdomain'
 
 export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') ?? ''
@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookieOptions: SUPABASE_COOKIE_OPTIONS,
+      cookieOptions: cookieOptionsForHost(hostnameWithoutPort),
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -106,6 +106,16 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
     return response
+  }
+
+  // salonqueue.pro root → serve salon landing page
+  if (
+    (hostnameWithoutPort === 'salonqueue.pro' || hostnameWithoutPort === 'www.salonqueue.pro') &&
+    pathname === '/'
+  ) {
+    const rewriteUrl = request.nextUrl.clone()
+    rewriteUrl.pathname = '/salon'
+    return NextResponse.rewrite(rewriteUrl)
   }
 
   // No subdomain → landing zone, no restrictions
