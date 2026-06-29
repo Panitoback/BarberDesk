@@ -122,8 +122,13 @@ export default function SettingsForm({
 
   const isProduction = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
   const protocol     = isProduction ? 'https' : 'http'
+  const [baseDomain, setBaseDomain] = useState('barberqueue.pro')
+  useEffect(() => {
+    const h = window.location.hostname
+    if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) setBaseDomain('salonqueue.pro')
+  }, [])
   const staffUrl     = currentToken
-    ? `${protocol}://${subdomain}.${isProduction ? 'barberqueue.pro' : 'localhost:3000'}/staff/${currentToken}`
+    ? `${protocol}://${subdomain}.${isProduction ? baseDomain : 'localhost:3000'}/staff/${currentToken}`
     : null
 
   async function handleGoogleDisconnect() {
@@ -297,7 +302,7 @@ export default function SettingsForm({
 
       if (json.new_subdomain) {
         const host = isProduction
-          ? `${json.new_subdomain}.barberqueue.pro`
+          ? `${json.new_subdomain}.${baseDomain}`
           : `${json.new_subdomain}.localhost:3000`
         window.location.href = `${protocol}://${host}/settings`
         return
@@ -422,12 +427,12 @@ export default function SettingsForm({
                     className="text-sm border border-slate-300 rounded-l-lg px-3 py-2 min-h-[40px] w-36"
                   />
                   <span className="flex items-center text-sm border border-l-0 border-slate-300 rounded-r-lg px-3 bg-slate-50 text-slate-500 whitespace-nowrap">
-                    .barberqueue.pro
+                    .{baseDomain}
                   </span>
                 </div>
                 {subdomainInput !== subdomain && subdomainInput.length >= 3 && (
                   <p className="text-xs text-amber-600 mt-1.5">
-                    After saving you&apos;ll be redirected to {subdomainInput}.barberqueue.pro — update any bookmarks.
+                    After saving you&apos;ll be redirected to {subdomainInput}.{baseDomain} — update any bookmarks.
                   </p>
                 )}
               </div>
@@ -633,7 +638,7 @@ export default function SettingsForm({
                   />
                   <p className="text-xs text-slate-400">
                     Create a webhook in Stripe Dashboard → Developers → Webhooks pointing to{' '}
-                    <span className="font-mono">{`https://${subdomain}.barberqueue.pro/api/webhooks/stripe`}</span>{' '}
+                    <span className="font-mono">{`https://${subdomain}.${baseDomain}/api/webhooks/stripe`}</span>{' '}
                     listening for <span className="font-mono">checkout.session.completed</span>.
                   </p>
                 </div>

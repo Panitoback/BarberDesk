@@ -1,12 +1,16 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
 import { Download, QrCode } from 'lucide-react'
 
 export default function BookingQRCode({ subdomain }: { subdomain: string }) {
   const qrRef = useRef<HTMLDivElement>(null)
-  const baseDomain = (typeof window !== 'undefined' && (window.location.hostname === 'salonqueue.pro' || window.location.hostname.endsWith('.salonqueue.pro'))) ? 'salonqueue.pro' : 'barberqueue.pro'
+  const [baseDomain, setBaseDomain] = useState('barberqueue.pro')
+  useEffect(() => {
+    const h = window.location.hostname
+    if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) setBaseDomain('salonqueue.pro')
+  }, [])
   const bookingUrl = `https://${subdomain}.${baseDomain}/book`
 
   function downloadPng() {
