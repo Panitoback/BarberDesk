@@ -6,7 +6,8 @@ import { Download, QrCode } from 'lucide-react'
 
 export default function BookingQRCode({ subdomain }: { subdomain: string }) {
   const qrRef = useRef<HTMLDivElement>(null)
-  const bookingUrl = `https://${subdomain}.barberqueue.pro/book`
+  const baseDomain = (typeof window !== 'undefined' && (window.location.hostname === 'salonqueue.pro' || window.location.hostname.endsWith('.salonqueue.pro'))) ? 'salonqueue.pro' : 'barberqueue.pro'
+  const bookingUrl = `https://${subdomain}.${baseDomain}/book`
 
   function downloadPng() {
     const svg = qrRef.current?.querySelector('svg')

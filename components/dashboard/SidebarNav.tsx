@@ -29,6 +29,11 @@ export default function SidebarNav({ shopName, logoUrl, multiBarber }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [brand, setBrand] = useState('BarberQueue')
+  useEffect(() => {
+    const h = window.location.hostname
+    if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) setBrand('SalonQueue')
+  }, [])
 
   useEffect(() => { setOpen(false) }, [pathname])
 
@@ -102,7 +107,7 @@ export default function SidebarNav({ shopName, logoUrl, multiBarber }: Props) {
             ) : (
               <div className="flex items-center gap-2 mb-1" style={{ color: 'var(--theme-accent, #818cf8)' }}>
                 <Scissors className="w-5 h-5" />
-                <span className="text-xs font-semibold uppercase tracking-widest">BarberQueue</span>
+                <span className="text-xs font-semibold uppercase tracking-widest">{brand}</span>
               </div>
             )}
             <p className="text-white font-semibold text-lg leading-tight truncate">{shopName}</p>
