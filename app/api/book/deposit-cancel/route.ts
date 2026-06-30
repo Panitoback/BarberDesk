@@ -40,13 +40,13 @@ export async function DELETE(request: Request) {
   // Notify the first waitlisted client for this slot (fire-and-forget).
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('name, subdomain, twilio_number')
+    .select('name, subdomain, twilio_number, market')
     .eq('id', appt.tenant_id)
     .single()
 
   if (tenant) {
     after(async () => {
-      await notifyWaitlist(appt.tenant_id, tenant.subdomain, tenant.name, appt.date, appt.service, tenant.twilio_number ?? undefined)
+      await notifyWaitlist(appt.tenant_id, tenant.subdomain, tenant.name, appt.date, appt.service, tenant.twilio_number ?? undefined, tenant.market)
     })
   }
 

@@ -645,7 +645,7 @@ export type Database = {
           config: Json
           created_at: string
           id: string
-          market: string
+          market: 'barber' | 'salon'
           multi_barber: boolean
           name: string
           owner_id: string
@@ -658,7 +658,7 @@ export type Database = {
           config?: Json
           created_at?: string
           id?: string
-          market?: string
+          market?: 'barber' | 'salon'
           multi_barber?: boolean
           name: string
           owner_id: string
@@ -671,7 +671,7 @@ export type Database = {
           config?: Json
           created_at?: string
           id?: string
-          market?: string
+          market?: 'barber' | 'salon'
           multi_barber?: boolean
           name?: string
           owner_id?: string

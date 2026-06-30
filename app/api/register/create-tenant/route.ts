@@ -3,16 +3,18 @@ import { createClient } from '@/lib/supabase/server'
 import { validateSlug } from '@/lib/slug'
 
 export async function POST(request: Request) {
-  let body: { shop?: unknown; slug?: unknown; market?: unknown }
+  let body: { shop?: unknown; slug?: unknown }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
 
-  const shop   = typeof body.shop   === 'string' ? body.shop.trim() : ''
-  const slug   = typeof body.slug   === 'string' ? body.slug.toLowerCase().trim() : ''
-  const market = body.market === 'salon' ? 'salon' : 'barber'
+  const shop = typeof body.shop === 'string' ? body.shop.trim() : ''
+  const slug = typeof body.slug === 'string' ? body.slug.toLowerCase().trim() : ''
+
+  const host   = request.headers.get('host') ?? ''
+  const market = (host === 'salonqueue.pro' || host.endsWith('.salonqueue.pro')) ? 'salon' : 'barber'
 
   if (!shop || !slug) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 })

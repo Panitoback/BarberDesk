@@ -33,10 +33,3 @@ export function cookieOptionsForHost(host: string): { domain: string } | undefin
   return { domain: '.barberqueue.pro' }
 }
 
-// Kept for backward compatibility — prefer cookieOptionsForHost() in new code
-export const COOKIE_DOMAIN =
-  process.env.NODE_ENV === 'production' ? '.barberqueue.pro' : undefined
-
-export const SUPABASE_COOKIE_OPTIONS = COOKIE_DOMAIN
-  ? { domain: COOKIE_DOMAIN }
-  : undefined

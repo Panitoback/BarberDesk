@@ -12,7 +12,7 @@ export default async function SetupPage() {
   const supabase = await createClient()
 
   const [{ data: tenantRow }, { data: autoConfig }] = await Promise.all([
-    supabase.from('tenants').select('config').eq('id', tenant.id).single(),
+    supabase.from('tenants').select('config, market').eq('id', tenant.id).single(),
     supabase.from('automations_config')
       .select('reminder_active, reminder_hours')
       .eq('tenant_id', tenant.id)
@@ -26,6 +26,7 @@ export default async function SetupPage() {
     <SetupWizard
       shopName={tenant.name}
       subdomain={tenant.subdomain}
+      market={tenantRow?.market ?? 'barber'}
       initialConfig={config}
       initialReminderActive={autoConfig?.reminder_active ?? true}
       initialReminderHours={autoConfig?.reminder_hours ?? 24}

@@ -23,7 +23,7 @@ export async function DELETE(
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, twilio_number')
+    .select('id, name, twilio_number, market')
     .eq('subdomain', subdomain)
     .single()
 
@@ -90,7 +90,7 @@ export async function DELETE(
   }
 
   after(async () => {
-    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service, tenant.twilio_number ?? undefined)
+    await notifyWaitlist(tenant.id, subdomain, tenant.name, appointment.date, appointment.service, tenant.twilio_number ?? undefined, tenant.market)
   })
 
   return NextResponse.json({ ok: true })

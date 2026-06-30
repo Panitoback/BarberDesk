@@ -21,6 +21,7 @@ export async function notifyWaitlist(
   date:        string,   // YYYY-MM-DD
   service:     string,
   fromNumber?: string,   // tenant's own Twilio number; falls back to platform default
+  market:      'barber' | 'salon' = 'barber',
 ): Promise<void> {
   const supabase = createAdminClient()
 
@@ -42,7 +43,8 @@ export async function notifyWaitlist(
     .update({ notified_at: new Date().toISOString() })
     .in('id', ids)
 
-  const bookingUrl = `https://${subdomain}.barberqueue.pro/book`
+  const baseDomain = market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
+  const bookingUrl = `https://${subdomain}.${baseDomain}/book`
 
   // Send all SMS in parallel — best-effort, failure of one doesn't block others.
   await Promise.allSettled(

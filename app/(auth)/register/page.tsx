@@ -53,16 +53,14 @@ function RegisterForm() {
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
-  const [market, setMarket]         = useState<'barber' | 'salon'>('barber')
-  const [baseDomain, setBaseDomain] = useState('barberqueue.pro')
+  const [market, setMarket] = useState<'barber' | 'salon'>('barber')
 
   useEffect(() => {
     const h = window.location.hostname
-    if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) {
-      setBaseDomain('salonqueue.pro')
-      setMarket('salon')
-    }
+    if (h === 'salonqueue.pro' || h.endsWith('.salonqueue.pro')) setMarket('salon')
   }, [])
+
+  const baseDomain = market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchParams = useSearchParams()
 
@@ -147,7 +145,7 @@ function RegisterForm() {
     const res = await fetch('/api/register/create-tenant', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ shop: shopName.trim(), slug, market }),
+      body:    JSON.stringify({ shop: shopName.trim(), slug }),
     })
 
     if (!res.ok) {

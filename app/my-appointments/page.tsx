@@ -14,15 +14,16 @@ export default async function MyAppointmentsPage() {
   const supabase = createAdminClient()
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('name')
+    .select('name, market')
     .eq('subdomain', subdomain)
     .single()
 
   if (!tenant) notFound()
 
+  const baseDomain = tenant.market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
   const isProduction = process.env.NODE_ENV === 'production'
   const bookUrl = isProduction
-    ? `https://${subdomain}.barberqueue.pro/book`
+    ? `https://${subdomain}.${baseDomain}/book`
     : `http://${subdomain}.localhost:3000/book`
 
   return (
@@ -36,10 +37,10 @@ export default async function MyAppointmentsPage() {
             </span>
           </div>
           <Link
-            href="https://barberqueue.pro"
+            href={`https://${baseDomain}`}
             className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
           >
-            Powered by BarberQueue
+            Powered by {tenant.market === 'salon' ? 'SalonQueue' : 'BarberQueue'}
           </Link>
         </div>
       </header>

@@ -39,12 +39,14 @@ const DEFAULT_HOURS: HoursMap = {
 export default function SetupWizard({
   shopName,
   subdomain,
+  market,
   initialConfig,
   initialReminderActive,
   initialReminderHours,
 }: {
   shopName:              string
   subdomain:             string
+  market:                'barber' | 'salon'
   initialConfig:         TenantConfig
   initialReminderActive: boolean
   initialReminderHours:  number
@@ -74,7 +76,8 @@ export default function SetupWizard({
   const [reminderActive, setReminderActive] = useState(initialReminderActive)
   const [reminderHours,  setReminderHours]  = useState(String(initialReminderHours))
 
-  const bookingUrl = `https://${subdomain}.barberqueue.pro/book`
+  const baseDomain = market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
+  const bookingUrl = `https://${subdomain}.${baseDomain}/book`
 
   // ── Savers ──────────────────────────────────────────────────────────────────
 

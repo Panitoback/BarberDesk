@@ -80,10 +80,13 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (!existing) {
+      const host = new URL(request.url).hostname
+      const market = (host === 'salonqueue.pro' || host.endsWith('.salonqueue.pro')) ? 'salon' : 'barber'
       const { error: insertError } = await supabase.from('tenants').insert({
         owner_id:  user.id,
         name:      shopName,
         subdomain: slug,
+        market,
       })
 
       // Subdomain taken between check and confirmation
