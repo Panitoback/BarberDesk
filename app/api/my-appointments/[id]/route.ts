@@ -68,7 +68,8 @@ export async function DELETE(
 
   // Confirmation SMS — best-effort
   const firstName = client.name.split(' ')[0]
-  const smsBody = `Hi ${firstName}, your appointment at ${tenant.name} on ${formatDateTimeForSms(appointment.date, appointment.time)} has been cancelled. Book again at https://${subdomain}.barberqueue.pro/book`
+  const baseDomain = tenant.market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
+  const smsBody = `Hi ${firstName}, your appointment at ${tenant.name} on ${formatDateTimeForSms(appointment.date, appointment.time)} has been cancelled. Book again at https://${subdomain}.${baseDomain}/book`
   try {
     const sid = await sendSms(phone, smsBody, tenant.twilio_number ?? undefined)
     await supabase.from('messages').insert({

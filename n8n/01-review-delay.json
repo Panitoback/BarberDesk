@@ -19,6 +19,7 @@
     },
     {
       "parameters": {
+        "amount": 30,
         "unit": "minutes"
       },
       "id": "d1396439-6f36-48b1-887a-d594593d8b2a",
@@ -103,10 +104,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a422bd90-b557-4f63-9e0f-e2b303dd7809",
+  "versionId": "199b030d-f321-4c35-a03f-6cf78da19f3c",
   "meta": {
     "instanceId": "f2d88b16f70955ba1f4dddf4394eea1e7f9d3668af6d5335739ed80e4bf4e4b1"
   },
+  "nodeGroups": [],
   "id": "8neIooH5Epb7Ss06",
   "tags": []
 }

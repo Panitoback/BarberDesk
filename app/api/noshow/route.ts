@@ -137,7 +137,7 @@ export async function POST(request: Request) {
           method:  'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from:    `BarberQueue <noreply@barberqueue.pro>`,
+            from:    `${tenant.name} <noreply@barberqueue.pro>`,
             to:      [c.email],
             subject: `${discountPct}% off at ${shopName} — open slot right now`,
             html: `

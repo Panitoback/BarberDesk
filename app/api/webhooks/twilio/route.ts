@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, subdomain, config')
+    .select('id, name, subdomain, config, market')
     .eq('twilio_number', to)
     .single()
 
@@ -90,14 +90,15 @@ export async function POST(request: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            tenant_id:   tenant.id,
-            subdomain:   tenant.subdomain,
-            shop_name:   tenant.name,
-            shop_data:   tenant.config ?? {},
-            booking_url: `${appUrl.replace('https://', `https://${tenant.subdomain}.`)}/book`,
-            from_number: from,
-            client_name: client?.name ?? 'there',
-            message:     body,
+            tenant_id:     tenant.id,
+            subdomain:     tenant.subdomain,
+            shop_name:     tenant.name,
+            business_type: tenant.market === 'salon' ? 'beauty salon' : 'barbershop',
+            shop_data:     tenant.config ?? {},
+            booking_url:   `https://${tenant.subdomain}.${tenant.market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'}/book`,
+            from_number:   from,
+            client_name:   client?.name ?? 'there',
+            message:       body,
           }),
         })
       } catch {

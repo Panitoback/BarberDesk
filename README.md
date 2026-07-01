@@ -1,9 +1,10 @@
-# BarberQueue
+# BarberQueue / SalonQueue
 
-Multi-tenant SaaS for independent barbershops. Each shop gets a subdomain, private dashboard, public booking page, and SMS automations powered by Twilio + n8n.
+Multi-tenant SaaS for independent barbershops and beauty salons. Each shop gets a subdomain, private dashboard, public booking page, and SMS automations powered by Twilio + n8n. Same codebase, same Supabase project — two markets.
 
-**Live:** [barberqueue.pro](https://barberqueue.pro)
-**Pricing:** $19.99 CAD/month (solo barber, launch) · $29.99 CAD/month (multi-barber, launch) · + applicable taxes · 7-day free trial · no credit card required
+**Live (barbershops):** [barberqueue.pro](https://barberqueue.pro)
+**Live (salons):** [salonqueue.pro](https://salonqueue.pro)
+**Pricing:** $19.99 CAD/month (solo) · $29.99 CAD/month (multi-barber) · + applicable taxes · 14-day free trial · no credit card required
 
 ---
 
@@ -36,9 +37,11 @@ Multi-tenant SaaS for independent barbershops. Each shop gets a subdomain, priva
 ## Subdomain routing
 
 ```
-barberqueue.pro                              → landing + registration
+barberqueue.pro                              → landing + registration (barbershops)
+salonqueue.pro                               → landing (salons) — rewrite to app/salon/page.tsx
 barberqueue.pro/admin                        → platform admin (allowlisted via ADMIN_USER_IDS)
-[slug].barberqueue.pro                       → owner's private dashboard
+[slug].barberqueue.pro                       → owner's private dashboard (barber tenant)
+[slug].salonqueue.pro                        → owner's private dashboard (salon tenant)
 [slug].barberqueue.pro/setup                 → first-login onboarding wizard
 [slug].barberqueue.pro/book                  → public client booking page
 [slug].barberqueue.pro/book/confirmed        → booking confirmation
@@ -48,7 +51,7 @@ barberqueue.pro/admin                        → platform admin (allowlisted via
 [slug].barberqueue.pro/staff/[token]         → read-only staff schedule (no login)
 ```
 
-`proxy.ts` detects subdomain, guards auth, injects `x-subdomain` header into all requests.
+Same routes apply under `*.salonqueue.pro`. `proxy.ts` detects subdomain + domain, guards auth, and injects `x-subdomain` header. `tenants.market` (`'barber'` | `'salon'`) controls which domain to use for booking URLs and SMS links.
 
 ---
 
@@ -107,6 +110,12 @@ All env vars are in `.env` — Supabase, Twilio, Resend, n8n, OpenRouter, WEBHOO
 
 ### PWA
 - Installable from browser on both dashboard and booking page (no App Store required). `public/sw.js` (cache-first for static assets, network-only for pages/API) + dynamic `app/manifest.ts` per tenant (name + theme colors) + barber-pole icons (192, 512, apple-touch-icon).
+
+### Multi-market (barber / salon)
+- Same app deployed on two domains. `tenants.market` (`'barber'` | `'salon'`) set at registration from the Host header.
+- `salonqueue.pro` has its own landing page (`app/salon/page.tsx`), separate copy and branding.
+- All booking URLs, waitlist SMS links, onboarding wizard, client portal branding, and cookie domains are market-aware.
+- **⚠️ Pending production verification** — deployed 2026-06-30. Full e2e test (register from salonqueue.pro → dashboard → booking URL → waitlist SMS) not yet confirmed in production.
 
 ### Planned (not yet built)
 - **Automated tenant billing** — Stripe Subscriptions for $19.99/$29.99 CAD plans with trial enforcement. Currently billed manually.

@@ -285,7 +285,7 @@ export async function POST(request: Request) {
         method:  'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          from:    `BarberQueue <noreply@barberqueue.pro>`,
+          from:    `${tenant.name} <noreply@barberqueue.pro>`,
           to:      [barberEmail],
           subject: `New booking — ${clientName} at ${time} (${service})`,
           html:    `<p>Hi ${barberName},</p><p>You have a new booking:</p><p><strong>Client:</strong> ${clientName}<br><strong>Service:</strong> ${service}<br><strong>When:</strong> ${formatDateTimeForSms(date, time)}<br><strong>Duration:</strong> ${matched.duration_min} min</p>`,

@@ -575,7 +575,7 @@ export async function POST(request: Request) {
         method:  'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          from:    `BarberQueue <noreply@barberqueue.pro>`,
+          from:    `${tenant.name} <noreply@barberqueue.pro>`,
           to:      [notifEmail],
           subject: `New booking: ${name} — ${service}`,
           html:    `<p><strong>New booking received</strong></p><p>Client: ${name}<br>Service: ${service}${barberLine}<br>When: ${formatDateTimeForSms(date, time)}</p>`,
@@ -593,7 +593,7 @@ export async function POST(request: Request) {
         method:  'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          from:    `BarberQueue <noreply@barberqueue.pro>`,
+          from:    `${tenant.name} <noreply@barberqueue.pro>`,
           to:      [barberEmail],
           subject: `New booking — ${name} at ${time} (${service})`,
           html:    `<p>Hi ${barberName},</p><p>You have a new booking:</p><p><strong>Client:</strong> ${name}<br><strong>Service:</strong> ${service}<br><strong>When:</strong> ${formatDateTimeForSms(date, time)}<br><strong>Duration:</strong> ${serviceDuration} min${clientNote ? `<br><strong>Client note:</strong> ${clientNote}` : ''}</p>`,
