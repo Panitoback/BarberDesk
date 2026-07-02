@@ -3,11 +3,13 @@ import { sendSms } from '@/lib/twilio'
 import { NextResponse } from 'next/server'
 import { todayInToronto, addDaysISO } from '@/lib/dates'
 
-async function sendReactivationEmail(to: string, clientName: string, shopName: string): Promise<void> {
+async function sendReactivationEmail(to: string, clientName: string, shopName: string, market: 'barber' | 'salon'): Promise<void> {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY not set')
 
   const firstName = clientName.split(' ')[0]
+  const brand      = market === 'salon' ? 'SalonQueue' : 'BarberQueue'
+  const brandDomain = market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -58,7 +60,7 @@ async function sendReactivationEmail(to: string, clientName: string, shopName: s
         </td></tr>
 
         <tr><td align="center" style="padding-top:24px;">
-          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 BarberQueue · barberqueue.pro</p>
+          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 ${brand} · ${brandDomain}</p>
         </td></tr>
 
       </table>
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
 
   const { data: tenants } = await supabase
     .from('tenants')
-    .select('id, name, twilio_number, automations_config(reactivation_active, reactivation_days)')
+    .select('id, name, twilio_number, market, automations_config(reactivation_active, reactivation_days)')
     .neq('plan', 'suspended')
 
   if (!tenants?.length) return NextResponse.json({ ok: true, processed: 0 })
@@ -154,7 +156,7 @@ export async function POST(request: Request) {
 
       if (client.email) {
         try {
-          await sendReactivationEmail(client.email, client.name, tenant.name)
+          await sendReactivationEmail(client.email, client.name, tenant.name, tenant.market)
           totalEmailed++
         } catch {
           // Email failure is non-fatal — SMS already sent

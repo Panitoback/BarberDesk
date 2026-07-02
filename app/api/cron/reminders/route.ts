@@ -9,12 +9,15 @@ async function sendReminderEmail(opts: {
   service:   string
   date:      string
   time:      string
+  market:    'barber' | 'salon'
 }): Promise<void> {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY not set')
 
   const when = formatDateTimeForSms(opts.date, opts.time)
   const firstName = opts.clientName.split(' ')[0]
+  const brand       = opts.market === 'salon' ? 'SalonQueue' : 'BarberQueue'
+  const brandDomain = opts.market === 'salon' ? 'salonqueue.pro' : 'barberqueue.pro'
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -65,7 +68,7 @@ async function sendReminderEmail(opts: {
         </td></tr>
 
         <tr><td align="center" style="padding-top:24px;">
-          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 BarberQueue · barberqueue.pro</p>
+          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 ${brand} · ${brandDomain}</p>
         </td></tr>
 
       </table>
@@ -92,7 +95,7 @@ export async function POST(request: Request) {
 
   const { data: tenants } = await supabase
     .from('tenants')
-    .select('id, name, automations_config(reminder_active, reminder_hours)')
+    .select('id, name, market, automations_config(reminder_active, reminder_hours)')
     .neq('plan', 'suspended')
 
   if (!tenants?.length) return NextResponse.json({ ok: true, sent: 0 })
@@ -141,6 +144,7 @@ export async function POST(request: Request) {
           service:    appt.service,
           date:       appt.date,
           time:       appt.time,
+          market:     tenant.market,
         })
         totalSent++
       } catch {
